@@ -5,6 +5,7 @@ __author__ = 'Bruno Stuyts'
 
 # Native Python packages
 import warnings
+import re
 
 # 3rd party packages
 import pandas as pd
@@ -49,6 +50,16 @@ class SoilProfile(pd.DataFrame):
                     raise IOError(
                         "Invalid layer transition at layer %i, continuous layer transitions are required" % i)
 
+        for _col in self.columns:
+            if " from [" in _col and _col.replace(" from [", " to [") not in self.columns:
+                raise IOError("""
+                Incomplete linear parameter variation for column %s. Column %s not found.
+                """ % (_col, _col.replace(" from [", " to [")))
+            if " to [" in _col and _col.replace(" to [", " from [") not in self.columns:
+                raise IOError("""
+                Incomplete linear parameter variation for column %s. Column %s not found.
+                """ % (_col, _col.replace(" to [", " from [")))
+
     @property
     def min_depth(self):
         """
@@ -74,6 +85,75 @@ class SoilProfile(pd.DataFrame):
         if include_bottom:
             transitions = np.append(transitions, self[self.depth_to_col].iloc[-1])
         return transitions
+
+    def soil_parameters(self, condense_linear=True):
+        """
+        Returns a list of soil parameters available in the soil profile.
+        Soil parameters with linear variations are returned as a single soil parameter
+        when the boolean ``condense_linear`` is set to True
+        :return: Returns a list of the soil parameters in the SoilProfile
+        """
+        _parameters = []
+        for _col in self.columns:
+            if _col == self.depth_from_col or _col == self.depth_to_col:
+                pass
+            else:
+                if condense_linear:
+                    if " to [" in _col:
+                        pass
+                    elif " from [" in _col:
+                        _parameters.append(_col.replace(" from [", " ["))
+                    else:
+                        _parameters.append(_col)
+                else:
+                    _parameters.append(_col)
+        return _parameters
+
+    def numerical_soil_parameters(self, condense_linear=True):
+        """
+        Returns a list of numerical soil parameters available in the soil profile.
+        Numerical soil parameters have units between square brackets.
+        Soil parameters with linear variations are returned as a single soil parameter
+        when the boolean ``condense_linear`` is set to True
+        :return: Returns a list with the numerical soil parameters in the SoilProfile
+        """
+        _parameters = []
+        for _col in self.columns:
+            if _col == self.depth_from_col or _col == self.depth_to_col:
+                pass
+            else:
+                if re.match(r".+ \[.+\]", _col):
+                    # Numerical parameter
+                    if condense_linear:
+                        if " to [" in _col:
+                            pass
+                        elif " from [" in _col:
+                            _parameters.append(_col.replace(" from [", " ["))
+                        else:
+                            _parameters.append(_col)
+                    else:
+                        _parameters.append(_col)
+                else:
+                    pass
+        return _parameters
+
+    def string_soil_parameters(self):
+        """
+        Returns a list of string soil parameters available in the soil profile.
+        String soil parameters have no square brackets.
+        :return: Returns a list with the string soil parameters in the SoilProfile
+        """
+        _parameters = []
+        for _col in self.columns:
+            if _col == self.depth_from_col or _col == self.depth_to_col:
+                pass
+            else:
+                if re.match(r".+ \[.+\]", _col):
+                    # Numerical parameter
+                    pass
+                else:
+                    _parameters.append(_col)
+        return _parameters
 
     def insert_layer_transition(self, depth):
         """
@@ -115,6 +195,28 @@ class SoilProfile(pd.DataFrame):
         """
         self[self.depth_from_col] = self[self.depth_from_col] + offset
         self[self.depth_to_col] = self[self.depth_to_col] + offset
+
+    def soilparameter_series(self, parameter):
+        """
+        Returns tow lists (depths and corresponding parameter values) for plotting
+        of a soil parameter vs depth.
+        The routine first checks whether a valid parameter is provided.
+        The lists are formatted such that variations at a layer interface are
+        adequately plotted.
+        :param parameter: A valid soil parameter with units
+        :return: Two lists (depths and corresponding parameter values)
+        """
+        pass # TODO
+
+    def map_soilprofile(self, nodalcoords):
+        """
+        Maps the soilprofile to a grid. The depth coordinates to the grid are specified
+        in a list or Numpy array (``nodalcoords``).
+        All soil parameters are interpolated onto this grid.
+        :param nodalcoords: List or Numpy array with the nodal coordinates of the grid
+        :return: Returns a dataframe with the full grid with soil parameters
+        """
+        pass # TODO
 
 
 def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):

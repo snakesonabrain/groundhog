@@ -2,7 +2,8 @@
 
 import os
 from setuptools import setup, find_packages
-from geotechnics.__version__ import __version__, __description__
+from groundhog.__version__ import __version__, __description__, __url__, __download_url__
+
 # load the README file and use it as the long_description for PyPI
 def readme():
     with open('README.md', 'r') as f:
@@ -14,8 +15,8 @@ setup(name='groundhog',
       version=__version__,
       description=__description__,
       long_description=readme(),
-      url='https://github.ugent.be/labo-geotechniek/ugentgeotechnics',
-      download_url='https://github.ugent.be/bstuyts/ugentgeotechnics/archive/master.zip',
+      url=__url__,
+      download_url=__download_url__,
       keywords=['engineering', 'geotechnical'],
       author='Bruno Stuyts',
       author_email='bruno@pro-found.be',

@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 # Project imports
-
+from groundhog.general.plotting import plot_with_log
 
 class SoilProfile(pd.DataFrame):
     """
@@ -155,6 +155,22 @@ class SoilProfile(pd.DataFrame):
                     _parameters.append(_col)
         return _parameters
 
+    def check_linear_variation(self, parameter):
+        """
+        Check if a soil parameter varies linearly or not.
+        :return: Boolean determining whether a soil parameter has a linear variation or not
+        """
+        if not parameter in self.numerical_soil_parameters():
+            raise ValueError("Parameter %s not defined, choose one of %s." % (
+                parameter, self.numerical_soil_parameters()
+            ))
+        else:
+            if (parameter.replace(' [', ' from [') in self.columns) and \
+               (parameter.replace(' [', ' to [') in self.columns):
+               return True
+            else:
+                return False
+
     def insert_layer_transition(self, depth):
         """
         Inserts a layer transition in the soil profile at a specific depth
@@ -206,17 +222,160 @@ class SoilProfile(pd.DataFrame):
         :param parameter: A valid soil parameter with units
         :return: Two lists (depths and corresponding parameter values)
         """
-        pass # TODO
+        if not parameter in self.numerical_soil_parameters():
+            raise ValueError("Parameter %s not defined, choose one of %s." % (
+                parameter, self.numerical_soil_parameters()
+            ))
+        if self.check_linear_variation(parameter):
+            first_array_x = np.array(self[parameter.replace(' [', ' from [')])
+            second_array_x = np.array(self[parameter.replace(' [', ' to [')])
+        else:
+            first_array_x = np.array(self[parameter])
+            second_array_x = np.array(self[parameter])
+        first_array_z = np.array(self[self.depth_from_col])
+        second_array_z = np.array(self[self.depth_to_col])
+        z = np.insert(second_array_z, np.arange(len(first_array_z)), first_array_z)
+        x = np.insert(second_array_x, np.arange(len(first_array_x)), first_array_x)
+        return z, x
 
-    def map_soilprofile(self, nodalcoords):
+    def map_soilprofile(self, nodalcoords, target_depthkey='z [m]', invert_sign=False, offset=0):
         """
         Maps the soilprofile to a grid. The depth coordinates to the grid are specified
         in a list or Numpy array (``nodalcoords``).
+        The depth coordinates should be strictly ascending (no duplicates) and the minimum and
+        maximum should be contained inside the soil profile bounds.
         All soil parameters are interpolated onto this grid.
         :param nodalcoords: List or Numpy array with the nodal coordinates of the grid
+        :param target_depthkey: Name of the depth key in the resulting dataframe
+        :param invert_sign: Boolean determining whether to invert the sign after interpolation
+        :param offset: Offset by which the depth is shifted (added to the depth after sign conversion)
         :return: Returns a dataframe with the full grid with soil parameters
         """
-        pass # TODO
+        # 1. Convert nodalcoords to Numpy array
+        try:
+            z = np.array(nodalcoords)
+        except Exception as err:
+            raise ValueError("Could not convert nodal coords to Numpy array (%s)" % str(err))
+        # Create a target dataframe with the depth column
+        target_df = pd.DataFrame({
+            target_depthkey: z,
+        })
+
+        # 2. Validate if nodal coordinates array is sorted and strictly ascending
+        if np.all(np.diff(z) >= 0):
+            pass
+        else:
+            raise ValueError("Nodal coordinates are not ascending. Please check ")
+
+        # 3. Map string parameters
+        for _param in self.string_soil_parameters():
+            target_df[_param] = list(map(lambda _z: self[
+                (self[self.depth_from_col] <= _z) & (self[self.depth_to_col] >= _z)][_param].iloc[-1],
+                                      target_df[target_depthkey]))
+
+        # 4. Map numerical parameters
+        for _param in self.numerical_soil_parameters():
+            z, x = self.soilparameter_series(_param)
+            target_df[_param] = np.interp(target_df[target_depthkey], z, x)
+
+        # 5. Convert sign and apply offset
+        if invert_sign:
+            target_df[target_depthkey] = -target_df[target_depthkey]
+
+        target_df[target_depthkey] = target_df[target_depthkey] + offset
+
+        return target_df
+
+    def plot_profile(self, parameters, soiltypecolumn='Soil type', **kwargs):
+        """
+        Generates a Plotly plot of the soil parameters vs depth.
+        The panel on which the parameter is plotted is determined by how the parameters are passed to the function.
+
+        ``parameters=(('qc [MPa]',), ('Dr [%]',))`` will plot cone resistance in panel 1 and relative density in panel 2
+
+        ``parameters=(('qc [MPa]', 'qt [MPa]'), ('Dr [%]'))`` will plot cone resistance and total cone resistance in panel 1 and relative density in panel 2
+
+        A column wihh the soil type is expected for the plotting of the log
+
+        :param parameters: List of parameters tuples for plotting
+        :param kwargs: Additional keyword arguments for the ``plot_with_log`` function in the ``general.plotting`` module
+        :return: Plotly plot with mini-log and parameter values
+        """
+        if soiltypecolumn not in self.string_soil_parameters():
+            raise ValueError("Column %s not recognised for soil type, needs to be one of %s" % (
+                soiltypecolumn, self.string_soil_parameters()))
+
+        plotting_z = []
+        plotting_x = []
+        names = []
+        x_titles = []
+        for _paramset in parameters:
+            _plotting_z = []
+            _plotting_x = []
+            _names = []
+            for _param in _paramset:
+                if _param not in self.numerical_soil_parameters():
+                    raise ValueError("Soil parameter %s not in SoilProfile, must be one of %s" % (
+                        _param, self.numerical_soil_parameters()
+                    ))
+                else:
+                    _z, _x = self.soilparameter_series(_param)
+                    _plotting_z.append(_z)
+                    _plotting_x.append(_x)
+                    _names.append(_param)
+            plotting_z.append(_plotting_z)
+            plotting_x.append(_plotting_x)
+            names.append(_names)
+            x_titles.append('no title')
+
+        try:
+            names = kwargs['names']
+            del kwargs['names']
+        except:
+            pass
+
+        try:
+            x_titles = kwargs['xtitles']
+            del kwargs['xtitles']
+        except:
+            pass
+
+        try:
+            z_title = kwargs['ztitle']
+            del kwargs['ztitle']
+        except:
+            z_title = "Depth [m]"
+
+        if soiltypecolumn != 'Soil type':
+            self.rename({soiltypecolumn: 'Soil type'}, inplace=True)
+
+        return plot_with_log(
+            x=plotting_x,
+            y=plotting_z,
+            names=names,
+            soildata=self,
+            xtitles=x_titles,
+            ztitle=z_title,
+            showfig=False,
+            **kwargs
+        )
+
+    def selection_soilparameter(self, parameter, depths, values, rule='mean', linearvariation=False):
+        """
+        Function for automatic selection of a soil parameters in the layers of a soil profile
+        based an a list of provided values. The selection can either be done for a constant value in the layer or a linear variation
+        over the layer.
+        Selection of a minimum, mean or average trend can be performed using the ``rule`` keyword
+
+        :param parameter: Name of the parameter being selected (including unit in square brackets)
+        :param depths: Depths at which a measurement is available
+        :param values: Values corresponding to the given depths
+        :param rule: Which rule to use for the selection (select from ``min``, ``mean`` and ``max``
+        :param linearvariation: Boolean determining whether a linear variation needs to happen over the layer or not
+        :return: Adds one (constant value) or two (linear variation) columns to the dataframe
+        """
+        pass
+        # TODO: Implement selection routine
 
 
 def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):

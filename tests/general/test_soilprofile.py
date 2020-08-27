@@ -68,6 +68,7 @@ class Test_SoilProfile(unittest.TestCase):
             'Depth from [m]': [0, 1, 5, 10],
             'Depth to [m]': [1, 5, 10, 20],
             'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Dr [%]': [40, 60, np.nan, 80],
             'qc from [MPa]': [1, 3, 10, 40],
             'qc to [MPa]': [1, 3, 10, 40]
         })
@@ -80,6 +81,8 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertNotIn('Soil type', profile.numerical_soil_parameters(condense_linear=False))
         self.assertNotIn('qc from [MPa]', profile.string_soil_parameters())
         self.assertIn('Soil type', profile.string_soil_parameters())
+        self.assertTrue(profile.check_linear_variation('qc [MPa]'))
+        self.assertFalse(profile.check_linear_variation('Dr [%]'))
 
     def test_transition_insert(self):
         self.profile.insert_layer_transition(depth=2.5)
@@ -98,3 +101,32 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertEqual(self.profile.loc[1, 'Depth to [m]'], 8)
         self.profile.shift_depths(offset=-3)
         self.assertEqual(self.profile.loc[1, 'Depth to [m]'], 5)
+
+    def test_soilparameter_series(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Dr [%]': [40, 60, np.nan, 80],
+            'qc from [MPa]': [1, 3, 10, 40],
+            'qc to [MPa]': [2, 3, 20, 50]
+        })
+        self.assertEqual(
+            profile.soilparameter_series("qc [MPa]")[1][2], 3)
+        self.assertEqual(
+            profile.soilparameter_series("Dr [%]")[1][3], 60)
+
+    def test_parameter_mapping(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Relative density': ['Loose', 'Medium dense', None, 'Dense'],
+            'Dr [%]': [40, 60, np.nan, 80],
+            'qc from [MPa]': [1, 3, 10, 40],
+            'qc to [MPa]': [2, 3, 20, 50]
+        })
+        mapped_df = profile.map_soilprofile(np.linspace(0, 20, 21))
+        self.assertEqual(mapped_df.loc[3, 'Soil type'], 'SILT')
+        self.assertRaises(ValueError, profile.map_soilprofile, (np.linspace(-1, 20, 22),))
+        self.assertEqual(mapped_df.loc[15, 'qc [MPa]'], 45)

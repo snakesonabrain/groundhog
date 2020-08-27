@@ -412,9 +412,9 @@ def generate_html(outpath, figures, titles, drawnby, report,
 
 def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=True,
                   modes=None, markerformats=None,
-                  soildata=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'ROCK': 'grey'},
+                  soildata=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
                   colors=None, logwidth=0.05, panelmargin=0.04, mLAT=False, mudline=0,
-                  xtitles=[], ytitle=None, xranges=None, yrange=None, ytick=None, dticks=None,
+                  xtitles=[], ztitle=None, xranges=None, yrange=None, ytick=None, dticks=None,
                   plottitle=None, plotwidth=900, plotheight=700, plotmargin=dict(t=150, l=50, b=50),
                   showfig=True):
     """
@@ -426,7 +426,6 @@ def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=Tr
     :param x: List of lists of x-arrays for the traces
     :param y: List of lists of y-arrays for the traces
     :param names: List of lists of names for the traces (used in legend)
-    :param panels: Array with panel number on which to plot the traces (1-indexed)
     :param showlegends: Array of booleans determining whether or not to show the trace in the legend
     :param showlegend: Overall override on legend display
     :param modes: List of display modes for the traces (select from 'lines', 'markers' or 'lines+markers'
@@ -439,7 +438,7 @@ def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=Tr
     :param mLAT: Boolean determining whether depths are in mLAT (default = False)
     :param mudline: Mudline (soil surface) level in mLAT in case depths are in mLAT
     :param xtitles: Array with X-axis titles for the panels
-    :param ytitle: Y-axis title (Y axis is shared between all panels)
+    :param ztitle: Depth axis title (Depth axis is shared between all panels)
     :param xranges: List with ranges to be used for X-axes
     :param yrange: Range to be used for Y-axis
     :param ytick: Tick interval to be used for the Y-axis
@@ -465,7 +464,7 @@ def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=Tr
             _showlegends_panel.append(True)
             _modes_panel.append('lines')
             _markerformats_panel.append(dict(size=5))
-            _colors_panel.append(DEFAULT_PLOTLY_COLORS[0])
+            _colors_panel.append(DEFAULT_PLOTLY_COLORS[j])
         _showlegends.append(_showlegends_panel)
         _modes.append(_modes_panel)
         _markerformats.append(_markerformats_panel)
@@ -514,11 +513,11 @@ def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=Tr
 
     if yrange is None:
         if mLAT:
-            _yaxis = dict(title=ytitle, anchor='x')
+            _yaxis = dict(title=ztitle, anchor='x')
         else:
-            _yaxis = dict(title=ytitle, autorange='reversed', anchor='x')
+            _yaxis = dict(title=ztitle, autorange='reversed', anchor='x')
     else:
-        _yaxis = dict(title=ytitle, range=yrange, anchor='x')
+        _yaxis = dict(title=ztitle, range=yrange, anchor='x')
 
     _layout = go.Layout(
         title=plottitle,

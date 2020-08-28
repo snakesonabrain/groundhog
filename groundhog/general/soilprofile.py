@@ -368,14 +368,31 @@ class SoilProfile(pd.DataFrame):
         Selection of a minimum, mean or average trend can be performed using the ``rule`` keyword
 
         :param parameter: Name of the parameter being selected (including unit in square brackets)
-        :param depths: Depths at which a measurement is available
-        :param values: Values corresponding to the given depths
+        :param depths: Depths at which a measurement is available (list or Numpy array)
+        :param values: Values corresponding to the given depths (list or Numpy array)
         :param rule: Which rule to use for the selection (select from ``min``, ``mean`` and ``max``
         :param linearvariation: Boolean determining whether a linear variation needs to happen over the layer or not
         :return: Adds one (constant value) or two (linear variation) columns to the dataframe
         """
-        pass
-        # TODO: Implement selection routine
+        # Validate the length of depths and values lists
+        if depths.__len__() != values.__len__():
+            raise ValueError("Lists with depths and values must be of equal length")
+
+        if rule not in ['min', 'mean', 'max']:
+            raise ValueError("rule should be one of 'min', 'mean' or 'max'")
+
+        for i, row in self.iterrows():
+            selection = np.logical_and(
+                np.array(depths) >= row[self.depth_from_col],
+                np.array(depths) <= row[self.depth_to_col])
+            selected_depths = np.array(depths)[selection]
+            selected_values = np.array(values)[selection]
+
+        if linearvariation:
+            pass
+        else:
+
+        # TODO: Further implementation of selection routine
 
 
 def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):

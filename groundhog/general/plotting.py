@@ -13,6 +13,7 @@ from jinja2 import Environment, BaseLoader
 import plotly.graph_objs as go
 from plotly.offline import plot, iplot
 from plotly.colors import DEFAULT_PLOTLY_COLORS
+from plotly.subplots import make_subplots
 import numpy as np
 
 # Project imports
@@ -450,6 +451,9 @@ def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=Tr
     :param showfig: Boolean determining whether the figure needs to be shown
     :return: Plotly figure object which can be further modified
     """
+
+    # TODO: Update to make use of the make_subplots method
+    # TODO: Custom panel sizes can be encoded as follows: make_subplots(rows=1, cols=2, column_widths=[0.7, 0.3])
 
     _showlegends = []
     _modes = []

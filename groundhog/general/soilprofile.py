@@ -356,7 +356,6 @@ class SoilProfile(pd.DataFrame):
             soildata=self,
             xtitles=x_titles,
             ztitle=z_title,
-            showfig=False,
             **kwargs
         )
 
@@ -378,21 +377,119 @@ class SoilProfile(pd.DataFrame):
         if depths.__len__() != values.__len__():
             raise ValueError("Lists with depths and values must be of equal length")
 
+        # Validate the specified parameter
+        if not re.match(r".+ \[.+\]", parameter):
+            raise ValueError(
+                "Soil parameter incorrectly specified, parameter should be in the format 'parameter [unit]'")
+
         if rule not in ['min', 'mean', 'max']:
             raise ValueError("rule should be one of 'min', 'mean' or 'max'")
 
         for i, row in self.iterrows():
+            # Loop over every layer and select provided values in each layer
             selection = np.logical_and(
                 np.array(depths) >= row[self.depth_from_col],
                 np.array(depths) <= row[self.depth_to_col])
             selected_depths = np.array(depths)[selection]
             selected_values = np.array(values)[selection]
 
-        if linearvariation:
-            pass
-        else:
+            if selected_depths.__len__() == 0:
+                # No samples in selected layer
+                if linearvariation:
+                    self.loc[i, parameter.replace(' [', ' from [')] = np.nan
+                    self.loc[i, parameter.replace(' [', ' to [')] = np.nan
+                else:
+                    self.loc[i, parameter] = np.nan
+            elif selected_depths.__len__() == 1:
+                # Single value in the selected layer
+                if linearvariation:
+                    self.loc[i, parameter.replace(' [', ' from [')] = selected_values[0]
+                    self.loc[i, parameter.replace(' [', ' to [')] = selected_values[0]
+                else:
+                    self.loc[i, parameter] = selected_values[0]
+            else:
+                # Multiple values in each layer
+                if linearvariation:
+                    fit_coeff = np.polyfit(
+                        x=selected_depths,
+                        y=selected_values,
+                        deg=1)
+                    fit_func = np.poly1d(fit_coeff)
+                    residuals = np.array(selected_values) - fit_func(selected_depths)
+                    sorted_residuals = np.sort(residuals)
+                    if rule == 'min':
+                        selected_points = (
+                            np.array(residuals) <= sorted_residuals[1])
+                        zs = selected_depths[selected_points]
+                        xs = selected_values[selected_points]
+                        self.loc[i, parameter.replace(' [', ' from [')] = \
+                            xs[0] + ((xs[1] - xs[0]) / (zs[1] - zs[0])) * (row[self.depth_from_col] - zs[0])
+                        self.loc[i, parameter.replace(' [', ' to [')] = \
+                            xs[0] + ((xs[1] - xs[0]) / (zs[1] - zs[0])) * (row[self.depth_to_col] - zs[0])
+                    elif rule == 'mean':
+                        self.loc[i, parameter.replace(' [', ' from [')] = fit_func(row[self.depth_from_col])
+                        self.loc[i, parameter.replace(' [', ' to [')] = fit_func(row[self.depth_to_col])
+                    elif rule == 'max':
+                        selected_points = (
+                                np.array(residuals) >= sorted_residuals[-2])
+                        zs = selected_depths[selected_points]
+                        xs = selected_values[selected_points]
+                        self.loc[i, parameter.replace(' [', ' from [')] = \
+                            xs[0] + ((xs[1] - xs[0]) / (zs[1] - zs[0])) * (row[self.depth_from_col] - zs[0])
+                        self.loc[i, parameter.replace(' [', ' to [')] = \
+                            xs[0] + ((xs[1] - xs[0]) / (zs[1] - zs[0])) * (row[self.depth_to_col] - zs[0])
+                    else:
+                        raise ValueError("Rule %s unknown. Rule should be one of 'min', 'mean' or 'max'" % rule)
+                else:
+                    if rule == 'min':
+                        self.loc[i, parameter] = selected_values.min()
+                    elif rule == 'mean':
+                        self.loc[i, parameter] = selected_values.mean()
+                    elif rule == 'max':
+                        self.loc[i, parameter] = selected_values.max()
+                    else:
+                        raise ValueError("Rule %s unknown. Rule should be one of 'min', 'mean' or 'max'" % rule)
 
-        # TODO: Further implementation of selection routine
+    def merge_layers(self, layer_ids):
+        """
+        Merges two or more layers.
+
+        TODO: Decide what to do with soil parameters
+        :param layer_ids: List with the IDs of the layers to be merged
+        :return: Reduces the number of layers of the ``SoilProfile`` object
+        """
+        # TODO
+        pass
+
+    def remove_parameter(self, parameter):
+        """
+        Removes a soil parameter from the dataframe
+        :param parameter:
+        :return: Removes the requested soil parameter from the ``SoilProfile`` objec
+        """
+        # TODO
+        pass
+
+    def cut_profile(self, top_depth, bottom_depth):
+        """
+        Returns a deep copy of the ``SoilProfile`` between the specified bounds
+        :param top_depth: Top depth for cutting
+        :param bottom_depth: Bottom depth for cutting
+        :return: Deep copy of the ``SoilProfile`` between the specified bounds
+        """
+        # TODO
+        pass
+
+    def depth_integration(self, parameter, outputparameter):
+        """
+        Integrate a certain parameter vs depth (e.g. unit weight to obtain vertical stress)
+        Note: In case of linearly varying parameters the quadratic variation will not be captured in plots!
+        :param parameter: Parameter to be integrated
+        :param outputparameter: Name of the output parameter
+        :return: Adds a column to the ``SoilProfile`` object for the integrated parameter
+        """
+        # TODO
+        pass
 
 
 def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):

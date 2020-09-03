@@ -6,6 +6,7 @@ __author__ = 'Bruno Stuyts'
 # Native Python packages
 import warnings
 import re
+from copy import deepcopy
 
 # 3rd party packages
 import pandas as pd
@@ -418,6 +419,7 @@ class SoilProfile(pd.DataFrame):
                     residuals = np.array(selected_values) - fit_func(selected_depths)
                     sorted_residuals = np.sort(residuals)
                     if rule == 'min':
+                        # TODO: Double-check routine for trend selection
                         selected_points = (
                             np.array(residuals) <= sorted_residuals[1])
                         zs = selected_depths[selected_points]
@@ -450,25 +452,49 @@ class SoilProfile(pd.DataFrame):
                     else:
                         raise ValueError("Rule %s unknown. Rule should be one of 'min', 'mean' or 'max'" % rule)
 
-    def merge_layers(self, layer_ids):
+    def merge_layers(self, layer_ids, keep='top'):
         """
-        Merges two or more layers.
+        Merges two layers. Depending on the ``keep`` keyword, the top or bottom
+        properties are retained for the merged layer
 
-        TODO: Decide what to do with soil parameters
-        :param layer_ids: List with the IDs of the layers to be merged
+        :param layer_ids: List with the 2 IDs of the layers to be merged
+        :param keep: String determining whether to retain the parameters of the top or bottom layer for the merged layer (select 'top' or 'bottom')
         :return: Reduces the number of layers of the ``SoilProfile`` object
         """
-        # TODO
-        pass
+        # TODO: Implement intermediate behaviour where properties of top and bottom layer are averaged
+
+        # Validate the IDs
+        if layer_ids.__len__() != 2:
+            raise ValueError("A tuple with two layer indices should be specified")
+        try:
+            for _id in layer_ids:
+                self.loc[_id, self.depth_from_col]
+        except:
+            raise ValueError("Layer IDs not valid. Valid layer IDs are %s" % list(self.index))
+
+        if keep == 'top':
+            self.loc[layer_ids[1], self.depth_from_col] = np.nan
+            self.loc[layer_ids[0], self.depth_to_col] = self.loc[layer_ids[1], self.depth_to_col]
+        elif keep == 'bottom':
+            self.loc[layer_ids[0], self.depth_to_col] = np.nan
+            self.loc[layer_ids[1], self.depth_from_col] = self.loc[layer_ids[0], self.depth_from_col]
+        self.dropna(subset=(self.depth_from_col, self.depth_to_col), inplace=True)
+        self.reset_index(drop=True, inplace=True)
 
     def remove_parameter(self, parameter):
         """
         Removes a soil parameter from the dataframe
-        :param parameter:
+        :param parameter: Soil parameter to remove. For linear variations, simple use the expression ``parameter [unit]``. The routine takes care of removing both the 'to' and 'from' columns
         :return: Removes the requested soil parameter from the ``SoilProfile`` objec
         """
-        # TODO
-        pass
+        if (parameter not in self.numerical_soil_parameters()) and (parameter not in self.string_soil_parameters()):
+            raise ValueError("Soil parameter %s not in dataframe" % parameter)
+
+        if self.check_linear_variation(parameter):
+            self.drop(parameter.replace(' [', ' from ['), axis=1, inplace=True)
+            self.drop(parameter.replace(' [', ' to ['), axis=1, inplace=True)
+        else:
+            self.drop(parameter, axis=1, inplace=True)
 
     def cut_profile(self, top_depth, bottom_depth):
         """
@@ -477,19 +503,92 @@ class SoilProfile(pd.DataFrame):
         :param bottom_depth: Bottom depth for cutting
         :return: Deep copy of the ``SoilProfile`` between the specified bounds
         """
-        # TODO
-        pass
+        if top_depth < self.min_depth:
+            warnings.warn("Top depth of %.2f is smaller than minimum depth of the soil profile." % bottom_depth)
+            top_depth = self.min_depth
 
-    def depth_integration(self, parameter, outputparameter):
+        if bottom_depth > self.max_depth:
+            warnings.warn("Bottom depth of %.2f is greater than maximum depth of the soil profile." % top_depth)
+            bottom_depth = self.max_depth
+
+        # Make a deep copy of the soil profile
+        _profile = deepcopy(self)
+
+        # Drop layers outside the bounds
+        _profile = _profile[(_profile[self.depth_from_col] < bottom_depth) &
+                            (_profile[self.depth_to_col] > top_depth)]
+
+        # Interpolate linearly varying parameters
+        for _param in self.numerical_soil_parameters():
+            if self.check_linear_variation(_param):
+                _from_param = _param.replace(' [', ' from [')
+                _to_param = _param.replace(' [', ' to [')
+                _profile[_from_param].iloc[0] = np.interp(
+                    top_depth,
+                    [_profile[self.depth_from_col].iloc[0],
+                     _profile[self.depth_to_col].iloc[0]],
+                    [_profile[_from_param].iloc[0],
+                     _profile[_to_param].iloc[0]]
+                )
+                _profile[_to_param].iloc[-1] = np.interp(
+                    bottom_depth,
+                    [_profile[self.depth_from_col].iloc[-1], _profile[self.depth_to_col].iloc[-1]],
+                    [_profile[_from_param].iloc[-1],
+                     _profile[_to_param].iloc[-1]]
+                )
+
+        # Adjust bounds
+        _profile[self.depth_from_col].iloc[0] = top_depth
+        _profile[self.depth_to_col].iloc[-1] = bottom_depth
+
+        # Reset the indices
+        _profile.reset_index(drop=True, inplace=True)
+
+        # Make sure the returned object is also a SoilProfile object
+        _profile.__class__ = SoilProfile
+        pattern = re.compile(r'(?P<depth_key>.+) from \[(?P<unit>.+)\]')
+        match = re.search(pattern, self.depth_from_col)
+        _profile.set_depthcolumn_name(name=match.group('depth_key'), unit=match.group('unit'))
+
+        return _profile
+
+    def depth_integration(self, parameter, outputparameter, start_value=0):
         """
         Integrate a certain parameter vs depth (e.g. unit weight to obtain vertical stress)
-        Note: In case of linearly varying parameters the quadratic variation will not be captured in plots!
+        Note: This routine is only implemented for parameters with a constant value in the layer.
         :param parameter: Parameter to be integrated
-        :param outputparameter: Name of the output parameter
+        :param outputparameter: Name of the output parameter (with units)
+        :param start_value: Value at the top of the profile (default=0)
         :return: Adds a column to the ``SoilProfile`` object for the integrated parameter
         """
-        # TODO
-        pass
+        # Validate that the parameter to be integrated is in the list of numerical parameters with contstant value
+        if (not parameter in self.numerical_soil_parameters()):
+            raise ValueError("Selected parameter is not in the list of numerical parameters")
+        else:
+            if self.check_linear_variation(parameter):
+                raise ValueError("Integration only works for parameter with a constant value in each layer")
+            else:
+                pass
+
+        # Validate name of the output parameter
+        if not re.match(r".+ \[.+\]", outputparameter):
+            raise ValueError("Output parameter not propertly formatted, needs to be 'parameter [unit]'")
+
+        # Check that there a no NaN values
+        if self[parameter].__len__() != self.dropna(subset=(parameter,)).__len__():
+            raise ValueError("Parameter integrated vs depth should not contain nan values")
+
+        for i, row in self.iterrows():
+            if i == 0:
+                self.loc[i, outputparameter.replace(' [', ' from [')] = start_value
+            else:
+                self.loc[i, outputparameter.replace(' [', ' from [')] = \
+                    self.loc[i - 1, outputparameter.replace(' [', ' to [')]
+
+            self.loc[i, outputparameter.replace(' [', ' to [')] = \
+                self.loc[i, outputparameter.replace(' [', ' from [')] + \
+                row[parameter] * (row[self.depth_to_col] - row[self.depth_from_col])
+
 
 
 def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):

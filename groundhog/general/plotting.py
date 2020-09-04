@@ -13,7 +13,7 @@ from jinja2 import Environment, BaseLoader
 import plotly.graph_objs as go
 from plotly.offline import plot, iplot
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.subplots import make_subplots
+from plotly import subplots
 import numpy as np
 
 # Project imports
@@ -411,49 +411,48 @@ def generate_html(outpath, figures, titles, drawnby, report,
         raise
 
 
-def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=True,
+def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
                   modes=None, markerformats=None,
                   soildata=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
-                  colors=None, logwidth=0.05, panelmargin=0.04, mLAT=False, mudline=0,
+                  colors=None, logwidth=0.05,
                   xtitles=[], ztitle=None, xranges=None, yrange=None, ytick=None, dticks=None,
-                  plottitle=None, plotwidth=900, plotheight=700, plotmargin=dict(t=150, l=50, b=50),
+                  layout=dict(),
                   showfig=True):
     """
     Plots a given number of traces in a plot with a soil mini-log on the left hand side.
     The traces are given as a list of lists, the traces are grouped per plotting panel.
     For example x=[[np.linspace(0, 1, 100), np.logspace(0,2,100)], [np.linspace(1, 3, 100), ]] leads to the first two
-    traces plotted in the first panel and one trace in the second panel. The same goes for the y arrays, trace names, ...
+    traces plotted in the first panel and one trace in the second panel. The same goes for the z arrays, trace names, ...
 
     :param x: List of lists of x-arrays for the traces
-    :param y: List of lists of y-arrays for the traces
+    :param z: List of lists of z-arrays for the traces
     :param names: List of lists of names for the traces (used in legend)
     :param showlegends: Array of booleans determining whether or not to show the trace in the legend
-    :param showlegend: Overall override on legend display
     :param modes: List of display modes for the traces (select from 'lines', 'markers' or 'lines+markers'
     :param markerformats: List of formats for the markers (see Plotly docs for more info)
-    :param soildata: Dictionary with keys 'Soil type': Array with soil type for each layer, 'Depth from [m]': Array with start depth for each layer, 'Depth to [m]': Array with bottom depth for each layer
+    :param soildata: Pandas dataframe with keys 'Soil type': Array with soil type for each layer, 'Depth from [m]': Array with start depth for each layer, 'Depth to [m]': Array with bottom depth for each layer
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
     :param colors: List of colours to be used for plotting (default = default Plotly colours)
     :param logwidth: Width of the soil width as a ratio of the total plot with (default = 0.05)
-    :param panelmargin: Margin between the panels (default = 0.04)
-    :param mLAT: Boolean determining whether depths are in mLAT (default = False)
-    :param mudline: Mudline (soil surface) level in mLAT in case depths are in mLAT
     :param xtitles: Array with X-axis titles for the panels
     :param ztitle: Depth axis title (Depth axis is shared between all panels)
     :param xranges: List with ranges to be used for X-axes
     :param yrange: Range to be used for Y-axis
     :param ytick: Tick interval to be used for the Y-axis
     :param dticks: List of tick intervals to be used for the X-axes
-    :param plottitle: Title of the plot (default = None)
-    :param plotwidth: Width of the plot (default = 900px)
-    :param plotheight: Height of the plot (default = 700px)
-    :param plotmargin: Margin of the plot (see Plotly docs for more info)
+    :param layout: Dictionary with the layout settings
     :param showfig: Boolean determining whether the figure needs to be shown
     :return: Plotly figure object which can be further modified
     """
 
-    # TODO: Update to make use of the make_subplots method
-    # TODO: Custom panel sizes can be encoded as follows: make_subplots(rows=1, cols=2, column_widths=[0.7, 0.3])
+    no_panels = x.__len__()
+
+    panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, x))
+
+    panel_widths = list(np.append(logwidth, panel_widths))
+
+    _fig = subplots.make_subplots(rows=1, cols=no_panels + 1, column_widths=panel_widths, shared_yaxes=True,
+                                  print_grid=False)
 
     _showlegends = []
     _modes = []
@@ -484,73 +483,55 @@ def plot_with_log(x=[[],], y=[[],], names=[[],], showlegends=None, showlegend=Tr
         colors = _colors
 
     _traces = []
-    _traces.append(go.Scatter(x=[0, 1], y=[np.nan, np.nan], xaxis='x1', showlegend=False))
+
+    log_dummy_trace = go.Scatter(x=[0, 1], y=[np.nan, np.nan], showlegend=False)
+    _fig.append_trace(log_dummy_trace, 1, 1)
+
     for i, _x in enumerate(x):
         for j, _trace_x in enumerate(_x):
             try:
-                _traces.append(go.Scatter(
+                _trace = go.Scatter(
                     x=x[i][j],
-                    y=y[i][j],
+                    y=z[i][j],
                     mode=modes[i][j],
                     name=names[i][j],
                     showlegend=showlegends[i][j],
                     marker=markerformats[i][j],
-                    line=dict(color=colors[i][j]), xaxis='x%i' % (i + 2)))
+                    line=dict(color=colors[i][j]))
+                _fig.append_trace(_trace, 1, i + 2)
             except Exception as err:
-                warnings.warn("Error during traces creation for trace %s - %s" % (names[i][j], str(traceback.format_exc())))
-
-    _data = _traces
-
-    _panel_width = ((1 - logwidth - 2 * panelmargin) / (x.__len__())) - panelmargin
+                warnings.warn(
+                    "Error during traces creation for trace %s - %s" % (names[i][j], str(traceback.format_exc())))
 
     _layers = []
     for i, row in soildata.iterrows():
         _fillcolor = fillcolordict[row['Soil type']]
-        if mLAT:
-            _y0 = -row['Depth from [m]'] + mudline
-            _y1 = -row['Depth to [m]'] + mudline
-        else:
-            _y0 = row['Depth from [m]']
-            _y1 = row['Depth to [m]']
+        _y0 = row['Depth from [m]']
+        _y1 = row['Depth to [m]']
         _layers.append(
             dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
 
     if yrange is None:
-        if mLAT:
-            _yaxis = dict(title=ztitle, anchor='x')
-        else:
-            _yaxis = dict(title=ztitle, autorange='reversed', anchor='x')
+        _fig['layout']['yaxis1'].update(title=ztitle, autorange='reversed')
     else:
-        _yaxis = dict(title=ztitle, range=yrange, anchor='x')
+        _fig['layout']['yaxis1'].update(title=ztitle, range=yrange)
 
-    _layout = go.Layout(
-        title=plottitle,
-        yaxis=_yaxis,
-        width=plotwidth,
-        height=plotheight,
-        showlegend=showlegend,
-        shapes=_layers,
-        margin=plotmargin
-    )
-    _fig = go.Figure(data=_data, layout=_layout)
+    _fig['layout'].update(layout)
+    _fig['layout'].update(shapes=_layers)
 
     if ytick is not None:
         _fig['layout']['yaxis1'].update(dtick=ytick)
 
-    _start_panel = 0
-    _end_panel = logwidth
-    _fig['layout']['xaxis1'] = dict(
-        anchor='y', domain=[_start_panel, _end_panel], title=None, side='top', tickvals=[])
+    _fig['layout']['xaxis1'].update(
+        anchor='y', title=None, side='top', tickvals=[])
     for i, _x in enumerate(x):
-        _start_panel = _end_panel + panelmargin
-        _end_panel = _start_panel + _panel_width
-
-        _fig['layout']['xaxis%i' % (i + 2)] = dict(
-            anchor='y', domain=[_start_panel, _end_panel], title=xtitles[i], side='top')
+        _fig['layout']['xaxis%i' % (i + 2)].update(
+            anchor='y', title=xtitles[i], side='top')
         if dticks is not None:
             _fig['layout']['xaxis%i' % (i + 2)].update(dtick=dticks[i])
         if xranges is not None:
             _fig['layout']['xaxis%i' % (i + 2)].update(range=xranges[i])
+
     if showfig:
         iplot(_fig, filename='logplot')
     return _fig

@@ -352,7 +352,7 @@ class SoilProfile(pd.DataFrame):
 
         return plot_with_log(
             x=plotting_x,
-            y=plotting_z,
+            z=plotting_z,
             names=names,
             soildata=self,
             xtitles=x_titles,

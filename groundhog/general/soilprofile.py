@@ -176,7 +176,8 @@ class SoilProfile(pd.DataFrame):
         """
         Inserts a layer transition in the soil profile at a specific depth
         The profile layer is simply split and the properties of the given layer are assigned
-        to the new layers above and below the transition
+        to the new layers above and below the transition.
+        For linearly varying parameters, an interpolation is performed.
         """
         if depth < self.min_depth:
             raise ValueError("Selected depth should be below minimum soil profile depth")
@@ -191,9 +192,28 @@ class SoilProfile(pd.DataFrame):
                          (self[self.depth_to_col] > depth)]
             self.loc[row.index[0], self.depth_to_col] = depth
             new_index = self.__len__()
-            for col in self.columns:
-                self.loc[new_index, col] = row[col].iloc[0]
+
+            for _param in self.string_soil_parameters():
+                self.loc[new_index, _param] = row[_param].iloc[0]
+            for _param in self.numerical_soil_parameters():
+                # Interpolate for linearly varying properties
+                if self.check_linear_variation(_param):
+                    self.loc[new_index, _param.replace(' [', ' from [')] = \
+                        np.interp(
+                            depth,
+                            (row[self.depth_from_col].iloc[0],
+                             row[self.depth_to_col].iloc[0]),
+                            (row[_param.replace(' [', ' from [')].iloc[0],
+                             row[_param.replace(' [', ' to [')].iloc[0])
+                        )
+                    self.loc[row.index[0], _param.replace(' [', ' to [')] = self.loc[
+                        new_index, _param.replace(' [', ' from [')]
+                    self.loc[new_index, _param.replace(' [', ' to [')] = \
+                        row[_param.replace(' [', ' to [')].iloc[0]
+                else:
+                    self.loc[new_index, _param] = row[_param].iloc[0]
             self.loc[new_index, self.depth_from_col] = depth
+            self.loc[new_index, self.depth_to_col] = row[self.depth_to_col].iloc[0]
             self.sort_values(self.depth_from_col, inplace=True)
             self.reset_index(drop=True, inplace=True)
 
@@ -215,7 +235,7 @@ class SoilProfile(pd.DataFrame):
 
     def soilparameter_series(self, parameter):
         """
-        Returns tow lists (depths and corresponding parameter values) for plotting
+        Returns two lists (depths and corresponding parameter values) for plotting
         of a soil parameter vs depth.
         The routine first checks whether a valid parameter is provided.
         The lists are formatted such that variations at a layer interface are

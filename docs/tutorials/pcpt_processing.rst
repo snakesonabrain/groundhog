@@ -22,7 +22,7 @@ parameters.
 
 .. code:: ipython3
 
-    from geotechnics.site_investigation.pcpt_processing import PCPTProcessing
+    from groundhog.site_investigation.pcpt_processing import PCPTProcessing
 
 1. Loading data
 ---------------
@@ -274,7 +274,7 @@ We can first read an ags file with the function ``read_ags``.
 
 .. code:: ipython3
 
-    from geotechnics.site_investigation.read_site_data import read_ags
+    from groundhog.site_investigation.read_site_data import read_ags
 
 .. code:: ipython3
 

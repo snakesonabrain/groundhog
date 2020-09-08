@@ -1,5 +1,5 @@
 Parameter mapping
 ===================
 
-.. automodule:: geotechnics.general.parameter_mapping
+.. automodule:: groundhog.general.parameter_mapping
     :members:

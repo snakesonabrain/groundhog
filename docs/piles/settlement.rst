@@ -1,5 +1,5 @@
 Pile settlement
 ====================================
 
-.. automodule:: geotechnics.piles.settlement
+.. automodule:: groundhog.deepfoundations.axialresponse.settlement
     :members:

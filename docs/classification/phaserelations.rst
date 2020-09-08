@@ -1,5 +1,5 @@
 Phase relations
 ====================================
 
-.. automodule:: geotechnics.classification.phaserelations
+.. automodule:: groundhog.siteinvestigation.classification.phaserelations
     :members:

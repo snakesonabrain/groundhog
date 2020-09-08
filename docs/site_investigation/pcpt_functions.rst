@@ -1,5 +1,5 @@
 PCPT functions
 ====================================
 
-.. automodule:: geotechnics.site_investigation.pcpt_correlations
+.. automodule:: groundhog.siteinvestigation.insitutests.pcpt_correlations
     :members:

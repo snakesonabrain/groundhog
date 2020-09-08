@@ -1,5 +1,5 @@
 Negative skin friction
 =================================================
 
-.. automodule:: geotechnics.piles.negativeskinfriction
+.. automodule:: groundhog.deepfoundations.axialcapacity.negativeskinfriction
     :members:

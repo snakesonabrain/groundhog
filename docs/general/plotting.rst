@@ -1,5 +1,5 @@
 Plotting
 ====================================
 
-.. automodule:: geotechnics.general.plotting
+.. automodule:: groundhog.general.plotting
     :members:

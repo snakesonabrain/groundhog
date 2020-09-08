@@ -8,5 +8,3 @@ Site investigation
    pcpt_class
 
    pcpt_functions
-
-   read_site_data

@@ -1,5 +1,5 @@
 Data loading
 ====================================
 
-.. automodule:: geotechnics.general.data_loading
+.. automodule:: groundhog.general.data_loading
     :members:

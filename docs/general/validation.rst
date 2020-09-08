@@ -1,5 +1,5 @@
 Validation
 ==============
 
-.. automodule:: geotechnics.general.validation
+.. automodule:: groundhog.general.validation
     :members:

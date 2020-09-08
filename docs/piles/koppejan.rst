@@ -1,7 +1,7 @@
 Koppejan pile resistance calculations
 =======================================
 
-.. autoclass:: geotechnics.piles.koppejan.KoppejanCalculation
+.. autoclass:: groundhog.deepfoundations.axialcapacity.koppejan.KoppejanCalculation
     :members:
 
     .. automethod:: __init__

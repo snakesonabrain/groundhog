@@ -1,5 +1,5 @@
 Cavity expansion methods for cast in-situ piles
 =================================================
 
-.. automodule:: geotechnics.piles.cavityexpansion
+.. automodule:: groundhog.deepfoundations.boreholestability.cavityexpansion
     :members:

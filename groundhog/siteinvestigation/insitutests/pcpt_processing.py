@@ -12,7 +12,7 @@ import re
 
 # 3rd party packages
 import pandas as pd
-from plotly import tools
+from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly.offline import iplot
@@ -25,9 +25,20 @@ except:
                   'Install pydov to enable this functionality')
 
 # Project imports
-from groundhog.general.validation import check_layer_overlap
+from groundhog.general.plotting import plot_with_log
 from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
+from groundhog.general.soilprofile import SoilProfile
+
+
+DEFAULT_CONE_PROPERTIES = SoilProfile({
+    'Depth from [m]': [0, ],
+    'Depth to [m]': [20, ],
+    'area ratio [-]': [0.8, ],
+    'Cone type': ['U', ],
+    'Cone base area [cm2]': [10, ],
+    'Cone sleeve_area [cm2]': [150, ]
+})
 
 
 class PCPTProcessing(object):
@@ -628,103 +639,39 @@ class PCPTProcessing(object):
 
     # region Layer-based processing and correction
 
-    def set_cone_properties(self, area_ratio=0.8, base_area=10, sleeve_area=150, cone_type='U', stroke=np.nan,
-                            start_depth=np.nan, end_depth=np.nan):
-        """
-        Sets the properties of the cone.
-
-        The procedure allows for several cone types to be used on one PCPT test (e.g. when a switch is made to a smaller cone in harder soils)
-        The command can be invoked multiple times to achieve this. Please note that the depth ranges should not overlap!
-        The cone properties are added to a dataframe with cone property data.
-
-        :param area_ratio: Cone area ratio (default=0.8)
-        :param base_area: Cone base area in cm2 (default=10cm2)
-        :param sleeve_area: Cone sleeve area in cm2 (default=150cm2)
-        :param cone_type: Cone type, default = 'U' for piezocone
-        :param stroke: Stroke (maximum push length) for the cone (only for mechanical cones and downhole equipment)
-        :param start_depth: Start depth for the specified cone (default=np.nan if the same cone is used for the entire test)
-        :param end_depth: End depth for the specified cone (default=np.nan if the same cone is used for the entire test)
-
-        :return: Sets the dataframe `.coneproperties`
-
-        """
-        self.coneproperties = pd.DataFrame()
-
-        if np.math.isnan(start_depth):
-            start_depth = self.data["z [m]"].min()
-
-        if np.math.isnan(end_depth):
-            end_depth = self.data["z [m]"].max()
-
-        new_index = self.coneproperties.__len__()
-
-        self.coneproperties.loc[new_index, "z from [m]"] = start_depth
-        self.coneproperties.loc[new_index, "z to [m]"] = end_depth
-        self.coneproperties.loc[new_index, "area ratio [-]"] = area_ratio
-        self.coneproperties.loc[new_index, "base area [m2]"] = 1e-4 * base_area
-        self.coneproperties.loc[new_index, "sleeve area [m2]"] = 1e-4 * sleeve_area
-        self.coneproperties.loc[new_index, "cone type"] = cone_type
-        self.coneproperties.loc[new_index, "stroke [m]"] = stroke
-
-        self.coneproperties.sort_values("z from [m]", inplace=True)
-
-    def set_layer_properties(self, layer_data, waterlevel=0, ):
-        """
-        Creates the layering used for further interpretation of the PCPT profile.
-        A dataframe with a layering definition needs to be provided
-        Typically, total unit weight is provided as a minimum. Linear variations over the depth range are also allowed.
-        Other properties may be provided as required by the correlations.
-        The water level needs to be defined for calculation of the vertical effective stress profile.
-
-        :param layer_data: Pandas dataframe with layering definition. As a minimum the keys 'z from [m]', 'z to [m]' and 'Total unit weight [kN/m3]' need to be provided.
-        :param waterlevel: Level below soil surface (>=0m) where the watertable starts, default = 0m for fully saturated conditions
-
-        :return: Sets the attribute `layerdata`
-
-        """
-        # Validation
-        for key in ['z from [m]', 'z to [m]']:
-            if key not in layer_data.columns:
-                raise ValueError("Dataframe needs to contain key '%s'" % key)
-
-        for key in ['Total unit weight ____[kN/m3]', ]:
-            if (key.replace("____", "") not in layer_data.columns) and \
-                    (key.replace("____", "from ") not in layer_data.columns) and \
-                    (key.replace("____", "to ") not in layer_data.columns):
-                raise ValueError("Dataframe needs to contain key '%s' or a similar range definition" % (
-                    key.replace("____", "")))
-
-        layer_data.sort_values('z from [m]', inplace=True)
-        check_layer_overlap(layer_data)
-
-        for i, row in layer_data.iterrows():
-            layer_data.loc[i, "Layer no"] = i+1
-
-        self.layerdata = layer_data
-        self.waterlevel = waterlevel
-
-    def map_properties(self, vertical_total_stress=None, vertical_effective_stress=None, map_cone=True):
+    def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES, vertical_total_stress=None, vertical_effective_stress=None, waterlevel=0):
         """
         Maps the soil properties defined in the layering and the cone properties to the grid
         defined by the cone data. The procedure also calculates the total and effective vertical stress.
         Note that pre-calculated arrays with total and effective vertical stress can also be supplied to the routine.
         These needs to have the same length as the array with PCPT depth data.
 
+        :param layer_profile: ``SoilProfile`` object with the layer properties (need to contain the soil parameter ``Total unit weight [kN/m3]``
+        :param cone_profile: ``SoilProfile`` object with the cone properties (default=``DEFAULT_CONE_PROPERTIES``)
         :param vertical_total_stress: Pre-calculated total vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param vertical_effective_stress: Pre-calculated effective vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param map_cone: Boolean determining whether cone properties need to be mapped or not (default=True)
         :return: Expands the dataframe `.data` with additional columns for the cone and soil properties
         """
+        self.waterlevel = waterlevel
+        self.layerdata = layer_profile
+
+        # Validation
+        if 'Total unit weight [kN/m3]' not in layer_profile.numerical_soil_parameters():
+            raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
+
         # Map cone properties
-        if map_cone:
-            self.data = map_depth_properties(
-                target_df=self.data,
-                layering_df=self.coneproperties)
-        # Map soil properties
-        self.data = map_depth_properties(
-            target_df=self.data,
-            layering_df=self.layerdata
-        )
+        _mapped_cone_props = cone_profile.map_soilprofile(self.data['z [m]'])
+
+        # Map layer properties
+        for i, row in layer_profile.iterrows():
+            layer_profile.loc[i, "Layer no"] = i+1
+        _mapped_layer_props = layer_profile.map_soilprofile(self.data['z [m]'])
+
+        # Join values to the CPT data
+        self.data = self.data.join(_mapped_layer_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
+        self.data = self.data.join(_mapped_cone_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
+
         # Calculation of total and effective vertical stress
         if vertical_total_stress is None:
             # Calculate vertical total stress
@@ -867,7 +814,7 @@ class PCPTProcessing(object):
         if hydrostaticcolor is None:
             hydrostaticcolor = DEFAULT_PLOTLY_COLORS[1]
 
-        fig = tools.make_subplots(rows=1, cols=3, print_grid=False, shared_yaxes=True)
+        fig = subplots.make_subplots(rows=1, cols=3, print_grid=False, shared_yaxes=True)
 
         for _push in self.data["Push"].unique():
             push_data = self.data[self.data["Push"] == _push]
@@ -902,19 +849,19 @@ class PCPTProcessing(object):
                 if i > 0:
                     layer_trace_qc = go.Scatter(
                         x=qc_range,
-                        y=(row["z from [m]"], row["z from [m]"]),
+                        y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                         line=dict(color='black', dash='dot'),
                         showlegend=False, mode='lines')
                     fig.append_trace(layer_trace_qc, 1, 1)
                     layer_trace_fs = go.Scatter(
                         x=fs_range,
-                        y=(row["z from [m]"], row["z from [m]"]),
+                        y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                         line=dict(color='black', dash='dot'),
                         showlegend=False, mode='lines')
                     fig.append_trace(layer_trace_fs, 1, 2)
                     layer_trace_u2 = go.Scatter(
                         x=u2_range,
-                        y=(row["z from [m]"], row["z from [m]"]),
+                        y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                         line=dict(color='black', dash='dot'),
                         showlegend=False, mode='lines')
                     fig.append_trace(layer_trace_u2, 1, 3)
@@ -965,7 +912,7 @@ class PCPTProcessing(object):
         if color is None:
             color = DEFAULT_PLOTLY_COLORS[0]
 
-        fig = tools.make_subplots(rows=1, cols=3, print_grid=False, shared_yaxes=True)
+        fig = subplots.make_subplots(rows=1, cols=3, print_grid=False, shared_yaxes=True)
         trace1 = go.Scatter(
             x=self.data['Qt [-]'],
             y=self.data['z [m]'],
@@ -1057,7 +1004,7 @@ class PCPTProcessing(object):
         if axis_titles is None:
             axis_titles = prop_keys
 
-        fig = tools.make_subplots(rows=1, cols=prop_keys.__len__(), print_grid=False, shared_yaxes=True)
+        fig = subplots.make_subplots(rows=1, cols=prop_keys.__len__(), print_grid=False, shared_yaxes=True)
         for i, _props in enumerate(prop_keys):
             for j, _prop in enumerate(_props):
                 trace = go.Scatter(
@@ -1094,6 +1041,54 @@ class PCPTProcessing(object):
         else:
             iplot(fig, filename='propertiesplot', config={'showLink': False})
 
+    def plot_properties_withlog(self, prop_keys, plot_ranges, plot_ticks,
+            legend_titles=None, axis_titles=None, **kwargs):
+        """
+        Plots CPT properties vs depth and includes a mini-log on the left-hand side.
+        The minilog is composed based on the entries in the ``Soil type`` column of the layering
+        :param prop_keys: Tuple of tuples with the keys to be plotted. Keys in the same tuple are plotted on the same panel
+        :param plot_ranges: Tuple of tuples with ranges for the panels of the plot
+        :param plot_ticks: Tuple with tick intervals for the plot panels
+        :param z_range: Range for depths (optional, default is (0, maximum PCPT depth)
+        :param z_tick: Tick mark distance for PCPT (optional, default=2)
+        :param legend_titles: Tuple with entries to be used in the legend. If left blank, the keys are used
+        :param axis_titles: Tuple with entries to be used as axis labels. If left blank, the keys are used
+        :param **kwargs: Specify keyword arguments for the ``general.plotting.plot_with_log`` function
+        :return: Plotly figure with mini-log
+        """
+        # Validate if 'Soil type' column is present in the layering
+        if 'Soil type' not in self.layerdata.columns:
+            raise ValueError("Layering should contain the column 'Soil type'")
+
+        if legend_titles is None:
+            legend_titles = prop_keys
+        if axis_titles is None:
+            axis_titles = prop_keys
+
+        _x = []
+        _z = []
+
+        for _panel in prop_keys:
+            _x_panel = []
+            _z_panel = []
+            for _prop in _panel:
+                _x_panel.append(self.data[_prop])
+                _z_panel.append(self.data['z [m]'])
+            _x.append(_x_panel)
+            _z.append(_z_panel)
+
+        fig = plot_with_log(
+            x=_x,
+            z=_z,
+            names=legend_titles,
+            soildata=self.layerdata,
+            xtitles=axis_titles,
+            xranges=plot_ranges,
+            dticks=plot_ticks,
+            **kwargs
+        )
+        return fig
+
     def plot_robertson_chart(self, start_depth=None, end_depth=None,
                              qt_range=(0, 3), fr_range=(-1, 1),
             bq_range=(-0.6, 1.4), bq_tick=0.2,
@@ -1112,7 +1107,7 @@ class PCPTProcessing(object):
 
         selected_data = self.data[(self.data["z [m]"] >= start_depth) & (self.data["z [m]"] <= end_depth)]
 
-        fig = tools.make_subplots(rows=1, cols=2, print_grid=False)
+        fig = subplots.make_subplots(rows=1, cols=2, print_grid=False)
         for i, layer in enumerate(selected_data["Layer no"].unique()):
             color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
             layer_data = selected_data[selected_data["Layer no"] == layer]
@@ -1268,7 +1263,7 @@ class PCPTProcessing(object):
         if axis_titles is None:
             axis_titles = prop_keys
 
-        fig = tools.make_subplots(rows=1, cols=prop_keys.__len__(), print_grid=False, shared_yaxes=True)
+        fig = subplots.make_subplots(rows=1, cols=prop_keys.__len__(), print_grid=False, shared_yaxes=True)
         for i, _props in enumerate(prop_keys):
             for j, _prop in enumerate(_props):
                 trace = go.Scatter(

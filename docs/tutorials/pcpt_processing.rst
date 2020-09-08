@@ -775,165 +775,39 @@ files, another common PCPT data transfer format.
 2. Setting cone and layer properties
 ------------------------------------
 
-The cone and layer properties can be set based on the cone used and the
-layering identified. Plotting the raw data is instructive for defining
-the layering.
+The cone and layer properties can be set based on the cone used and the layering identified.
+A ``SoilProfile`` object can be created for these properties.
+A basic structure with cone properties is available in the ``groundhog`` package.
 
 .. code:: ipython3
 
-    pcpt.set_cone_properties(stroke=0.02)
-    pcpt.coneproperties
+    from groundhog.siteinvestigation.insitutests.pcpt_processing import DEFAULT_CONE_PROPERTIES
+    DEFAULT_CONE_PROPERTIES
 
+The cone properties can be customised or an entirely new ``SoilProfile`` object can
+be defined. Here, we will keep the default properties.
 
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>z from [m]</th>
-          <th>z to [m]</th>
-          <th>area ratio [-]</th>
-          <th>base area [m2]</th>
-          <th>sleeve area [m2]</th>
-          <th>cone type</th>
-          <th>stroke [m]</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>0.0</td>
-          <td>20.0</td>
-          <td>0.8</td>
-          <td>0.001</td>
-          <td>0.015</td>
-          <td>U</td>
-          <td>0.02</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
-
-The layer definition also needs to contain the total and submerged unit
-weight. Note that linear variations over the layers are possible through
-the use of ``from`` and ``to`` in the column keys.
+A layering definition also needs to be defined through a ``SoilProfile`` object.
+The total unit weight needs to be specified for the vertical stress calculation.
 
 .. code:: ipython3
 
-    layering = pd.DataFrame({
-        "z from [m]": [0, 3.16, 5.9, 14.86, 15.7],
-        "z to [m]": [3.16, 5.9, 14.86, 15.7, 20],
-        "Total unit weight from [kN/m3]": [18, 17, 19.5, 20, 20],
-        "Total unit weight to [kN/m3]": [19, 17, 20, 20, 20],
+    layering = SoilProfile({
+        "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+        "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 20],
+        "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
         'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
     })
+    layering
+
+
+The cone and layer properties can be mapped to the cone data grid using the ``map_properties`` method:
 
 .. code:: ipython3
 
-    pcpt.set_layer_properties(layering)
-    pcpt.layerdata
+    pcpt.map_properties(layer_profile=layering, cone_profile=DEFAULT_CONE_PROPERTIES)
 
-
-
-
-.. raw:: html
-
-    <div>
-    <style scoped>
-        .dataframe tbody tr th:only-of-type {
-            vertical-align: middle;
-        }
-
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-
-        .dataframe thead th {
-            text-align: right;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>z from [m]</th>
-          <th>z to [m]</th>
-          <th>Total unit weight from [kN/m3]</th>
-          <th>Total unit weight to [kN/m3]</th>
-          <th>Soil type</th>
-          <th>Layer no</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>0</th>
-          <td>0.00</td>
-          <td>3.16</td>
-          <td>18.0</td>
-          <td>19</td>
-          <td>SAND</td>
-          <td>1.0</td>
-        </tr>
-        <tr>
-          <th>1</th>
-          <td>3.16</td>
-          <td>5.90</td>
-          <td>17.0</td>
-          <td>17</td>
-          <td>CLAY</td>
-          <td>2.0</td>
-        </tr>
-        <tr>
-          <th>2</th>
-          <td>5.90</td>
-          <td>14.86</td>
-          <td>19.5</td>
-          <td>20</td>
-          <td>SAND</td>
-          <td>3.0</td>
-        </tr>
-        <tr>
-          <th>3</th>
-          <td>14.86</td>
-          <td>15.70</td>
-          <td>20.0</td>
-          <td>20</td>
-          <td>SAND</td>
-          <td>4.0</td>
-        </tr>
-        <tr>
-          <th>4</th>
-          <td>15.70</td>
-          <td>20.00</td>
-          <td>20.0</td>
-          <td>20</td>
-          <td>SAND</td>
-          <td>5.0</td>
-        </tr>
-      </tbody>
-    </table>
-    </div>
-
-
+Following mapping of the layering, the plot with raw cone data will also include the selected layers.
 
 .. code:: ipython3
 
@@ -949,18 +823,7 @@ the use of ``from`` and ``to`` in the column keys.
         Figure 7: Visualisation of PCPT data with layering
 
 
-3. Mapping cone and layer data to the PCPT grid
------------------------------------------------
-
-The method ``map_properties`` maps the cone and layer data to the grid
-defined by the PCPT depth sampling interval. The total and effective
-vertical stresses are also calculated.
-
-.. code:: ipython3
-
-    pcpt.map_properties()
-
-4. Normalising PCPT data
+3. Normalising PCPT data
 ------------------------
 
 PCPT can be normalised using the equations for normalised cone
@@ -1008,7 +871,7 @@ are.
         Figure 9: Visualisation of normalised PCPT data plotted in Robertson chart
 
 
-5. Applying correlations to PCPT data
+4. Applying correlations to PCPT data
 -------------------------------------
 
 Correlations can be applied to the processed PCPT data using method
@@ -1053,3 +916,26 @@ contains :math:`G_{max}`in sand and clay.
         :align: center
 
         Figure 10: Visualisation of soil mechanics parameters from correlations with PCPT data
+
+These properties can also be plotted in a plot with a mini-log on the left.
+The layering ``SoilProfile`` needs to contain a column ``Soil type`` to achieve this.
+
+.. code:: ipython3
+
+    logfig = pcpt.plot_properties_withlog(
+        prop_keys=[('qc [MPa]',), ('Ic [-]',), ('Gmax sand [kPa]', 'Gmax clay [kPa]')],
+        showlegends=((False,), (False,), (True, True)),
+        plot_ranges=((0, 100), (0, 5), (0, 200e3)),
+        plot_ticks=(10, 0.5, 25e3, 25e3),
+        axis_titles=(r'$ q_c \ \text{[MPa]} $', r'$ I_c \ \text{[-]} $',
+                     r'$ G_{max} \ \text{[kPa]} $'),
+        zrange=(20, 0),
+        layout=dict(width=1000)
+        )
+
+.. figure:: images/tutorial_pcpt_11.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Figure 11: Visualisation of soil mechanics parameters from correlations with PCPT data together with mini-log

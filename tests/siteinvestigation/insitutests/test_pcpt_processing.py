@@ -13,7 +13,7 @@ import numpy as np
 
 # Project imports
 from groundhog.siteinvestigation.insitutests import pcpt_processing
-
+from groundhog.general.soilprofile import SoilProfile
 
 TESTS_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -32,27 +32,21 @@ class Test_PCPTProcessing(unittest.TestCase):
         self.pandas_pcpt.load_pandas(self.data)
         self.assertEqual(self.pandas_pcpt.data["z [m]"].iloc[0], 0)
         self.assertEqual(self.pandas_pcpt.data["z [m]"].iloc[1], 0.02)
-        # Set the cone properties
-        self.pandas_pcpt.set_cone_properties(stroke=0.02)
-        self.assertEqual(self.pandas_pcpt.coneproperties["z from [m]"].iloc[0], 0)
-        # Create layering
-        layers = pd.DataFrame({
-            "z from [m]": [0, 3.16, 5.9, 14.86, 15.7],
-            "z to [m]": [3.16, 5.9, 14.86, 15.7, 20],
-            "Total unit weight from [kN/m3]": [18, 17, 19.5, 20, 20],
-            "Total unit weight to [kN/m3]": [19, 17, 20, 20, 20],
-            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
-        })
-        self.pandas_pcpt.set_layer_properties(layer_data=layers)
-        self.assertEqual(self.pandas_pcpt.layerdata["Total unit weight from [kN/m3]"].iloc[2], 19.5)
 
     def test_pcpt_mapping(self):
         """
         Test mapping of soil and cone properties to the PCPT grid
         :return:
         """
+        # Create layering
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 20],
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
         self.test_pandas_pcpt_creation()
-        self.pandas_pcpt.map_properties()
+        self.pandas_pcpt.map_properties(layer_profile=layers)
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[206, "area ratio [-]"], 0.8, 1
         )
@@ -60,7 +54,7 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[206, "Water pressure [kPa]"], 42.23, 2
         )
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 33.08, 2
+            self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 31.51, 2
         )
         self.assertEqual(
             self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
@@ -74,7 +68,7 @@ class Test_PCPTProcessing(unittest.TestCase):
         self.test_pcpt_mapping()
         self.pandas_pcpt.normalise_pcpt()
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[600, "Qt [-]"], 172.47, 2
+            self.pandas_pcpt.data.loc[600, "Qt [-]"], 173.50, 2
         )
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[600, "Fr [%]"], 0.4349, 4
@@ -83,7 +77,7 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[600, "Bq [-]"], -0.00145, 5
         )
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[600, "qnet [MPa]"], 17.2466, 4
+            self.pandas_pcpt.data.loc[600, "qnet [MPa]"], 17.2472, 4
         )
 
     def test_pcpt_correlations(self):
@@ -100,17 +94,17 @@ class Test_PCPTProcessing(unittest.TestCase):
             'Mayne and Rix (1993)', outkey='Gmax clay [kPa]', resultkey='Gmax [kPa]',
             apply_for_soiltypes=['CLAY', ])
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[275, "Ic [-]"], 3, 2
+            self.pandas_pcpt.data.loc[275, "Ic [-]"], 2.993, 2
         )
         self.assertTrue(np.math.isnan(self.pandas_pcpt.data.loc[275, "Gmax sand [kPa]"]))
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[275, "Gmax clay [kPa]"], 45333, 0
         )
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[605, "Ic [-]"], 1.506, 3
+            self.pandas_pcpt.data.loc[605, "Ic [-]"], 1.505, 3
         )
         self.assertTrue(np.math.isnan(self.pandas_pcpt.data.loc[605, "Gmax clay [kPa]"]))
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[605, "Gmax sand [kPa]"], 107526, 0
+            self.pandas_pcpt.data.loc[605, "Gmax sand [kPa]"], 107283, 0
         )
 

@@ -415,7 +415,7 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
                   modes=None, markerformats=None,
                   soildata=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
                   colors=None, logwidth=0.05,
-                  xtitles=[], ztitle=None, xranges=None, yrange=None, ytick=None, dticks=None,
+                  xtitles=[], ztitle=None, xranges=None, zrange=None, ztick=None, dticks=None,
                   layout=dict(),
                   showfig=True):
     """
@@ -437,8 +437,8 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
     :param xtitles: Array with X-axis titles for the panels
     :param ztitle: Depth axis title (Depth axis is shared between all panels)
     :param xranges: List with ranges to be used for X-axes
-    :param yrange: Range to be used for Y-axis
-    :param ytick: Tick interval to be used for the Y-axis
+    :param zrange: Range to be used for Y-axis
+    :param ztick: Tick interval to be used for the Y-axis
     :param dticks: List of tick intervals to be used for the X-axes
     :param layout: Dictionary with the layout settings
     :param showfig: Boolean determining whether the figure needs to be shown
@@ -511,16 +511,16 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
         _layers.append(
             dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
 
-    if yrange is None:
+    if zrange is None:
         _fig['layout']['yaxis1'].update(title=ztitle, autorange='reversed')
     else:
-        _fig['layout']['yaxis1'].update(title=ztitle, range=yrange)
+        _fig['layout']['yaxis1'].update(title=ztitle, range=zrange)
 
     _fig['layout'].update(layout)
     _fig['layout'].update(shapes=_layers)
 
-    if ytick is not None:
-        _fig['layout']['yaxis1'].update(dtick=ytick)
+    if ztick is not None:
+        _fig['layout']['yaxis1'].update(dtick=ztick)
 
     _fig['layout']['xaxis1'].update(
         anchor='y', title=None, side='top', tickvals=[])

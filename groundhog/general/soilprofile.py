@@ -610,7 +610,6 @@ class SoilProfile(pd.DataFrame):
                 row[parameter] * (row[self.depth_to_col] - row[self.depth_from_col])
 
 
-
 def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):
     """
     The method to read from Excel needs to be redefined for SoilProfile objects.

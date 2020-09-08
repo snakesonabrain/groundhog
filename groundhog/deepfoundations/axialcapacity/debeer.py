@@ -94,6 +94,9 @@ class DeBeerCalculation(object):
         :param total_unit_weight_wet: Wet unit weight used for all soils (default=19.62:math:`kN/m^3`)
         :param total_unit_weight: Array with total unit weight for each soil layer. Specifying this array will override the defaults (default=`None`)
         """
+
+        # TODO: Modify this function to make use of a SoilProfile object
+
         # Validation of array lengths
         if (depth_from.__len__() != depth_to.__len__()) or \
            (depth_from.__len__() != soil_type.__len__()):

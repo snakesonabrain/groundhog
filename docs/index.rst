@@ -10,13 +10,15 @@ This Python package contains useful functionality for supporting automated geote
 Functionality for onshore and offshore geotechnical problems is included. This package is under constant
 development so any request for additional functionality can always be submitted to the package author.
 
-The package is developed around three pilars:
+The package is developed around four pilars:
 
 - Flexible input parameter validation: Predefined parameter ranges are defined for most functions, based on the range of soil parameters for which the function was originally developed. This validation can be overridden by the user but requires explicit definition of the modified parameter ranges;
 
 - Multiple outputs: Groundhog functions return a Python dictionary including intermediate results or derived quantities;
 
-- Data standardisation: Possibility to read multiple input file formats (e.g. CPT data).
+- Data standardisation: Possibility to read multiple input file formats (e.g. CPT data);
+
+- Soil profiles: Easy encoding and manipulation of soil profiles.
 
 
 Installation requirements
@@ -32,6 +34,8 @@ Tutorials
 
 .. toctree::
    :maxdepth: 2
+
+   tutorials/soilprofiles
 
    tutorials/pcpt_processing
 

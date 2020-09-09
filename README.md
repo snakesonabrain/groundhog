@@ -1,4 +1,5 @@
-# Groundhog - A general-purpose geotechnical package
+Groundhog - A general-purpose geotechnical package
+====================================================
 
 This Python package contains useful functionality for supporting automated geotechnical calculations.
 
@@ -19,21 +20,21 @@ groundhog bundles a large amount of knowledge and provides it to end users throu
    - Raise awareness on underlying test data and theories supporting engineering correlations and design formulae
    - Promoting development of open-source engineering software by the worldwide community of engineers
 
-groundhog is developed using a set of 10 Golden rules which are reflected in the python-engineering function
+groundhog is developed using a set of 10 Golden rules which are reflected in the groundhog function
 architecture and should also be followed by any contributors to the project.
 
 Installation requirements
 -------------------------
 
-python-engineering is written for Python 3.x. Downloading Anaconda3 is recommended for users not familiar with Python development.
+groundhog is written for Python 3.x. Downloading Anaconda3 is recommended for users not familiar with Python development.
 
-Copyright (c) 2016, Bruno Stuyts
+Copyright (c) 2017, Bruno Stuyts
 All rights reserved.
 
 License
 --------
 
-python-engineering is provided under a Creative Commons Attribution-ShareAlike 4.0 International Public License. Please check the license terms below and in the license file.
+groundhog is provided under a Creative Commons Attribution-ShareAlike 4.0 International Public License. Please check the license terms below and in the license file.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -49,6 +50,8 @@ are permitted provided that the following conditions are met:
   contributors may be used to endorse or promote products derived from
   this software without specific prior written permission.
 
+Disclaimer
+-------------
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED

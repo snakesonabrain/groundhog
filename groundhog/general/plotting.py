@@ -364,7 +364,7 @@ def generate_html(outpath, figures, titles, drawnby, report,
         figure_height = 600
         figure_width = 1050
     try:
-        # 1. Coerce the figure to correct format, set UGent font and colors
+        # 1. Coerce the figure to correct format, set font and colors
         figure_list = []
         for i, fig in enumerate(figures):
 

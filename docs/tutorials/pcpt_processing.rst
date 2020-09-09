@@ -282,15 +282,6 @@ We can first read an ags file with the function ``read_ags``.
     ags_pcpt_data.head()
 
 
-.. parsed-literal::
-
-    /anaconda3/envs/geotech37/lib/python3.6/site-packages/ugentgeotechnics-0.1.0-py3.6.egg/geotechnics/site_investigation/read_site_data.py:57: UserWarning:
-
-    No empty row detected below group, reading to the end of the file
-
-
-
-
 
 .. raw:: html
 
@@ -558,14 +549,6 @@ corresponding to the ``ags_pcpt`` object created above.
 .. code:: ipython3
 
     ags_seabed_pcpt_data = read_ags(file_path="Data/N6016_BH_WFS1-9_AGS4_150909.ags", groupname="SCPT")
-
-
-.. parsed-literal::
-
-    /anaconda3/envs/geotech37/lib/python3.6/site-packages/ugentgeotechnics-0.1.0-py3.6.egg/geotechnics/site_investigation/read_site_data.py:57: UserWarning:
-
-    No empty row detected below group, reading to the end of the file
-
 
 
 .. code:: ipython3

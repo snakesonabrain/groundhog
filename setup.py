@@ -7,11 +7,12 @@ from groundhog.__version__ import __version__, __description__, __url__, __downl
 # load the README file and use it as the long_description for PyPI
 def readme():
     with open('README.md', 'r') as f:
-        readme = f.read()
+        return f.read()
 
 # package configuration - for reference see:
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#id9
-setup(name='groundhog',
+setup(
+      name='groundhog',
       version=__version__,
       description=__description__,
       long_description=readme(),
@@ -25,4 +26,10 @@ setup(name='groundhog',
       include_package_data=True,
       zip_safe=False,
       test_suite='nose.collector',
-      tests_require=['nose'],)
+      tests_require=['nose'],
+      classifiers=[
+            "Programming Language :: Python :: 3",
+            "Operating System :: OS Independent",
+      ],
+      python_requires='>=3.6',
+      )

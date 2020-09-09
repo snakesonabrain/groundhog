@@ -108,3 +108,6 @@ venv.bak/
 
 # PyCharm project files
 /.idea
+
+deploy_pypi_test
+deploy_pypi_prod

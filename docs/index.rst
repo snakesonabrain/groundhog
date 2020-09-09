@@ -21,6 +21,12 @@ The package is developed around four pilars:
 - Soil profiles: Easy encoding and manipulation of soil profiles.
 
 
+The package was named after the `groundhog <https://en.wikipedia.org/wiki/Groundhog/>`_, an animal
+that lives in underground burrows. Moreover, the movie `Groundhog Day <https://en.wikipedia.org/wiki/Groundhog_Day_(film)/>`_ where
+a reporter relives the same day again and again. The groundhog package aims to remove this repetitiveness
+from your day-to-day geotechnical engineering work.
+
+
 Installation requirements
 -------------------------
 

@@ -230,3 +230,36 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertEqual(profile['Total vertical stress from [kPa]'].iloc[0], 0)
         self.assertEqual(profile['Total vertical stress to [kPa]'].iloc[0], 9)
         self.assertEqual(profile['Total vertical stress to [kPa]'].iloc[1], 41)
+
+    def test_convert_to_constant(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Relative density': ['Loose', 'Medium dense', None, 'Dense'],
+            'Total unit weight from [kN/m3]': [19, 18, 17, 20],
+            'Total unit weight to [kN/m3]': [19, 18, 19, 20],
+            'Dr [%]': [40, 60, np.nan, 80],
+            'qc from [MPa]': [1, 3, 10, 40],
+            'qc to [MPa]': [2, 4, 20, 50]
+        })
+        profile.convert_to_constant("qc [MPa]")
+        profile.convert_to_constant("Total unit weight [kN/m3]", rule='min')
+        self.assertEqual(profile['qc [MPa]'].iloc[0], 1.5)
+        self.assertEqual(profile['Total unit weight [kN/m3]'].iloc[2], 17)
+
+    def test_calculate_overburden(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Relative density': ['Loose', 'Medium dense', None, 'Dense'],
+            'Total unit weight [kN/m3]': [19, 18, 17, 20],
+            'Dr [%]': [40, 60, np.nan, 80],
+            'qc from [MPa]': [1, 3, 10, 40],
+            'qc to [MPa]': [2, 4, 20, 50]
+        })
+        profile.calculate_overburden(waterlevel=4)
+        self.assertEqual(profile['Total vertical stress to [kPa]'].iloc[-1], 376)
+        self.assertEqual(profile['Effective vertical stress to [kPa]'].iloc[-1], 216)
+        self.assertEqual(profile['Hydrostatic pressure to [kPa]'].iloc[-1], 160)

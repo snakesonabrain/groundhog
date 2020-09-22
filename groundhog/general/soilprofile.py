@@ -516,6 +516,38 @@ class SoilProfile(pd.DataFrame):
         else:
             self.drop(parameter, axis=1, inplace=True)
 
+    def convert_to_constant(self, parameter, rule='mean'):
+        """
+        Converts a linearly varying soil parameter to a parameter with constant value.
+        :param parameter: Soil parameter to convert. Specify ``Total unit weight [kN/m3]`` if the ``SoilProfile`` contains columns ``Total unit weight from [kN/m3]`` and ``Total unit weight to [kN/m3]``.
+        :param rule: Select from ``['min', 'mean', 'max']`` to convert the linear variation to a constant value (default='mean')
+        :return: Creates a column for the soil parameter with constant value and removes the column with the linear variation
+        """
+
+        # Validate presence of linearly varying soil parameter
+        if not parameter in self.numerical_soil_parameters():
+            raise ValueError("SoilProfile does not contain the parameter %s" % parameter)
+        else:
+            if self.check_linear_variation(parameter):
+                pass
+            else:
+                raise ValueError("Soil parameter %s does not show a linear variation")
+
+        # Copy the values at top and bottom of each layer to arrays and drop the columns from the SoilProfile
+        _param_from = self[parameter.replace(' [', ' from [')]
+        _param_to = self[parameter.replace(' [', ' to [')]
+        self.remove_parameter(parameter)
+
+        # Add the values for the constant soil parameter according to the selected rule
+        if rule == 'min':
+            self[parameter] = list(map(lambda _x, _y: min(_x, _y), _param_from, _param_to))
+        elif rule == 'mean':
+            self[parameter] = list(map(lambda _x, _y: 0.5 * (_x + _y), _param_from, _param_to))
+        elif rule == 'max':
+            self[parameter] = list(map(lambda _x, _y: max(_x, _y), _param_from, _param_to))
+        else:
+            raise ValueError("Rule should be 'min', 'mean' or 'max'")
+
     def cut_profile(self, top_depth, bottom_depth):
         """
         Returns a deep copy of the ``SoilProfile`` between the specified bounds
@@ -608,6 +640,75 @@ class SoilProfile(pd.DataFrame):
             self.loc[i, outputparameter.replace(' [', ' to [')] = \
                 self.loc[i, outputparameter.replace(' [', ' from [')] + \
                 row[parameter] * (row[self.depth_to_col] - row[self.depth_from_col])
+
+    def calculate_overburden(self, waterlevel=0, waterunitweight=10, totalunitweightcolumn="Total unit weight [kN/m3]",
+                             effectiveunitweightcolumn="Effective unit weight [kN/m3]",
+                             waterunitweightcolumn="Water unit weight [kN/m3]",
+                             totalverticalstresscolumn="Total vertical stress [kPa]",
+                             effectiveverticalstresscolumn="Effective vertical stress [kPa]",
+                             hydrostaticpressurecolumn="Hydrostatic pressure [kPa]"):
+        """
+        Calculates the overburden pressure (total and effective) for a ``SoilProfile`` object.
+        The ``SoilProfile`` object needs to contain a column with the total unit weight.
+        By default, this is ``Total unit weight [kN/m3]``.
+        If the water level does not correspond with a layer interface, an additional layer interface is created.
+        Total and effective unit weights are calculated for each layer and the method ``depth_integration`` is used
+        to calculate the total vertical stress, effective vertical stress and hydrostatic pressure.
+
+        Note that vertical stress calculations in other units are possible, but the water unit weight then needs
+        to be specified in consistent units.
+
+        :param waterlevel: Water level [m] (default 0m)
+        :param waterunitweight: Unit weight of the pore water [kN/m3] (default=10kN/m3)
+        :param totalunitweightcolumn: Column name containing total unit weights (default='Total unit weight [kN/m3]'
+        :param waterunitweightcolumn: Output column with the effective unit weight (default='Effective unit weight [kN/m3]')
+        :param waterunitweightcolumn: Output column with the water unit weight (default='Water unit weight [kN/m3]')
+        :param totalverticalstresscolumn: Total vertical stress column name (default='Total vertical stress [kPa]')
+        :param effectiveverticalstresscolumn: Effective vertical stress column name (default='Effective vertical stress [kPa]')
+        :param hydrostaticpressurecolumn: Hydrostatic pressure column name (default='Hydrostatic pressure [kPa]')
+        :return: Adds the column names from ``totalverticalstresscolumn``, ``effectiveverticalstresscolumn`` and ``hydrostaticpressurecolumn`` to the ``SoilProfile`` object
+        """
+
+        # Validate the presence of a column with the total unit weight
+        if not totalunitweightcolumn in self.numerical_soil_parameters():
+            raise ValueError("SoilProfile should contain a column %s" % totalunitweightcolumn)
+        else:
+            if self.check_linear_variation(totalunitweightcolumn):
+                raise ValueError("Constant unit weight in each layer is required, use the method 'convert_to_constant'")
+            else:
+                pass
+
+        # Check position of water level
+        if waterlevel <= self.min_depth:
+            waterlevel = self.min_depth
+            self.loc[:, waterunitweightcolumn] = waterunitweight
+        elif waterlevel >= self.max_depth:
+            waterlevel = self.max_depth
+            self.loc[:, waterunitweightcolumn] = 0
+        else:
+            if waterlevel in self.layer_transitions():
+                pass
+            else:
+                self.insert_layer_transition(depth=waterlevel)
+
+        for i, layer in self.iterrows():
+            if 0.5 * (layer[self.depth_from_col] + layer[self.depth_to_col]) < waterlevel:
+                self.loc[i, waterunitweightcolumn] = 0
+                self.loc[i, effectiveunitweightcolumn] = layer[totalunitweightcolumn]
+            else:
+                self.loc[i, waterunitweightcolumn] = waterunitweight
+                self.loc[i, effectiveunitweightcolumn] = layer[totalunitweightcolumn] - waterunitweight
+
+        self.waterlevel = waterlevel
+
+        # Calculate hydrostatic pressure
+        self.depth_integration(parameter=waterunitweightcolumn, outputparameter=hydrostaticpressurecolumn)
+
+        # Calculate effective vertical stress
+        self.depth_integration(parameter=effectiveunitweightcolumn, outputparameter=effectiveverticalstresscolumn)
+
+        # Calculate total vertical stress
+        self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn)
 
 
 def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):

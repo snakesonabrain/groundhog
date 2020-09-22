@@ -61,13 +61,16 @@ class DeBeerCalculation(object):
         self.depth = np.arange(np.array(self.depth_raw).min(), np.array(self.depth_raw).max(), spacing)
         self.qc_mech = np.interp(self.depth, self.depth_raw, self.qc_raw)
 
-    def set_soil_layers(self, depth_from, depth_to, soil_type, water_level=0, tertiary_clay=None,
-                        water_unit_weight=10,
-                        total_unit_weight_dry=15.696, total_unit_weight_wet=19.62, total_unit_weight=None):
+    def set_soil_layers(self, soilprofile, soiltypecolumn="Soil type",
+                        tertiaryclaycolumn="Tertiary clay",
+                        totalunitweightcolumn="Total unit weight [kN/m3]",
+                        water_level=0, total_unit_weight_dry=15.696,
+                        total_unit_weight_wet=19.62, **kwargs):
         """
-        Sets the soil type for the pile resistance calculation. Sets a dataframe pile_calc with layers for the shaft resistance calculation.
-        The overburden pressure is also calculated.
+        Sets the soil type for the pile resistance calculation.
+        For the shaft resistance calculation, a column 'Soil type' is required.
 
+        The calculation of overburden pressure is included in this routine.
         According to the Belgian practice, a total unit weight of 15.696:math:`kN/m^3` is used for dry soil and
         a unit weight of 19.62:math:`kN/m^3` for wet soil. An array with total unit weights for each soil layer
         can be specified (`total_unit_weight`) to override these defaults. If the water level is not at a layer
@@ -84,146 +87,66 @@ class DeBeerCalculation(object):
         Finally, it is possible to specify whether each layer is tertiary clay or not using an array of Booleans.
         Occurence of stiff tertiary clays can be taken into account by specifying the array `tertiary_clay`.
 
-        :param depth_from: Array with start depths of the layers
-        :param depth_to: Array with end depths of the layers
-        :param soil_type: Array with selected soil type, select from "Clay", "Loam (silt)", "Sandy clay / loam (silt)", "Clayey sand / loam (silt)" and "Sand"
+        :param soilprofile: SoilProfile object containing the layer definitions. The SoilProfile should con
+        :param soiltypecolumn: Name of the column containing the soil type, select from "Clay", "Loam (silt)", "Sandy clay / loam (silt)", "Clayey sand / loam (silt)" and "Sand"
+        :param tertiaryclaycolumn: Name of the column containing the booleans determining whether the layer is Tertiary clay or not
         :param water_level: Water level used for the effective stress calculation [m], default = 0 for water level at surface
-        :param tertiary_clay: Array defining whether the soil type is tertiary clay using Booleans. If specified, needs to be same length as soil_type. Default = `None`
         :param water_unit_weight: Unit weight of water used for the calculations (default=10:math:`kN/m^3`)
         :param total_unit_weight_dry: Dry unit weight used for all soils (default=15.696:math:`kN/m^3`)
         :param total_unit_weight_wet: Wet unit weight used for all soils (default=19.62:math:`kN/m^3`)
         :param total_unit_weight: Array with total unit weight for each soil layer. Specifying this array will override the defaults (default=`None`)
         """
 
-        # TODO: Modify this function to make use of a SoilProfile object
+        self.layering = soilprofile
 
-        # Validation of array lengths
-        if (depth_from.__len__() != depth_to.__len__()) or \
-           (depth_from.__len__() != soil_type.__len__()):
-            raise ValueError("Arrays with depth_from, depth_to and soil_type need to be the same length")
-        if tertiary_clay is not None:
-            if tertiary_clay.__len__() != depth_from.__len__():
-                raise ValueError("Array with tertiary_clay need to be the same length as the others")
-        if total_unit_weight is not None:
-            if (water_level in depth_from) or (water_level in depth_to):
-                if total_unit_weight.__len__() != depth_from.__len__():
-                    raise ValueError("Array with total unit weights need to be the same length as the others")
-            else:
-                if total_unit_weight.__len__() != (depth_from.__len__() + 1):
-                    raise ValueError(
-                        "Array with total unit weights need to be one element longer than the depth arrays")
+        # Validate the presence of the column with the Soil Type
+        if soiltypecolumn not in soilprofile.string_soil_parameters():
+            raise ValueError("SoilProfile does not contain a column with the soil type")
 
-        # Validation of selected soil types
-        for _soil_type in soil_type:
-            if _soil_type not in ["Clay", "Loam (silt)", "Sandy clay / loam (silt)",
+        for i, layer in soilprofile.iterrows():
+            if layer[soiltypecolumn] not in ["Clay", "Loam (silt)", "Sandy clay / loam (silt)",
                                   "Clayey sand / loam (silt)", "Sand"]:
                 raise ValueError("Soil type %s not recognised. Needs to be one of 'Loam (silt)', "
                                  "'Sandy clay / loam (silt)', 'Clayey sand / loam (silt)' or 'Sand'")
 
-        # Validation to check that layering does not contain overlaps and starts from zero depth and spans the entire CPT
-        if depth_from[0] != 0:
+        # Validate the extent of the soil profile
+        if soilprofile.min_depth != 0:
             raise ValueError("Layering should start from zero depth")
-        if depth_to[-1] < self.depth.max():
+        if soilprofile.max_depth < self.depth.max():
             raise ValueError("Layering should be defined to the bottom of the CPT")
-        for i, _z in enumerate(depth_to):
-            if i > 0:
-                if depth_from[i] != depth_to[i-1]:
-                    raise ValueError("Layering contains gaps or overlaps. Specify a layering without overlaps")
+
         # Validation of specified water level
         if water_level < 0:
             raise ValueError("Specified water level should be greater than or equal to zero.")
 
-        # Create a dataframe with the layering data
-        self.layering = pd.DataFrame({
-            "Depth from [m]": depth_from,
-            "Depth to [m]": depth_to,
-            "Soil type": soil_type
-        })
-
         # Set whether soil layers are tertiary clay or not
-        if tertiary_clay is not None:
-            self.layering["Tertiary clay"] = tertiary_clay
-        else:
+        if tertiaryclaycolumn not in soilprofile.string_soil_parameters():
             self.layering.loc[:, "Tertiary clay"] = False
-
-        # Insert an additional layer interface to take the water level into account
-        if water_level == 0:
+        else:
             pass
-        else:
-            if (water_level in list(self.layering['Depth from [m]'])) or \
-                    (water_level in list(self.layering['Depth to [m]'])):
-                # Water level at a layer interface
-                pass
-            else:
-                insert_layer = self.layering[
-                    (self.layering['Depth from [m]'] <= water_level) &
-                    (self.layering['Depth to [m]'] >= water_level)].iloc[0]
-                i = self.layering.__len__()
-                self.layering.loc[i, "Depth from [m]"] = insert_layer["Depth from [m]"]
-                self.layering.loc[i, "Depth to [m]"] = water_level
-                self.layering.loc[i, "Soil type"] = insert_layer['Soil type']
-                self.layering.loc[i, "Tertiary clay"] = insert_layer['Tertiary clay']
-                self.layering.loc[insert_layer.name, "Depth from [m]"] = water_level
-                self.layering.sort_values("Depth to [m]", inplace=True)
-                self.layering.reset_index(drop=True, inplace=True)
 
-        # Assign total unit weights and calculate unit weight for the calculation
-        if total_unit_weight is None:
-            for i, row in self.layering.iterrows():
-                if (0.5 * (row["Depth to [m]"] + row["Depth from [m]"])) < water_level:
-                    self.layering.loc[i, "Total unit weight [kN/m3]"] = total_unit_weight_dry
-                    self.layering.loc[i, "Unit weight [kN/m3]"] = total_unit_weight_dry
+        # Add a layer interface for the water level
+        if water_level not in self.layering.layer_transitions():
+            self.layering.insert_layer_transition(depth=water_level)
+
+        # Check if a total unit weight has been specified. If not, use the defaults from Belgian practice
+        if totalunitweightcolumn not in soilprofile.numerical_soil_parameters():
+            for i, layer in self.layering.iterrows():
+                if 0.5 * (layer[self.layering.depth_from_col] + layer[self.layering.depth_to_col]) < water_level:
+                    self.layering.loc[i, totalunitweightcolumn] = total_unit_weight_dry
                 else:
-                    self.layering.loc[i, "Total unit weight [kN/m3]"] = total_unit_weight_wet
-                    self.layering.loc[i, "Unit weight [kN/m3]"] = total_unit_weight_wet - water_unit_weight
+                    self.layering.loc[i, totalunitweightcolumn] = total_unit_weight_wet
         else:
-            self.layering["Total unit weight [kN/m3]"] = total_unit_weight
-            for i, row in self.layering.iterrows():
-                if (0.5 * (row["Depth to [m]"] + row["Depth from [m]"])) < water_level:
-                    self.layering.loc[i, "Unit weight [kN/m3]"] = row['Total unit weight [kN/m3]']
-                else:
-                    self.layering.loc[i, "Unit weight [kN/m3]"] = row['Total unit weight [kN/m3]'] - water_unit_weight
+            pass
 
-        # Calculate layer thickness for axial shaft resistance calculation
-        self.layering['Layer thickness [m]'] = self.layering['Depth to [m]'] - self.layering['Depth from [m]']
-
-        # Create a dataframe with the tabular calculation data vs depth mapped onto the regular grid
-        self.calculation_data = pd.DataFrame({
-            'z [m]': self.depth,
-            'qc [MPa]': self.qc_mech
-        })
-        #  Map total unit weight and unit weight onto the grid
-        self.calculation_data['Unit weight [kN/m3]'] = np.interp(
-            self.depth,
-            np.insert(np.array(self.layering['Depth to [m]']),
-            np.arange(len(self.layering['Depth from [m]'])), self.layering['Depth from [m]']),
-                np.insert(np.array(self.layering['Unit weight [kN/m3]']),
-                          np.arange(len(self.layering['Unit weight [kN/m3]'])),
-                          self.layering['Unit weight [kN/m3]']),)
-        self.calculation_data['Total unit weight [kN/m3]'] = np.interp(
-            self.depth,
-            np.insert(np.array(self.layering['Depth to [m]']),
-            np.arange(len(self.layering['Depth from [m]'])), self.layering['Depth from [m]']),
-                np.insert(np.array(self.layering['Total unit weight [kN/m3]']),
-                          np.arange(len(self.layering['Total unit weight [kN/m3]'])),
-                          self.layering['Total unit weight [kN/m3]']), )
-
-        self.calculation_data['sigma_vo_tot [kPa]'] = np.append(
-            0,
-            np.cumsum(
-                np.diff(self.calculation_data['z [m]']) *
-                0.5 * (
-                    np.array(self.calculation_data['Total unit weight [kN/m3]'].iloc[:-1]) +
-                    np.array(self.calculation_data['Total unit weight [kN/m3]'].iloc[1:])
-                )
-            )
+        # Calculate stresses in the layers
+        self.layering.calculate_overburden(
+            waterlevel=water_level,
+            totalunitweightcolumn=totalunitweightcolumn
         )
-        self.calculation_data['water pressure [kPa]'] = np.interp(
-            self.calculation_data['z [m]'],
-            [0, water_level, self.calculation_data['z [m]'].max()],
-            [0, 0, (self.calculation_data['z [m]'].max() - water_level) * water_unit_weight])
-        self.calculation_data['sigma_vo_eff [kPa]'] = self.calculation_data['sigma_vo_tot [kPa]'] - \
-                                               self.calculation_data['water pressure [kPa]']
+
+        self.calculation_data = self.layering.map_soilprofile(nodalcoords=self.depth)
+        self.calculation_data['qc [MPa]'] = self.qc_mech
 
     @staticmethod
     def phi_func():
@@ -384,7 +307,7 @@ class DeBeerCalculation(object):
 
         # Calculate phi according to Equation 23
         calc['phi [deg]'] = np.rad2deg(
-            self.phi_func()(1000 * calc['qc [MPa]'] / calc['sigma_vo_eff [kPa]']))
+            self.phi_func()(1000 * calc['qc [MPa]'] / calc['Effective vertical stress [kPa]']))
         # Determine the values of the normalised depths h/d and h/D
         calc['h/d [-]'] = calc['z [m]'] / self.diameter_cone
         calc['h/D [-]'] = calc['z [m]'] / pile_diameter
@@ -421,7 +344,7 @@ class DeBeerCalculation(object):
 
         calc['A qp [MPa]'] = list(map(lambda _qp, _po, _gamma, _qc: min(_qc, self.stress_correction(
             qc=_qp, po=_po, diameter_pile=pile_diameter, diameter_cone=self.diameter_cone, gamma=_gamma, hcrit=hcrit)),
-                           calc['qp [MPa]'], calc['sigma_vo_eff [kPa]'], calc['Unit weight [kN/m3]'], calc['qc [MPa]']))
+                           calc['qp [MPa]'], calc['Effective vertical stress [kPa]'], calc['Effective unit weight [kN/m3]'], calc['qc [MPa]']))
 
         # --------------------------------------------------------------------
         # Step 3: Corrections for transition from weaker to stronger layers

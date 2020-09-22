@@ -14,6 +14,7 @@ import numpy as np
 # Project imports
 from groundhog.deepfoundations.axialcapacity import debeer
 from groundhog.siteinvestigation.insitutests.pcpt_processing import PCPTProcessing
+from groundhog.general.soilprofile import SoilProfile
 
 TESTS_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -30,11 +31,12 @@ class Test_pilecalcdebeer(unittest.TestCase):
             diameter_pile=0.4,
             diameter_cone=0.0357)
         calc.resample_data()
-        calc.set_soil_layers(
-            depth_from=[0, 3, 6, 15],
-            depth_to=[3, 6, 15, 20],
-            total_unit_weight=[18.5, 18.5, 18.5, 18.5],
-            soil_type=['Sand', 'Clay', 'Sand', 'Loam (silt)'])
+        profile = SoilProfile({
+            'Depth from [m]': [0, 3, 6, 15],
+            'Depth to [m]': [3, 6, 15, 20],
+            'Soil type': ['Sand', 'Clay', 'Sand', 'Loam (silt)']
+        })
+        calc.set_soil_layers(soilprofile=profile)
         calc.calculate_base_resistance()
         calc.correct_shaft_qc(cone_type='U')
         calc.calculate_average_qc()
@@ -61,10 +63,12 @@ class Test_shaftcalcdebeer(unittest.TestCase):
             qc=self.cpt.data["qc [MPa]"],
             diameter_pile=0.4)
         self.calc.resample_data(spacing=0.2)
-        self.calc.set_soil_layers(
-            depth_from=[0, 3, 7, 14, 18],
-            depth_to=[3, 7, 14, 18, 24],
-            soil_type=['Clay', 'Sand', 'Clay', 'Sand', 'Clayey sand / loam (silt)'])
+        profile = SoilProfile({
+            'Depth from [m]': [0, 3, 7, 14, 18],
+            'Depth to [m]': [3, 7, 14, 18, 24],
+            'Soil type': ['Clay', 'Sand', 'Clay', 'Sand', 'Clayey sand / loam (silt)']
+        })
+        self.calc.set_soil_layers(soilprofile=profile)
 
     def test_baseresistance(self):
         self.calc.calculate_base_resistance()

@@ -13,7 +13,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.optimize import brentq
 try:
-    from plotly import tools
+    from plotly import tools, subplots
     import plotly.graph_objs as go
     from plotly.colors import DEFAULT_PLOTLY_COLORS
     from plotly.offline import iplot
@@ -419,7 +419,7 @@ class DeBeerCalculation(object):
         :param legend_y: y Position of the legend (default=-0.05 for 5% below plot bottom)
         :return: Creates the Plotly figure ``base_plot`` as an attribute of the object
         """
-        self.base_plot = tools.make_subplots(rows=1, cols=1, print_grid=False)
+        self.base_plot = subplots.make_subplots(rows=1, cols=1, print_grid=False)
         traceqc = go.Scatter(x=self.qc_raw, y=self.depth_raw,
                              showlegend=True, mode='lines', name=r'$ q_c $')
         self.base_plot.append_trace(traceqc, 1, 1)
@@ -563,7 +563,7 @@ class DeBeerCalculation(object):
         :param legend_y: y Position of the legend (default=-0.05 for 5% below plot bottom)
         :return: Creates the Plotly figure ``unit_shaft_plot`` as an attribute of the object
         """
-        self.unit_shaft_plot = tools.make_subplots(rows=1, cols=2, print_grid=False, shared_yaxes=True)
+        self.unit_shaft_plot = subplots.make_subplots(rows=1, cols=2, print_grid=False, shared_yaxes=True)
         trace_qc = go.Scatter(x=self.qc_raw, y=self.depth_raw,
                              showlegend=True, mode='lines', name=r'$ q_c $')
         self.unit_shaft_plot.append_trace(trace_qc, 1, 1)

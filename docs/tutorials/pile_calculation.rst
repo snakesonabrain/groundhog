@@ -1,5 +1,5 @@
-Tutorial: Pile calculations
-=============================
+Tutorial: Axial pile capacity calculation using Methode De Beer
+===============================================================
 
 The current software provided by BGGG-GBMS for calculations according to
 the base resistance method by De Beer is relatively old and doesn’t lend
@@ -36,18 +36,19 @@ is located in the package ``debeer``.
 
 .. code:: ipython3
 
-    from debeer.calculation import DeBeerCalculation
+    from groundhog.deepfoundations.axialcapacity.debeer import DeBeerCalculation
+    from groundhog.general.soilprofile import SoilProfile
 
 2. Data reading
 ---------------
 
 The CPT data can be read from the CPTEX export using the ``read_csv``
 function from Pandas. The calculation will be benchmarked against this
-data. The example of Oud-Turnhout is used here.
+data.
 
 .. code:: ipython3
 
-    df = pd.read_csv("Data/Oud-Turnhout II.csv", delimiter=';', decimal=',')
+    df = pd.read_csv("../Data/Oud-Turnhout II.csv", delimiter=';', decimal=',')
     df.head()
 
 
@@ -60,11 +61,11 @@ data. The example of Oud-Turnhout is used here.
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-
+    
         .dataframe tbody tr th {
             vertical-align: top;
         }
-
+    
         .dataframe thead th {
             text-align: right;
         }
@@ -168,11 +169,49 @@ can also be set.
 
 .. code:: ipython3
 
+    profile = SoilProfile({
+        'Depth from [m]': [0, 17.2],
+        'Depth to [m]': [17.2, 31],
+        'Soil type': ["Sand", "Clayey sand / loam (silt)"],
+    })
     calc.set_soil_layers(
-        depth_from=[0, 17.2],
-        depth_to=[17.2, 31],
-        soil_type=["Sand", "Clayey sand / loam (silt)"],
+        soilprofile=profile,
         water_level=5)
+
+We can plot the result of the vertical stress calculation:
+
+.. code:: ipython3
+
+    fig = calc.layering.plot_profile(
+        parameters=(
+            (),
+            ('Effective vertical stress [kPa]', 'Total vertical stress [kPa]', 'Hydrostatic pressure [kPa]'),),
+        showlegends=((), (True, True, True),),
+        xtitles=(r'$ q_c \ \text{[MPa]} $',r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ u_0 \ \text{[kPa]} $',),
+        ztitle=r'$ z \ \text{[m]} $',
+        xranges=((0, 50), (0, 600),),
+        zrange=(31, 0),
+        fillcolordict={'Sand': 'yellow', 'Clayey sand / loam (silt)': 'orange', 'SILT': 'green', 'ROCK': 'grey'},
+        showfig=False)
+    
+    qc_data = go.Scatter(x=df['Conuswaarden[MN/m²]'], y=df['Diepte[m]'], showlegend=True, mode='lines',name=r'$ q_c $')
+    fig.append_trace(qc_data, 1, 2)
+    fig['layout'].update(
+        legend=dict(
+            orientation='h',
+            x=0.2,
+            y=-0.2,
+            ))
+    iplot(fig, filename='plot', config={'showLink': False})
+
+
+.. figure:: images/tutorial_pile_stresses.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Figure 1:  Overburden stress calculation
+
 
 5. Base resistance calculation
 ------------------------------
@@ -200,13 +239,16 @@ procedure.
     calc.base_plot.append_trace(trace_cptex, 1, 1)
     iplot(calc.base_plot, filename='baseplot', config={'showLink': False})
 
-
 .. figure:: images/tutorial_pile_1.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 1:  Unit base resistance calculation according to De Beer's method
+        Figure 2:  Calculation of unit base resistance - Comparison to CPTEX output
+
+.. code:: ipython3
+
+    pio.write_image(calc.base_plot, '../Images/voorbeeld_debeer_oudturnhout.png', scale=5)
 
 6. Shaft resistance calculation
 -------------------------------
@@ -239,19 +281,21 @@ friction is provided:
 
     calc.plot_unit_shaft_friction()
 
+
 .. figure:: images/tutorial_pile_2.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 2:  Average cone resistance and unit shaft friction
+        Figure 3:  Calculated unit shaft friction
 
 
 7. Calculation of shaft, base and total capacity
 ------------------------------------------------
 
 The shaft and base capacity can be calculated using the applicable
-factors. First the :math:`\alpha_s` and :math:`\alpha_b` factors are set:
+factors. First the $ :raw-latex:`\alpha`\_s $ and $
+:raw-latex:`\alpha`\_b $ factors are set:
 
 .. code:: ipython3
 
@@ -281,5 +325,8 @@ The resulting values of pile capacity can be printed to the notebook.
 
 .. raw:: html
 
+    
+    The shaft capacity $ R_s $ = 1723.7kN, the base capacity $ R_b $ = 1384.3kN, the total capacity $ R_c $ = 3108.1kN
 
-    The shaft capacity R_s = 1723.7kN, the base capacity R_b = 1384.3kN, the total capacity R_c = 3108.1kN
+
+

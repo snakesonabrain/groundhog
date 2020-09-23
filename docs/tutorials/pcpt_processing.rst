@@ -1,10 +1,11 @@
-Tutorial: PCPT processing
-============================
+Tutorial - PCPT processing with Groundhog
+=========================================
 
-A PCPT processing tool has been created for use by the students of the
-geotechnics and offshore foundations courses. This tool is made
-available to allow rapid checking of the sensitivity to processing
-parameters.
+A PCPT processing tool has been created within the ``groundhog``
+package. This tool is made available to allow rapid import of PCPT data,
+basic processing and checking of the sensitivity to processing
+parameters. Moreover, correlations between PCPT properties and other
+soil mechanical parameters an easily be applied.
 
 .. code:: ipython3
 
@@ -15,14 +16,19 @@ parameters.
 
 .. code:: ipython3
 
-    from plotly.offline import init_notebook_mode, iplot
+    from plotly import tools, subplots
+    import plotly.express as px
+    import plotly.graph_objs as go
+    import plotly.io as pio
+    import plotly.figure_factory as ff
+    from plotly.colors import DEFAULT_PLOTLY_COLORS
+    from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
     init_notebook_mode()
-
-
 
 .. code:: ipython3
 
-    from groundhog.site_investigation.pcpt_processing import PCPTProcessing
+    from groundhog.siteinvestigation.insitutests.pcpt_processing import PCPTProcessing
+    from groundhog.general.soilprofile import SoilProfile
 
 1. Loading data
 ---------------
@@ -33,7 +39,7 @@ parameters.
 The first way to load data is from a Pandas dataframe using the
 ``load_excel`` method. A dataframe is be created from Excel data and
 added as the ``.data`` attribute of the PCPTProcessing object. Note that
-:math:`q_c`, :math:`f_s` and :math:`u_2` need to have the dimension MPa. If they
+$ q_c $, $ f_s $ and $ u_2 $ need to have the dimension MPa. If they
 don’t multipliers can be specified to convert them to these dimensions.
 
 .. code:: ipython3
@@ -42,7 +48,7 @@ don’t multipliers can be specified to convert them to these dimensions.
 
 .. code:: ipython3
 
-    pcpt.load_excel(path="Data/debeer_example.xlsx",
+    pcpt.load_excel(path="../Data/debeer_example.xlsx",
                            u2_key="u [kPa]", u2_multiplier=0.001)
     pcpt.data.head()
 
@@ -56,11 +62,11 @@ don’t multipliers can be specified to convert them to these dimensions.
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-
+    
         .dataframe tbody tr th {
             vertical-align: top;
         }
-
+    
         .dataframe thead th {
             text-align: right;
         }
@@ -81,10 +87,10 @@ don’t multipliers can be specified to convert them to these dimensions.
         <tr>
           <th>0</th>
           <td>0.00</td>
-          <td>0.00</td>
-          <td>0.000</td>
           <td>NaN</td>
-          <td>0.000</td>
+          <td>NaN</td>
+          <td>NaN</td>
+          <td>NaN</td>
           <td>NaN</td>
         </tr>
         <tr>
@@ -136,12 +142,15 @@ The raw PCPT data can be visualized with the ``plot_raw_pcpt`` method.
     pcpt.plot_raw_pcpt()
 
 
+
 .. figure:: images/tutorial_pcpt_1.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
         Figure 1:  Raw PCPT data imported from Excel
+
+
 
 1.2. Reading .asc data
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -151,7 +160,7 @@ The class also has the function ``load_asc`` for loading .asc data.
 .. code:: ipython3
 
     pcpt_asc = PCPTProcessing(title="ASC PCPT")
-    pcpt_asc.load_asc(path="Data/acs_example.asc",
+    pcpt_asc.load_asc(path="../Data/acs_example.asc",
                       column_widths=[5, 9, 10, 11, 11, 11, 11],
                       z_key="Depth [m]", qc_key="Cone [MPa]", fs_key="Friction [MPa]", u2_key="Pore 2 [MPa]")
     pcpt_asc.data.head()
@@ -166,11 +175,11 @@ The class also has the function ``load_asc`` for loading .asc data.
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-
+    
         .dataframe tbody tr th {
             vertical-align: top;
         }
-
+    
         .dataframe thead th {
             text-align: right;
         }
@@ -262,7 +271,9 @@ The class also has the function ``load_asc`` for loading .asc data.
         :width: 450.0
         :align: center
 
-        Figure 2: Visualisation of data imported from .asc file
+        Figure 2:  Raw PCPT data imported from .asc
+
+
 
 1.3. Reading AGS data
 ~~~~~~~~~~~~~~~~~~~~~
@@ -274,13 +285,12 @@ We can first read an ags file with the function ``read_ags``.
 
 .. code:: ipython3
 
-    from groundhog.site_investigation.read_site_data import read_ags
+    from groundhog.siteinvestigation.insitutests.read_site_data import read_ags
 
 .. code:: ipython3
 
-    ags_pcpt_data = read_ags(file_path="Data/N6016_BH_WFS1-2A_AGS4_150909.ags", groupname="SCPT")
+    ags_pcpt_data = read_ags(file_path="../Data/N6016_BH_WFS1-2A_AGS4_150909.ags", groupname="SCPT")
     ags_pcpt_data.head()
-
 
 
 .. raw:: html
@@ -290,11 +300,11 @@ We can first read an ags file with the function ``read_ags``.
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-
+    
         .dataframe tbody tr th {
             vertical-align: top;
         }
-
+    
         .dataframe thead th {
             text-align: right;
         }
@@ -420,7 +430,7 @@ be retrieved with the following code:
 
 .. code:: ipython3
 
-    ags_location= read_ags("Data/N6016_BH_WFS1-2A_AGS4_150909.ags", groupname="LOCA")
+    ags_location= read_ags("../Data/N6016_BH_WFS1-2A_AGS4_150909.ags", groupname="LOCA")
     ags_location
 
 
@@ -433,11 +443,11 @@ be retrieved with the following code:
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-
+    
         .dataframe tbody tr th {
             vertical-align: top;
         }
-
+    
         .dataframe thead th {
             text-align: right;
         }
@@ -498,8 +508,8 @@ EPSG:25831 (ETRS89 / UTM zone 31N). We can add this info to our PCPT.
 
 We can use the ``load_pandas`` method of the ``PCPTProcessing`` object
 to load the data and make it ready for further processing. Note that we
-need to convert the column keys and apply multipliers to convert :math:`f_s`
-and :math:`u_2` to MPa.
+need to convert the column keys and apply multipliers to convert $ f_s $
+and $ u_2 $ to MPa.
 
 .. code:: ipython3
 
@@ -525,13 +535,13 @@ and :math:`u_2` to MPa.
     ags_pcpt.plot_raw_pcpt(u2_range=(-1, 5), u2_tick=0.25)
 
 
-
 .. figure:: images/tutorial_pcpt_3.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 3: Visualisation of data imported from .ags file
+        Figure 3:  Raw PCPT data imported from AGS
+
 
 1.4. Combining PCPT data
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -548,12 +558,12 @@ corresponding to the ``ags_pcpt`` object created above.
 
 .. code:: ipython3
 
-    ags_seabed_pcpt_data = read_ags(file_path="Data/N6016_BH_WFS1-9_AGS4_150909.ags", groupname="SCPT")
+    ags_seabed_pcpt_data = read_ags(file_path="../Data/N6016_BH_WFS1-9_AGS4_150909.ags", groupname="SCPT")
 
 
 .. code:: ipython3
 
-    ags_seabed_location_data = read_ags(file_path="Data/N6016_BH_WFS1-9_AGS4_150909.ags", groupname="LOCA")
+    ags_seabed_location_data = read_ags(file_path="../Data/N6016_BH_WFS1-9_AGS4_150909.ags", groupname="LOCA")
 
 .. code:: ipython3
 
@@ -572,14 +582,13 @@ corresponding to the ``ags_pcpt`` object created above.
         u2_multiplier=0.001)
     ags_seabed_pcpt.plot_raw_pcpt(u2_range=(-1, 5), u2_tick=0.25)
 
-
-
 .. figure:: images/tutorial_pcpt_4.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 4: Visualisation of seabed PCPT data
+        Figure 4:  Seabed PCPT data imported from AGS
+
 
 .. code:: ipython3
 
@@ -599,11 +608,11 @@ corresponding to the ``ags_pcpt`` object created above.
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
         }
-
+    
         .dataframe tbody tr th {
             vertical-align: top;
         }
-
+    
         .dataframe thead th {
             text-align: right;
         }
@@ -713,20 +722,20 @@ corresponding to the ``ags_pcpt`` object created above.
     ags_seabed_pcpt.plot_raw_pcpt(u2_range=(-1, 5), u2_tick=0.25)
 
 
-
 .. figure:: images/tutorial_pcpt_5.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 5: Visualisation of merged seabed and downhole PCPT data
+        Figure 5:  Combined PCPT data
+
 
 The object can be exported to a JSON format using the following column
 structure:
 
 .. code:: ipython3
 
-    ags_seabed_pcpt.to_json(write_file=True, output_path="Output/example.json")
+    ags_seabed_pcpt.to_json(write_file=True, output_path="../Output/example.json")
 
 1.5. Loading a00 data
 ~~~~~~~~~~~~~~~~~~~~~
@@ -738,7 +747,7 @@ files, another common PCPT data transfer format.
 
     a00_pcpt = PCPTProcessing(title='A00 example')
     a00_pcpt.load_a00(
-        path="Data/a00 example.A00",
+        path="../Data/a00 example.A00",
         column_widths=[8, 10, 11, 11, 11, 11, 11],
         z_key='Depth [m]', qc_key='Cone [MPa]', fs_key='Friction [MPa]', u2_key='Pore 2 [MPa]')
 
@@ -747,31 +756,81 @@ files, another common PCPT data transfer format.
     a00_pcpt.plot_raw_pcpt(u2_range=(-0.5, 1), u2_tick=0.25)
 
 
-
 .. figure:: images/tutorial_pcpt_6.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 6: Visualisation of data imported from .a00 file
+        Figure 6:  Raw PCPT data imported from a00 file
+
 
 2. Setting cone and layer properties
 ------------------------------------
 
-The cone and layer properties can be set based on the cone used and the layering identified.
-A ``SoilProfile`` object can be created for these properties.
-A basic structure with cone properties is available in the ``groundhog`` package.
+The cone and layer properties can be set based on the cone used and the
+layering identified. A ``SoilProfile`` object can be created for these
+properties. A basic structure with cone properties is available in the
+``groundhog`` package.
 
 .. code:: ipython3
 
     from groundhog.siteinvestigation.insitutests.pcpt_processing import DEFAULT_CONE_PROPERTIES
     DEFAULT_CONE_PROPERTIES
 
-The cone properties can be customised or an entirely new ``SoilProfile`` object can
-be defined. Here, we will keep the default properties.
 
-A layering definition also needs to be defined through a ``SoilProfile`` object.
-The total unit weight needs to be specified for the vertical stress calculation.
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>Depth from [m]</th>
+          <th>Depth to [m]</th>
+          <th>area ratio [-]</th>
+          <th>Cone type</th>
+          <th>Cone base area [cm2]</th>
+          <th>Cone sleeve_area [cm2]</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>20</td>
+          <td>0.8</td>
+          <td>U</td>
+          <td>10</td>
+          <td>150</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+The cone properties can be customised or an entirely new ``SoilProfile``
+object can be defined. Here, we will keep the default properties.
+
+A layering definition also needs to be defined through a ``SoilProfile``
+object. The total unit weight needs to be specified for the vertical
+stress calculation. Note that linear variations over the layers are
+possible through the use of ``from`` and ``to`` in the column keys.
 
 .. code:: ipython3
 
@@ -784,18 +843,89 @@ The total unit weight needs to be specified for the vertical stress calculation.
     layering
 
 
-The cone and layer properties can be mapped to the cone data grid using the ``map_properties`` method:
+
+
+.. raw:: html
+
+    <div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
+        }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
+        }
+    </style>
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>Depth from [m]</th>
+          <th>Depth to [m]</th>
+          <th>Total unit weight [kN/m3]</th>
+          <th>Soil type</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0.00</td>
+          <td>3.16</td>
+          <td>18.0</td>
+          <td>SAND</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>3.16</td>
+          <td>5.90</td>
+          <td>17.0</td>
+          <td>CLAY</td>
+        </tr>
+        <tr>
+          <th>2</th>
+          <td>5.90</td>
+          <td>14.86</td>
+          <td>19.5</td>
+          <td>SAND</td>
+        </tr>
+        <tr>
+          <th>3</th>
+          <td>14.86</td>
+          <td>15.70</td>
+          <td>20.0</td>
+          <td>SAND</td>
+        </tr>
+        <tr>
+          <th>4</th>
+          <td>15.70</td>
+          <td>20.00</td>
+          <td>20.0</td>
+          <td>SAND</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+
+The cone and layer properties can be mapped to the cone data grid using
+the ``map_properties`` method:
 
 .. code:: ipython3
 
     pcpt.map_properties(layer_profile=layering, cone_profile=DEFAULT_CONE_PROPERTIES)
 
-Following mapping of the layering, the plot with raw cone data will also include the selected layers.
+Following mapping of the layering, the plot with raw cone data will also
+include the selected layers.
 
 .. code:: ipython3
 
     pcpt.plot_raw_pcpt()
-
 
 
 .. figure:: images/tutorial_pcpt_7.png
@@ -803,15 +933,16 @@ Following mapping of the layering, the plot with raw cone data will also include
         :width: 450.0
         :align: center
 
-        Figure 7: Visualisation of PCPT data with layering
+        Figure 7:  PCPT data with specified layering
+
 
 
 3. Normalising PCPT data
 ------------------------
 
 PCPT can be normalised using the equations for normalised cone
-resistance :math:`Q_t`, normalised sleeve friction :math:`F_r` and the pore
-pressure parameter :math:`B_q`. The ``normalise_pcpt`` method of the
+resistance $ Q_t $, normalised sleeve friction $ F_r $ and the pore
+pressure parameter $ B_q $. The ``normalise_pcpt`` method of the
 ``PCPTProcessing`` class allows this normalisation to happen in one
 calculation step:
 
@@ -827,13 +958,12 @@ Plotting of the resulting properties can be executed with the
     pcpt.plot_normalised_pcpt()
 
 
-
 .. figure:: images/tutorial_pcpt_8.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 8: Visualisation of normalised PCPT data with layering
+        Figure 8:  Normalised PCPT parameters
 
 
 The data points can also be plotted in the Robertson chart per layer. We
@@ -844,17 +974,15 @@ are.
 
     pcpt.plot_robertson_chart(backgroundimagedir="Images")
 
-
-
 .. figure:: images/tutorial_pcpt_9.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 9: Visualisation of normalised PCPT data plotted in Robertson chart
+        Figure 9:  Soil classification according to the Robertson chart
 
 
-4. Applying correlations to PCPT data
+5. Applying correlations to PCPT data
 -------------------------------------
 
 Correlations can be applied to the processed PCPT data using method
@@ -880,7 +1008,7 @@ The calculated properties can be visaulized with the method
 ``plot_properties``. The keys to be plotted in each panel need to be
 provided as a tuple per panel. In the example below, the first panel
 only contains ``qc [MPa]`` and the second ``Ic [-]``. The third panel
-contains :math:`G_{max}`in sand and clay.
+contains $ G_{max} $ in sand and clay.
 
 .. code:: ipython3
 
@@ -888,9 +1016,8 @@ contains :math:`G_{max}`in sand and clay.
         prop_keys=[('qc [MPa]',), ('Ic [-]',), ('Gmax sand [kPa]', 'Gmax clay [kPa]')],
         plot_ranges=((0, 100), (0, 5), (0, 200e3)),
         plot_ticks=(10, 0.5, 25e3, 25e3),
-        axis_titles=(r'$ q_c \ \text{[MPa]} $', r'$ I_c \ \text{[-]} $',
+        axis_titles=(r'$ q_c \ \text{[MPa]} $', r'$ I_c \ \text{[-]} $', 
                      r'$ G_{max} \ \text{[kPa]} $'))
-
 
 
 .. figure:: images/tutorial_pcpt_10.png
@@ -898,10 +1025,13 @@ contains :math:`G_{max}`in sand and clay.
         :width: 450.0
         :align: center
 
-        Figure 10: Visualisation of soil mechanics parameters from correlations with PCPT data
+        Figure 10:  Visualisation of output of correlations
 
-These properties can also be plotted in a plot with a mini-log on the left.
-The layering ``SoilProfile`` needs to contain a column ``Soil type`` to achieve this.
+
+
+These properties can also be plotted in a plot with a mini-log on the
+left. The layering ``SoilProfile`` needs to contain a column
+``Soil type`` to achieve this.
 
 .. code:: ipython3
 
@@ -910,15 +1040,16 @@ The layering ``SoilProfile`` needs to contain a column ``Soil type`` to achieve 
         showlegends=((False,), (False,), (True, True)),
         plot_ranges=((0, 100), (0, 5), (0, 200e3)),
         plot_ticks=(10, 0.5, 25e3, 25e3),
-        axis_titles=(r'$ q_c \ \text{[MPa]} $', r'$ I_c \ \text{[-]} $',
+        axis_titles=(r'$ q_c \ \text{[MPa]} $', r'$ I_c \ \text{[-]} $', 
                      r'$ G_{max} \ \text{[kPa]} $'),
         zrange=(20, 0),
         layout=dict(width=1000)
         )
+
 
 .. figure:: images/tutorial_pcpt_11.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Figure 11: Visualisation of soil mechanics parameters from correlations with PCPT data together with mini-log
+        Figure 11:  Visualisation of output of correlations with mini-log

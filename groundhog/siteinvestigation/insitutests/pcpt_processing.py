@@ -937,19 +937,19 @@ class PCPTProcessing(object):
                 if i > 0:
                     layer_trace_qt = go.Scatter(
                         x=(10 ** qt_range[0], 10 ** qt_range[1]),
-                        y=(row["z from [m]"], row["z from [m]"]),
+                        y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                         line=dict(color='black', dash='dot'),
                         showlegend=False, mode='lines')
                     fig.append_trace(layer_trace_qt, 1, 1)
                     layer_trace_fr = go.Scatter(
                         x=(10 ** fr_range[0], 10 ** fr_range[1]),
-                        y=(row["z from [m]"], row["z from [m]"]),
+                        y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                         line=dict(color='black', dash='dot'),
                         showlegend=False, mode='lines')
                     fig.append_trace(layer_trace_fr, 1, 2)
                     layer_trace_bq = go.Scatter(
                         x=bq_range,
-                        y=(row["z from [m]"], row["z from [m]"]),
+                        y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                         line=dict(color='black', dash='dot'),
                         showlegend=False, mode='lines')
                     fig.append_trace(layer_trace_bq, 1, 3)
@@ -1020,7 +1020,7 @@ class PCPTProcessing(object):
                     for i, _range in enumerate(plot_ranges):
                         layer_trace = go.Scatter(
                             x=_range,
-                            y=(row["z from [m]"], row["z from [m]"]),
+                            y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                             line=dict(color='black', dash='dot'),
                             showlegend=False, mode='lines')
                         fig.append_trace(layer_trace, 1, i+1)
@@ -1301,7 +1301,7 @@ class PCPTProcessing(object):
                     for i, _range in enumerate(plot_ranges):
                         layer_trace = go.Scatter(
                             x=_range,
-                            y=(row["z from [m]"], row["z from [m]"]),
+                            y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                             line=dict(color='black', dash='dot'),
                             showlegend=False, mode='lines')
                         fig.append_trace(layer_trace, 1, i+1)

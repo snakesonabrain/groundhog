@@ -23,7 +23,10 @@ PCPT_KEY_MAPPING = {
     'Vertical effective stress [kPa]': 'sigma_vo_eff',
     'Ic [-]': 'ic',
     'Dr [-]': 'relative_density',
-    'Gmax [kPa]': 'gmax'
+    'Gmax [kPa]': 'gmax',
+    'Qt [-]': 'Qt',
+    'Bq [-]': 'Bq',
+    'Fr [%]': 'Fr'
 }
 
 
@@ -675,6 +678,132 @@ def frictionangle_overburden_kleven(sigma_vo_eff, relative_density, Ko=0.5, max_
         'sigma_m [kPa]': sigma_m,
     }
 
+
+OCR_CPT_LUNNE = {
+    'Qt': {'type': 'float', 'min_value': 2.0, 'max_value': 34.0},
+    'Bq': {'type': 'float', 'min_value': 0.0, 'max_value': 1.4},
+}
+
+OCR_CPT_LUNNE_ERRORRETURN = {
+    'OCR_Qt_LE [-]': np.nan,
+    'OCR_Qt_BE [-]': np.nan,
+    'OCR_Qt_HE [-]': np.nan,
+    'OCR_Bq_LE [-]': np.nan,
+    'OCR_Bq_BE [-]': np.nan,
+    'OCR_Bq_HE [-]': np.nan,
+}
+
+
+@Validator(OCR_CPT_LUNNE, OCR_CPT_LUNNE_ERRORRETURN)
+def ocr_cpt_lunne(Qt, Bq=np.nan, **kwargs):
+    """
+    Calculates the overconsolidation ratio (OCR) for clay based on normalised CPT properties. A low estimate, best estimate and high estimate of OCR is provided. The data is based on testing of high-quality undisturbed samples by the Norwegian Geotechnical Institute.
+
+    Both normalised cone resistance Qt and pore pressure ratio Bq can be used as inputs. If only one of the two inputs is specified, NaN is returned for the other.
+
+    The implementation of the formulation is based on digitisation of the graphs.
+
+    :param Qt: Normalised cone resistance (:math:`Q_t`) [:math:`-`] - Suggested range: 2.0 <= Qt <= 34.0
+    :param Bq: Pore pressure ratio (:math:`B_q`) [:math:`-`] - Suggested range: 0.0 <= Bq <= 1.4 (optional, default=None)
+
+    :returns: Dictionary with the following keys:
+
+        - 'OCR_Qt_LE [-]': Low estimate OCR based on Qt (:math:`OCR_{Q_t,LE}`)  [:math:`-`]
+        - 'OCR_Qt_BE [-]': Best estimate OCR based on Qt (:math:`OCR_{Q_t,BE}`)  [:math:`-`]
+        - 'OCR_Qt_HE [-]': High estimate OCR based on Qt (:math:`OCR_{Q_t,HE}`)  [:math:`-`]
+        - 'OCR_Bq_LE [-]': Low estimate OCR based on Bq (:math:`OCR_{B_q,LE}`)  [:math:`-`]
+        - 'OCR_Bq_BE [-]': Best estimate OCR based on Bq (:math:`OCR_{B_q,BE}`)  [:math:`-`]
+        - 'OCR_Bq_HE [-]': High estimate OCR based on Bq (:math:`OCR_{B_q,HE}`)  [:math:`-`]
+
+    .. figure:: images/ocr_cpt_lunne.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Data used for correlations according to Lunne et al
+
+    Reference - Lunne, T., Robertson, P.K., Powell, J.J.M., 1997. Cone penetration testing in geotechnical practice. E & FN Spon.
+
+    """
+
+    _OCR_Qt_HE = 10 ** (np.interp(
+        Qt,
+        [
+            2.118188717, 2.955763555, 4.261775866, 5.212142676, 6.987132136, 9.588363268,
+            13.01367738, 18.08607808, 23.27342946, 27.27943334, 31.99025213, 33.87371616],
+        [
+            0.00599007, 0.161314993, 0.292855171, 0.394488883, 0.508212442, 0.651930234,
+            0.801769746, 0.95191644, 1.072244436, 1.138639862, 1.193230681, 1.205518004
+        ]))
+    _OCR_Qt_BE = 10 ** (np.interp(
+        Qt,
+        [
+            3.294139472, 4.721578548, 6.379458639, 8.389746184, 11.22465638, 14.29432499,
+            17.36237457, 20.19404672, 24.08456025, 27.62050763, 31.15537566, 33.86508137
+        ],
+        [
+            0.000241358, 0.173580374, 0.29325012, 0.407017563, 0.532874854, 0.6528079,
+            0.754836561, 0.844885083, 0.93513108, 1.007406867, 1.067746398, 1.110027953
+        ]))
+    _OCR_Qt_LE = 10 ** (np.interp(
+        Qt,
+        [
+            4.705927987, 6.483615819, 8.494443039, 10.50580993, 13.10272367, 16.05258453,
+            19.4725019, 22.77369087, 26.42620794, 29.60758917, 34.08526857
+        ],
+        [
+            0.000504658, 0.144068858, 0.263804429, 0.389508129, 0.485480895, 0.581519487,
+            0.671677717, 0.749877749, 0.810239222, 0.8645448, 0.942964248
+        ]))
+
+    if np.math.isnan(Bq):
+        _OCR_Bq_LE = np.nan
+        _OCR_Bq_BE = np.nan
+        _OCR_Bq_HE = np.nan
+    else:
+        _OCR_Bq_LE = 10 ** (np.interp(
+            Bq,
+            [
+                0.075352962, 0.188834333, 0.276555837, 0.379904518, 0.46248832,
+                0.586554308, 0.715805569, 0.855570091
+            ],
+            [
+                0.692612411, 0.54389548, 0.436844931, 0.347765081, 0.252628686,
+                0.157669124, 0.062731666, 0.00364719
+            ]
+        ))
+        _OCR_Bq_BE = 10 ** (np.interp(
+            Bq,
+            [
+                0.102064255, 0.184481558, 0.251580897, 0.354763078, 0.468363377,
+                0.602728555, 0.726770757, 0.866392565, 1.00608573
+            ],
+            [
+                0.889671185, 0.752757888, 0.675459566, 0.544602814, 0.425726528,
+                0.312906788, 0.211979097, 0.117085847, 0.040096985
+            ]
+        ))
+        _OCR_Bq_HE = 10 ** (np.interp(
+            Bq,
+            [
+                0.164882176, 0.216425695, 0.293705296, 0.438155592, 0.577587115,
+                0.717089995, 0.898027489, 1.037673083
+            ],
+            [
+                1.039139658, 0.961775024, 0.83677588, 0.652382801, 0.50974452,
+                0.385010626, 0.248517308, 0.159592188
+            ]
+        ))
+
+    return {
+        'OCR_Qt_LE [-]': _OCR_Qt_LE,
+        'OCR_Qt_BE [-]': _OCR_Qt_BE,
+        'OCR_Qt_HE [-]': _OCR_Qt_HE,
+        'OCR_Bq_LE [-]': _OCR_Bq_LE,
+        'OCR_Bq_BE [-]': _OCR_Bq_BE,
+        'OCR_Bq_HE [-]': _OCR_Bq_HE,
+    }
+
 CORRELATIONS = {
     'Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Rix and Stokoe (1991)': gmax_sand_rixstokoe,
@@ -684,5 +813,6 @@ CORRELATIONS = {
     'Jamiolkowski et al (2003)': relativedensity_sand_jamiolkowski,
     'Kulhawy and Mayne (1990)': frictionangle_sand_kulhawymayne,
     'Rad and Lunne (1988)': undrainedshearstrength_clay_radlunne,
-    'Kleven (1986)': frictionangle_overburden_kleven
+    'Kleven (1986)': frictionangle_overburden_kleven,
+    'OCR Lunne (1989)': ocr_cpt_lunne
 }

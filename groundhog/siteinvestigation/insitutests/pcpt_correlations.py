@@ -27,7 +27,8 @@ PCPT_KEY_MAPPING = {
     'Qt [-]': 'Qt',
     'Bq [-]': 'Bq',
     'Fr [%]': 'Fr',
-    'Rf [%]': 'Rf'
+    'Rf [%]': 'Rf',
+    'K0 [-]': 'K0'
 }
 
 
@@ -145,16 +146,6 @@ def pcpt_normalisations(
         'Fr [-]': _Fr,
         'qnet [MPa]': _qnet,
     }
-
-
-CORRELATIONS = {
-    'Robertson and Wride (1998)': 'behaviourindex_pcpt_robertsonwride',
-    'Rix and Stokoe (1991)': 'gmax_sand_rixstokoe',
-    'Mayne and Rix (1993)': 'gmax_clay_maynerix',
-    'Baldi et al (1986) - NC sand': 'relativedensity_ncsand_baldi',
-    'Baldi et al (1986) - OC sand': 'relativedensity_ocsand_baldi',
-    'Jamiolkowski et al (2003)': 'relativedensity_sand_jamiolkowski'
-}
 
 BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE = {
     'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},

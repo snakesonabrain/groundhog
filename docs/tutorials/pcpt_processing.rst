@@ -987,7 +987,7 @@ are.
 
 Correlations can be applied to the processed PCPT data using method
 ``apply_correlation`` with the keys outlined in the documentation. For
-example ``'Robertson and Wride (1998)'`` calculates the soil behaviour
+example ``'Ic Robertson and Wride (1998)'`` calculates the soil behaviour
 type index. The method argument ``outkey`` is the name of the column in
 the resulting dataframe. The method argument ``resultkey`` is the key in
 the output dictionary of the function which needs to be taken. For
@@ -996,12 +996,12 @@ in the result dictionary. This key needs to be selected.
 
 .. code:: ipython3
 
-    pcpt.apply_correlation('Robertson and Wride (1998)', outkey='Ic [-]', resultkey='Ic [-]')
+    pcpt.apply_correlation('Ic Robertson and Wride (1998)', outkey='Ic [-]', resultkey='Ic [-]')
     pcpt.apply_correlation(
-        'Rix and Stokoe (1991)', outkey='Gmax sand [kPa]', resultkey='Gmax [kPa]',
+        'Gmax Rix and Stokoe (1991)', outkey='Gmax sand [kPa]', resultkey='Gmax [kPa]',
         apply_for_soiltypes=['SAND',])
     pcpt.apply_correlation(
-        'Mayne and Rix (1993)', outkey='Gmax clay [kPa]', resultkey='Gmax [kPa]',
+        'Gmax Mayne and Rix (1993)', outkey='Gmax clay [kPa]', resultkey='Gmax [kPa]',
         apply_for_soiltypes=['CLAY',])
 
 The calculated properties can be visaulized with the method

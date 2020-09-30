@@ -72,3 +72,20 @@ class Test_PhaseRelations(unittest.TestCase):
                 watercontent=0.9
             )['effective unit weight [kN/m3]'], 8, 2
         )
+
+    def test_relative_density(self):
+        self.assertAlmostEqual(
+            phaserelations.relative_density(
+                void_ratio=1.2,
+                e_min=0.8,
+                e_max=2
+            )['Dr [-]'], 0.3333, 4
+        )
+
+    def test_relativedensity_categories(self):
+        self.assertEqual(
+            phaserelations.relativedensity_categories(
+                relative_density=0.3)['Relative density'], "Loose")
+        self.assertEqual(
+            phaserelations.relativedensity_categories(
+                relative_density=0.9)['Relative density'], "Very dense")

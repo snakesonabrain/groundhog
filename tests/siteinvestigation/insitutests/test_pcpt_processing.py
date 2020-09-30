@@ -86,12 +86,12 @@ class Test_PCPTProcessing(unittest.TestCase):
         :return:
         """
         self.test_pcpt_normalisation()
-        self.pandas_pcpt.apply_correlation('Robertson and Wride (1998)', outkey='Ic [-]', resultkey='Ic [-]')
+        self.pandas_pcpt.apply_correlation('Ic Robertson and Wride (1998)', outkey='Ic [-]', resultkey='Ic [-]')
         self.pandas_pcpt.apply_correlation(
-            'Rix and Stokoe (1991)', outkey='Gmax sand [kPa]', resultkey='Gmax [kPa]',
+            'Gmax Rix and Stokoe (1991)', outkey='Gmax sand [kPa]', resultkey='Gmax [kPa]',
             apply_for_soiltypes=['SAND', ])
         self.pandas_pcpt.apply_correlation(
-            'Mayne and Rix (1993)', outkey='Gmax clay [kPa]', resultkey='Gmax [kPa]',
+            'Gmax Mayne and Rix (1993)', outkey='Gmax clay [kPa]', resultkey='Gmax [kPa]',
             apply_for_soiltypes=['CLAY', ])
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[275, "Ic [-]"], 2.993, 2

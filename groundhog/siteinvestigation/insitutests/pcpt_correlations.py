@@ -26,7 +26,8 @@ PCPT_KEY_MAPPING = {
     'Gmax [kPa]': 'gmax',
     'Qt [-]': 'Qt',
     'Bq [-]': 'Bq',
-    'Fr [%]': 'Fr'
+    'Fr [%]': 'Fr',
+    'Rf [%]': 'Rf'
 }
 
 
@@ -804,15 +805,168 @@ def ocr_cpt_lunne(Qt, Bq=np.nan, **kwargs):
         'OCR_Bq_HE [-]': _OCR_Bq_HE,
     }
 
+
+SENSITIVITY_FRICTIONRATIO_LUNNE = {
+    'Rf': {'type': 'float', 'min_value': 0.5, 'max_value': 2.2},
+}
+
+SENSITIVITY_FRICTIONRATIO_LUNNE_ERRORRETURN = {
+    'St LE [-]': np.nan,
+    'St BE [-]': np.nan,
+    'St HE [-]': np.nan,
+}
+
+
+@Validator(SENSITIVITY_FRICTIONRATIO_LUNNE, SENSITIVITY_FRICTIONRATIO_LUNNE_ERRORRETURN)
+def sensitivity_frictionratio_lunne(
+        Rf,
+        **kwargs):
+    """
+    Calculates the sensitivity of clay from the friction ratio according to Rad and Lunne (1986). The correlation is derived based on measurements on Norwegian clays.
+
+    Ideally, the sleeve friction corrected for pore pressure effects should be used to calculate the friction ratio but if this is not available (when pore pressures are not measured on both ends of the friction sleeve), the ratio of sleeve friction to cone tip resistance (in percent) can be used.
+
+    The function returns a low estimate, best estimate and high estimate value.
+
+    :param Rf: Friction ratio (:math:`R_f = f_t / q_t`) [:math:`percent`] - Suggested range: 0.5 <= Rf <= 2.2
+
+    :returns: Dictionary with the following keys:
+
+        - 'St LE [-]': Low estimate sensitivity (:math:`S_{t,LE}`)  [:math:`-`]
+        - 'St BE [-]': Best estimate sensitivity (:math:`S_{t,BE}`)  [:math:`-`]
+        - 'St HE [-]': High estimate sensitivity (:math:`S_{t,HE}`)  [:math:`-`]
+
+    .. figure:: images/sensitivity_frictionratio_lunne_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Data used to derive correlation according to Rad & Lunne (1986)
+
+    Reference - Lunne, T., Robertson, P.K., Powell, J.J.M., 1997. Cone penetration testing in geotechnical practice. E & FN Spon.
+
+    """
+
+    _St_LE = np.interp(
+        Rf,
+        [
+            0.562740471,
+            0.611428435,
+            0.682345206,
+            0.757699952,
+            0.850826065,
+            0.952873546,
+            1.050502516,
+            1.152588927,
+            1.26358373,
+            1.36570907,
+            1.490050241,
+            1.60551546,
+            1.747640974,
+            1.858687683,
+            1.929747195
+        ],
+        [
+            9.249026219,
+            8.570904876,
+            7.91500585,
+            7.237273803,
+            6.537903381,
+            5.948152249,
+            5.445927855,
+            4.987564153,
+            4.595023931,
+            4.268047658,
+            3.919497895,
+            3.614614175,
+            3.288221847,
+            3.070864865,
+            2.896719748
+        ]
+    )
+    _St_BE = np.interp(
+        Rf,
+        [
+            0.714072837,
+            0.793839606,
+            0.878044349,
+            0.993334386,
+            1.104257818,
+            1.224063689,
+            1.339464026,
+            1.463779243,
+            1.605846362,
+            1.756841338,
+            1.885626972,
+            2.045504387
+        ],
+        [
+            9.995760998,
+            9.208604309,
+            8.399614597,
+            7.503487444,
+            6.870070268,
+            6.214884952,
+            5.691022183,
+            5.2548808,
+            4.731407327,
+            4.339451049,
+            3.990966168,
+            3.577241751
+        ]
+    )
+    _St_HE = np.interp(
+        Rf,
+        [
+            0.825586702,
+            0.896490496,
+            0.958505363,
+            1.042755524,
+            1.140358542,
+            1.233478166,
+            1.353297013,
+            1.464226934,
+            1.588516198,
+            1.72615183,
+            1.846016095,
+            1.970344289,
+            2.099116947,
+            2.23678502
+        ],
+        [
+            11.35505317,
+            10.65535834,
+            9.955533736,
+            9.299829359,
+            8.710013344,
+            7.988745018,
+            7.377355512,
+            6.76583624,
+            6.242103237,
+            5.762360691,
+            5.30425652,
+            4.911910946,
+            4.519630255,
+            4.149377234
+        ]
+    )
+
+    return {
+        'St LE [-]': _St_LE,
+        'St BE [-]': _St_BE,
+        'St HE [-]': _St_HE,
+    }
+
 CORRELATIONS = {
-    'Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
-    'Rix and Stokoe (1991)': gmax_sand_rixstokoe,
-    'Mayne and Rix (1993)': gmax_clay_maynerix,
-    'Baldi et al (1986) - NC sand': relativedensity_ncsand_baldi,
-    'Baldi et al (1986) - OC sand': relativedensity_ocsand_baldi,
-    'Jamiolkowski et al (2003)': relativedensity_sand_jamiolkowski,
-    'Kulhawy and Mayne (1990)': frictionangle_sand_kulhawymayne,
-    'Rad and Lunne (1988)': undrainedshearstrength_clay_radlunne,
-    'Kleven (1986)': frictionangle_overburden_kleven,
-    'OCR Lunne (1989)': ocr_cpt_lunne
+    'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
+    'Gmax Rix and Stokoe (1991)': gmax_sand_rixstokoe,
+    'Gmax Mayne and Rix (1993)': gmax_clay_maynerix,
+    'Dr Baldi et al (1986) - NC sand': relativedensity_ncsand_baldi,
+    'Dr Baldi et al (1986) - OC sand': relativedensity_ocsand_baldi,
+    'Dr Jamiolkowski et al (2003)': relativedensity_sand_jamiolkowski,
+    'Friction angle Kulhawy and Mayne (1990)': frictionangle_sand_kulhawymayne,
+    'Su Rad and Lunne (1988)': undrainedshearstrength_clay_radlunne,
+    'Friction angle Kleven (1986)': frictionangle_overburden_kleven,
+    'OCR Lunne (1989)': ocr_cpt_lunne,
+    'Sensitivity Rad and Lunne (1986)': sensitivity_frictionratio_lunne
 }

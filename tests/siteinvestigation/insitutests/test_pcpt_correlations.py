@@ -123,4 +123,11 @@ class Test_ocr_cpt_lunne(unittest.TestCase):
         self.assertAlmostEqual(result['OCR_Bq_HE [-]'], 3.09, 2)
 
 
+class Test_sensitivity_frictionratio_lunne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.sensitivity_frictionratio_lunne(Rf=1)
+        self.assertAlmostEqual(result['St LE [-]'], 5.71, 2)
+        self.assertAlmostEqual(result['St BE [-]'], 7.47, 2)
+        self.assertAlmostEqual(result['St HE [-]'], 9.63, 2)
 

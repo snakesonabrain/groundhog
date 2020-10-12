@@ -43,7 +43,7 @@ def stresses_pointload(
 
         \\Delta \\sigma_r = \\frac{Q}{2 \\pi} \\left( \\frac{3 r^2 z}{(r^2 + z^2)^{5/2}} - \\frac{1 - 2 \\nu}{r^2 + z^2 + z \\left( r^2 + z^2 \\right)^{1/2}}\\right)
 
-        \\Delta \\sigma_(\\theta} = \\frac{Q}{2 \\pi} \\left( 1 - 2 \\nu \\right) \\left( \\frac{z}{\\left( r^2 + z^2 \\right)^{3/2}} - \\frac{1}{r^2 + z^2 + z \\left( r^2 + z^2 \\right)^{1/2} } \\right)
+        \\Delta \\sigma_{\\theta} = \\frac{Q}{2 \\pi} \\left( 1 - 2 \\nu \\right) \\left( \\frac{z}{\\left( r^2 + z^2 \\right)^{3/2}} - \\frac{1}{r^2 + z^2 + z \\left( r^2 + z^2 \\right)^{1/2} } \\right)
 
         \\Delta \\tau_{rz} = \\frac{3 Q}{2 \\pi} \\left[ \\frac{r z^2}{\\left( r^2 + z^2 \\right)^{5/2}} \\right]
 
@@ -73,7 +73,7 @@ def stresses_pointload(
                         ((3 * r ** 2 * z) / ((r ** 2 + z ** 2) ** (5/2))) -
                         (1 - 2 * poissonsratio) / (r ** 2 + z ** 2 + z * np.sqrt(r ** 2 + z ** 2))
                      )
-    _delta_sigma_theta = (pointload / (2 ** np.pi)) * ( 1 - 2 * poissonsratio) * (
+    _delta_sigma_theta = (pointload / (2 * np.pi)) * (1 - 2 * poissonsratio) * (
             (z / ((r ** 2 + z ** 2) ** (3 / 2))) -
             (1 / (r ** 2 + z ** 2 + z * np.sqrt(r ** 2 + z ** 2)))
     )

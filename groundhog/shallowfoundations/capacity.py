@@ -679,7 +679,7 @@ def envelope_drained_api(vertical_effective_stress,
 
 
     .. math::
-        \\tan(\\text{inclination}) = \\frac{H_{eff}}{Q} = \\frac{H - H_{text{outside eff} - \\Delta H}{Q}
+        \\tan(\\text{inclination}) = \\frac{H_{eff}}{Q} = \\frac{H - H_{\\text{outside eff}} - \\Delta H}{Q}
 
     :returns: Dictionary with the following keys:
 
@@ -1040,29 +1040,3 @@ def ngamma_frictionangle_davisbooker(
         'Ngamma_smooth [-]': _Ngamma_smooth,
         'Ngamma_rough [-]': _Ngamma_rough,
     }
-
-class APIMudmatCalculation(object):
-
-    def __init__(self, title):
-        self.title = title
-
-    def set_rectangular_dimensions(self, length, width, eccentricity_length, eccentricity_width):
-        """
-        Sets dimensions for a rectangular foundation
-
-        :param length:
-        :param width:
-        :param eccentricity_length:
-        :param eccentricity_width:
-        :return:
-        """
-        pass
-
-
-class APIMudmatCalculationDrained(APIMudmatCalculation):
-
-    pass
-
-
-class APIMudmatCalculationUndrained(APIMudmatCalculation):
-    pass

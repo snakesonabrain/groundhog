@@ -61,6 +61,8 @@ Function documentation
 
    piles/piles_toplevel
 
+   shallowfoundations/shallowfoundations_toplevel
+
    tunnels/tunnels_toplevel
 
 

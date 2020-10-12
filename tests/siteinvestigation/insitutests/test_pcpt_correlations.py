@@ -8,6 +8,7 @@ import unittest
 import os
 
 # 3rd party packages
+import numpy as np
 
 # Project imports
 from groundhog.siteinvestigation.insitutests import pcpt_correlations
@@ -101,4 +102,32 @@ class Test_friction_angle_kleven(unittest.TestCase):
             ValueError,
             pcpt_correlations.frictionangle_overburden_kleven, 1.0, 100.0, Ko=0.6, fail_silently=False)
 
+
+class Test_ocr_cpt_lunne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.ocr_cpt_lunne(
+                Qt=10)
+        self.assertAlmostEqual(result['OCR_Qt_LE [-]'], 2.28, 2)
+        self.assertAlmostEqual(result['OCR_Qt_BE [-]'], 3.01, 2)
+        self.assertAlmostEqual(result['OCR_Qt_HE [-]'], 4.68, 2)
+        self.assertTrue(np.math.isnan(result['OCR_Bq_LE [-]']))
+
+        result = pcpt_correlations.ocr_cpt_lunne(
+            Qt=10, Bq=0.6)
+        self.assertAlmostEqual(result['OCR_Qt_LE [-]'], 2.28, 2)
+        self.assertAlmostEqual(result['OCR_Qt_BE [-]'], 3.01, 2)
+        self.assertAlmostEqual(result['OCR_Qt_HE [-]'], 4.68, 2)
+        self.assertAlmostEqual(result['OCR_Bq_LE [-]'], 1.41, 2)
+        self.assertAlmostEqual(result['OCR_Bq_BE [-]'], 2.07, 2)
+        self.assertAlmostEqual(result['OCR_Bq_HE [-]'], 3.09, 2)
+
+
+class Test_sensitivity_frictionratio_lunne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.sensitivity_frictionratio_lunne(Rf=1)
+        self.assertAlmostEqual(result['St LE [-]'], 5.71, 2)
+        self.assertAlmostEqual(result['St BE [-]'], 7.47, 2)
+        self.assertAlmostEqual(result['St HE [-]'], 9.63, 2)
 

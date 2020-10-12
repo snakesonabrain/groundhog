@@ -34,7 +34,6 @@ groundhog is written for Python 3.7+. Downloading Anaconda3 is recommended for u
 Plotting functionality included in the package is built on plotly. The plotly package also needs to be installed and
 is not included in the default Anaconda installation.
 
-
 Tutorials
 ----------
 

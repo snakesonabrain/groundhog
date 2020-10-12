@@ -257,3 +257,91 @@ def bulkunitweight_dryunitweight(
         'bulk unit weight [kN/m3]': _bulk_unit_weight,
         'effective unit weight [kN/m3]': _effective_unit_weight,
     }
+
+
+RELATIVE_DENSITY = {
+    'void_ratio': {'type': 'float', 'min_value': 0.0, 'max_value': 5.0},
+    'e_min': {'type': 'float', 'min_value': 0.0, 'max_value': 5.0},
+    'e_max': {'type': 'float', 'min_value': 0.0, 'max_value': 5.0},
+}
+
+RELATIVE_DENSITY_ERRORRETURN = {
+    'Dr [-]': np.nan,
+}
+
+
+@Validator(RELATIVE_DENSITY, RELATIVE_DENSITY_ERRORRETURN)
+def relative_density(void_ratio, e_min, e_max, **kwargs):
+    """
+    Calculates the relative density for a cohesionless sample from the measured void ratio, comparing it to the void ratio at minimum and maximum density.
+
+    :param void_ratio: Void ratio of the sample (:math:`e`) [:math:`-`] - Suggested range: 0.0 <= void_ratio <= 5.0
+    :param e_min: Void ratio at the minimum density (:math:`e_{min}`) [:math:`-`] - Suggested range: 0.0 <= e_min <= 5.0
+    :param e_max: Void ratio at the maximum density (:math:`e_{max}`) [:math:`-`] - Suggested range: 0.0 <= e_max <= 5.0
+
+    .. math::
+        D_r = \\frac{e - e_{min}}{e_{max} - e_{min}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Dr [-]': Relative density (:math:`D_r`)  [:math:`-`]
+
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+
+    _Dr = (void_ratio - e_min) / (e_max - e_min)
+
+    return {
+        'Dr [-]': _Dr,
+    }
+
+RELATIVEDENSITY_CATEGORIES = {
+    'relative_density': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
+}
+
+RELATIVEDENSITY_CATEGORIES_ERRORRETURN = {
+    'Relative density []': None,
+}
+
+
+@Validator(RELATIVEDENSITY_CATEGORIES, RELATIVEDENSITY_CATEGORIES_ERRORRETURN)
+def relativedensity_categories(
+        relative_density,
+        **kwargs):
+    """
+    Categorizes relative densities according to the following definition:
+
+        - 0 - 0.15: Very loose
+        - 0.15 - 0.35: Loose
+        - 0.35 - 0.65: Medium dense
+        - 0.65 - 0.85: Dense
+        - 0.85 - 1: Very dense
+
+    :param relative_density: Relative density of cohesionless material (:math:`D_r`) [:math:`-`] - Suggested range: 0.0 <= relative_density <= 1.0
+
+    .. math::
+        D_r = \\frac{e - e_{min}}{e_{max} - e_{min}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Relative density': Relative density class
+
+    Reference - API RP2 GEO
+
+    """
+
+    if 0 <= relative_density < 0.15:
+        _relative_density = "Very loose"
+    elif 0.15 <= relative_density < 0.35:
+        _relative_density = "Loose"
+    elif 0.35 <= relative_density < 0.65:
+        _relative_density = "Medium dense"
+    elif 0.65 <= relative_density < 0.85:
+        _relative_density = "Dense"
+    elif relative_density > 0.85:
+        _relative_density = "Very dense"
+
+    return {
+        'Relative density': _relative_density,
+    }

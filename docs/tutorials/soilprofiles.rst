@@ -405,7 +405,7 @@ mini-log.
                  r'$ S_u \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60)),
-        yrange=(10, 0),
+        zrange=(10, 0),
         showfig=False)
 
     fig.append_trace(su_trace, 1, 4)
@@ -444,7 +444,7 @@ direction).
                  r'$ S_u \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60)),
-        yrange=(5, -5))
+        zrange=(5, -5))
 
 
 .. figure:: images/tutorial_profile_3.png
@@ -477,7 +477,7 @@ the depth axis is required. This can be done using the
                  r'$ S_u \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60)),
-        yrange=(-5, 5))
+        zrange=(-5, 5))
 
 
 .. figure:: images/tutorial_profile_4.png
@@ -505,7 +505,7 @@ depth reference:
                  r'$ S_u \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60)),
-        yrange=(10, 0))
+        zrange=(10, 0))
 
 .. figure:: images/tutorial_profile_5.png
         :figwidth: 500.0
@@ -532,7 +532,7 @@ Inserting a layer transition is easily achieved using the
                  r'$ S_u \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60)),
-        yrange=(10, 0))
+        zrange=(10, 0))
 
 .. figure:: images/tutorial_profile_6.png
         :figwidth: 500.0
@@ -561,7 +561,7 @@ the top layer are kept.
                  r'$ S_u \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60)),
-        yrange=(10, 0))
+        zrange=(10, 0))
 
 
 .. figure:: images/tutorial_profile_7.png
@@ -690,7 +690,7 @@ varying parameters into consideration.
                  r'$ S_u \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60)),
-        yrange=(8, 0.5))
+        zrange=(8, 0.5))
 
 
 .. figure:: images/tutorial_profile_8.png
@@ -723,7 +723,7 @@ effective unit weight.
                  r'$ \sigma_{vo}^{\prime} \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60), (0, 100)),
-        yrange=(10, 0))
+        zrange=(10, 0))
 
 
 .. figure:: images/tutorial_profile_9.png
@@ -732,6 +732,37 @@ effective unit weight.
         :align: center
 
         Figure 9:  Vertical effective stress calculation on a soil profile
+
+Since calculation of overburden is a recurring task in geotechnical analyses, the method ```calculate_overburden``` is implemented to calculate hydrostatic water pressure, total and effective vertical stress with a single statement.
+
+The water level can be adjusted. If a layer interface is not present at the location of the water level, an additional interface is created. The soil profile needs to contain a column with the total unit weight to allow the calculation to happen. In layers above the water level, the total unit weight is the dry unit weight and the effective unit weight is equal to this value. In the layers below the water table, the effective unit weight is obtained by subtracting the water unit weight (default 10kN/m$^3$) from the total unit weight.
+
+.. code:: ipython3
+
+    profile_2['Total unit weight [kN/m3]'] = [19, 18, 19, 20]
+    profile_2.calculate_overburden(waterlevel=2.5)
+
+.. code:: ipython3
+
+    fig = profile_2.plot_profile(
+        parameters=(('Effective unit weight [kN/m3]',), ('qc [MPa]',), ('Su [kPa]',),
+                    ('Effective vertical stress [kPa]', 'Total vertical stress [kPa]', 'Hydrostatic pressure [kPa]')),
+        showlegends=((False,), (False,), (False,), (True, True, True)),
+        xtitles=(r'$ \gamma^{\prime} \ \text{[kN/m} ^3 \text{]} $',
+                 r'$ q_c, \ q_t \ \text{[MPa]} $',
+                 r'$ S_u \ \text{[kPa]} $',
+                 r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ u_0 \ \text{[kPa]} $'),
+        ztitle=r'$ z \ \text{[m]} $',
+        xranges=((5, 20), (0, 60), (0, 60), (0, 200)),
+        zrange=(10, 0))
+
+.. figure:: images/tutorial_profile_overburden.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Figure 10:  Overburden stress calculation using the ``calculate_overburden`` method
+
 
 5. Gridding functionality
 -------------------------
@@ -754,7 +785,7 @@ soil parameters.
                  r'$ \sigma_{vo}^{\prime} \ \text{[kPa]} $'),
         ztitle=r'$ z \ \text{[m]} $',
         xranges=((5, 12), (0, 60), (0, 60), (0, 100)),
-        yrange=(10, 0),
+        zrange=(10, 0),
         showfig=False)
 
     qc_grid_trace = go.Scatter(x=grid['qc [MPa]'], y=grid['z [m]'], mode='markers', name='Gridded qc')
@@ -766,5 +797,5 @@ soil parameters.
         :width: 450.0
         :align: center
 
-        Figure 10:  Result of gridding based on a soil profile
+        Figure 11:  Result of gridding based on a soil profile
 

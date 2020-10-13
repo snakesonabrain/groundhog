@@ -24,3 +24,21 @@ class Test_stressdistributions(unittest.TestCase):
         self.assertAlmostEqual(result['delta sigma z [kPa]'], 47.75, 2)
         self.assertAlmostEqual(result['delta sigma r [kPa]'], -3.18, 2)
         self.assertAlmostEqual(result['delta sigma theta [kPa]'], 3.18, 2)
+
+    def test_stresses_stripload(self):
+        result_uniform = stressdistribution.stresses_stripload(
+            imposedforce=100, z=1, x=1, width=1)
+        self.assertAlmostEqual(result_uniform['delta sigma z [kPa]'], 40.92, 2)
+        self.assertAlmostEqual(result_uniform['delta sigma x [kPa]'], 9.08, 2)
+        self.assertAlmostEqual(result_uniform['delta tau zx [kPa]'], 15.92, 2)
+        result_triangular = stressdistribution.stresses_stripload(
+            imposedforce=100, z=1, x=1, width=1, triangular=True)
+        self.assertAlmostEqual(result_triangular['delta sigma z [kPa]'], 25, 2)
+        self.assertAlmostEqual(result_triangular['delta sigma x [kPa]'], 2.94, 2)
+        self.assertAlmostEqual(result_triangular['delta tau zx [kPa]'], 6.83, 2)
+
+    def test_stresses_circle(self):
+        result = stressdistribution.stresses_circle(
+            imposedstress=100, z=1, footing_radius=1, poissonsratio=0.3)
+        self.assertAlmostEqual(result['delta sigma z [kPa]'], 64.64, 2)
+        self.assertAlmostEqual(result['delta sigma r [kPa]'], -86.17, 2)

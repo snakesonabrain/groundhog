@@ -88,3 +88,181 @@ def stresses_pointload(
         'delta sigma theta [kPa]': _delta_sigma_theta,
         'delta tau rz [kPa]': _delta_tau_rz,
     }
+
+
+STRESSES_STRIPLOAD = {
+    'z': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'x': {'type': 'float', 'min_value': None, 'max_value': None},
+    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'triangular': {'type': 'bool', },
+}
+
+STRESSES_STRIPLOAD_ERRORRETURN = {
+    'delta sigma z [kPa]': np.nan,
+    'delta sigma x [kPa]': np.nan,
+    'delta tau zx [kPa]': np.nan,
+}
+
+STRESSES_STRIPLOAD = {
+    'z': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'x': {'type': 'float', 'min_value': None, 'max_value': None},
+    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'imposedforce': {'type': 'float', 'min_value': None, 'max_value': None},
+    'triangular': {'type': 'bool', },
+}
+
+STRESSES_STRIPLOAD_ERRORRETURN = {
+    'delta sigma z [kPa]': np.nan,
+    'delta sigma x [kPa]': np.nan,
+    'delta tau zx [kPa]': np.nan,
+}
+
+
+@Validator(STRESSES_STRIPLOAD, STRESSES_STRIPLOAD_ERRORRETURN)
+def stresses_stripload(z, x, width, imposedforce, triangular=False, **kwargs):
+    """
+    Calculates the stress redistribution at a point in the subsoil due to a strip load with a given width, applied at the surface.
+
+    Two cases can be specified. By default, a uniform load is specified, but the stresses under a triangular load can also be calculated.
+
+    :param z: Vertical distance from the soil surface (:math:`z`) [:math:`m`] - Suggested range: z >= 0.0
+    :param x: Horizontal offset from the leftmost corner of the strip footing (:math:`x`) [:math:`m`]
+    :param width: Width of the strip footing (:math:`B`) [:math:`m`] - Suggested range: width >= 0.0
+    :param imposedforce: Maximum value of the imposed force per unit length (:math:`q_s`) [:math:`kN/m`]
+    :param triangular: Boolean determining whether a triangular load pattern is applied (optional, default= False)
+
+    .. math::
+        R_1 = \\sqrt{x^2 + z^2}
+
+        R_2 = \\sqrt{(x - B)^2 + z^2}
+
+        \\cos \\left(\\alpha + \\beta \\right) = z / R_1
+
+        \\cos \\beta = z / R_2
+
+        \\text{Uniform load}
+
+        \\Delta \\sigma_z = \\frac{q_s}{\\pi} \\left[ \\alpha + \\sin \\alpha \\cos \\left( \\alpha + 2 \\beta \\right) \\right]
+
+        \\Delta \\sigma_x = \\frac{q_s}{\\pi} \\left[ \\alpha - \\sin \\alpha \\cos \\left( \\alpha + 2 \\beta \\right) \\right]
+
+        \\Delta \\tau_{zx} = \\frac{q_s}{\\pi} \\left[ \\sin \\alpha \\sin \\left( \\alpha + 2 \\beta \\right) \\right]
+
+        \\text{Triangular load}
+
+        \\Delta \\sigma_z = \\frac{q_s}{\\pi} \\left( \\frac{x}{B} \\alpha - \\frac{1}{2} \\sin 2 \\beta \\right)
+
+        \\Delta \\sigma_x = \\frac{q_s}{\\pi} \\left( \\frac{x}{B} \\alpha - \\frac{z}{B} \\ln \\frac{R_1^2}{R_2^2} + \\frac{1}{2} \\sin 2 \\beta \\right)
+
+        \\Delta \\tau_zx = \\frac{q_s}{2 \\pi} \\left( 1 + \\cos 2 \\beta - 2 \\frac{z}{B} \\alpha \\right)
+
+    :returns: Dictionary with the following keys:
+
+        - 'delta sigma z [kPa]': Increase in vertical stress due to surface load (:math:`\\Delta \\sigma_z`)  [:math:`kPa`]
+        - 'delta sigma x [kPa]': Increase in horizontal stress due to surface load (:math:`\\Delta \\sigma_x`)  [:math:`kPa`]
+        - 'delta tau zx [kPa]': Increase in shear stress due to surface load (:math:`\\Delta \\tau_{zx}`)  [:math:`kPa`]
+
+    .. figure:: images/stresses_stripload_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Nomenclature for inputs in stress calculation due to a strip footing
+
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+
+    R_1 = np.sqrt(x ** 2 + z ** 2)
+    R_2 = np.sqrt((x - width) ** 2 + z ** 2)
+    beta = np.arccos(z / R_2)
+    alpha = np.arccos(z / R_1) - beta
+
+    if triangular:
+        # Calculation for triangular stress distribution
+        _delta_sigma_z = (imposedforce / np.pi) * (
+            (x / width) * alpha -
+            0.5 * np.sin(2 * beta)
+        )
+        _delta_sigma_x = (imposedforce / np.pi) * (
+            (x / width) * alpha -
+            (z / width) * np.log((R_1 ** 2) / (R_2 ** 2)) +
+            0.5 * np.sin(2 * beta)
+        )
+        _delta_tau_zx = (imposedforce / (2 * np.pi)) * (
+            1 +
+            np.cos(2 * beta) -
+            2 * (z / width) * alpha
+        )
+    else:
+        # Calculation for uniform stress distribution
+        _delta_sigma_z = (imposedforce / np.pi) * (
+            alpha +
+            np.sin(alpha) * np.cos(alpha + 2 * beta)
+        )
+        _delta_sigma_x = (imposedforce / np.pi) * (
+            alpha -
+            np.sin(alpha) * np.cos(alpha + 2 * beta)
+        )
+        _delta_tau_zx = (imposedforce / np.pi) * (
+            np.sin(alpha) * np.sin(alpha + 2 * beta)
+        )
+
+    return {
+        'delta sigma z [kPa]': _delta_sigma_z,
+        'delta sigma x [kPa]': _delta_sigma_x,
+        'delta tau zx [kPa]': _delta_tau_zx,
+    }
+
+
+STRESSES_CIRCLE = {
+    'z': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'footing_radius': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'imposedstress': {'type': 'float', 'min_value': None, 'max_value': None},
+    'poissonsratio': {'type': 'float', 'min_value': 0.0, 'max_value': 0.5},
+}
+
+STRESSES_CIRCLE_ERRORRETURN = {
+    'delta sigma z [kPa]': np.nan,
+    'delta sigma r [kPa]': np.nan,
+}
+
+
+@Validator(STRESSES_CIRCLE, STRESSES_CIRCLE_ERRORRETURN)
+def stresses_circle(z, footing_radius, imposedstress, poissonsratio, **kwargs):
+    """
+    Calculates the stress distribution below a uniformly loaded circular foundation. The stresses are calculated below the center of the circular foundation
+
+    :param z: Depth below the base of the foundation (:math:`z`) [:math:`m`] - Suggested range: z >= 0.0
+    :param footing_radius: Radius of the circular foundation (:math:`r_0`) [:math:`m`] - Suggested range: footing_radius >= 0.0
+    :param imposedstress: Applied uniform stress to the circular footing (:math:`q_s`) [:math:`kPa`]
+    :param poissonsratio: Poissons ratio for the soil material (:math:`\\nu`) [:math:`-`] - Suggested range: 0.0 <= poissonsratio <= 0.5
+
+    .. math::
+        \\Delta \\sigma_z = q_s \\left[ 1 - \\left( \\frac{1}{1 + (r_0 / z)^2} \\right)^{3/2} \\right]
+
+        \\Delta \\sigma_r = \\Delta \\sigma_{\\theta} = \\frac{q_s}{2} \\left[ (1 + 2 \\nu) - \\frac{4 (1 + \\nu)}{\\sqrt{1 + (r_0 / z)^2}} + \\frac{1}{\\left[ 1 + (r_0 / z)^2 \\right]^{3/2}} \\right]
+
+    :returns: Dictionary with the following keys:
+
+        - 'delta sigma z [kPa]': Vertical stress increase (:math:`\\Delta \\sigma_z`)  [:math:`kPa`]
+        - 'delta sigma r [kPa]': Radial stress increase (:math:`\\Delta \\sigma_r`)  [:math:`kPa`]
+
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+
+    _delta_sigma_z = imposedstress * (
+        1 -
+        (1 / (1 + ((footing_radius / z) ** 2))) ** (3 / 2)
+    )
+    _delta_sigma_r = 0.5 * imposedstress * (
+        (1 + 2 * poissonsratio) -
+        (4 * (1 + poissonsratio)) / np.sqrt(1 + (footing_radius / z) ** 2) +
+        (1 / ((1 + ((footing_radius / z) ** 2)) ** (3 / 2)))
+    )
+
+    return {
+        'delta sigma z [kPa]': _delta_sigma_z,
+        'delta sigma r [kPa]': _delta_sigma_r,
+    }

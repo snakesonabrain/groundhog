@@ -345,3 +345,51 @@ def relativedensity_categories(
     return {
         'Relative density': _relative_density,
     }
+
+
+VOIDRATIO_BULKUNITWEIGHT = {
+    'bulkunitweight': {'type': 'float', 'min_value': 10.0, 'max_value': 25.0},
+    'saturation': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
+    'specific_gravity': {'type': 'float', 'min_value': 2.4, 'max_value': 2.9},
+    'unitweight_water': {'type': 'float', 'min_value': 9.0, 'max_value': 11.0},
+}
+
+VOIDRATIO_BULKUNITWEIGHT_ERRORRETURN = {
+    'e [-]': np.nan,
+}
+
+
+@Validator(VOIDRATIO_BULKUNITWEIGHT, VOIDRATIO_BULKUNITWEIGHT_ERRORRETURN)
+def voidratio_bulkunitweight(
+        bulkunitweight,
+        saturation=1.0, specific_gravity=2.65, unitweight_water=10.0, **kwargs):
+    """
+    Calculates the void ratio from the bulk unit weight for a soil with varying saturation.
+
+Since unit weight is generally better known or measured than void ratio, this conversion can be useful to derive the in-situ void ratio in a soil profile.
+
+The default behaviour of this function assumes saturated soil but the saturation can be changed for dry or partially saturated soil.
+
+    :param bulkunitweight: The bulk unit weight of the soil (ratio of weight of water and solids to volume) (:math:`\\gamma`) [:math:`kN/m3`] - Suggested range: 10.0 <= bulkunitweight <= 25.0
+    :param saturation: Saturation of the soil as a number between 0 (dry) and fully saturated (1) (:math:`S`) [:math:`-`] - Suggested range: 0.0 <= saturation <= 1.0 (optional, default= 1.0)
+    :param specific_gravity: Specific gravity or the ratio of the weight of soil solids to the weight of an equal volume of water (:math:`G_s`) [:math:`-`] - Suggested range: 2.4 <= specific_gravity <= 2.9 (optional, default= 2.65)
+    :param unitweight_water: Unit weight of water (:math:`\\gamma_w`) [:math:`kN/m3`] - Suggested range: 9.0 <= unitweight_water <= 11.0 (optional, default= 10.0)
+
+    .. math::
+        \\gamma = \\left( \\frac{G_s + S e}{1 + e} \\right) \\gamma_w
+
+        \\implies e = \\frac{\\gamma_w G_s - \\gamma}{\\gamma - S \\gamma_w}
+
+    :returns: Dictionary with the following keys:
+
+        - 'e [-]': Void ratio of the soil (:math:`e`)  [:math:`-`]
+
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+
+    _e = (unitweight_water * specific_gravity - bulkunitweight) / (bulkunitweight - saturation * unitweight_water)
+
+    return {
+        'e [-]': _e,
+    }

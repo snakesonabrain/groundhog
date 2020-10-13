@@ -8,3 +8,5 @@ Shallow foundations
    stressdistribution
 
    capacity
+
+   settlement

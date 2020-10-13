@@ -89,3 +89,10 @@ class Test_PhaseRelations(unittest.TestCase):
         self.assertEqual(
             phaserelations.relativedensity_categories(
                 relative_density=0.9)['Relative density'], "Very dense")
+
+    def test_voidratio_bulkunitweight(self):
+        self.assertAlmostEqual(
+            phaserelations.voidratio_bulkunitweight(
+                bulkunitweight=18
+            )['e [-]'], 1.0625, 4
+        )

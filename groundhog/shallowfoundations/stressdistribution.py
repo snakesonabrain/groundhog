@@ -266,3 +266,93 @@ def stresses_circle(z, footing_radius, imposedstress, poissonsratio, **kwargs):
         'delta sigma z [kPa]': _delta_sigma_z,
         'delta sigma r [kPa]': _delta_sigma_r,
     }
+
+
+STRESSES_RECTANGLE = {
+    'imposedstress': {'type': 'float', 'min_value': None, 'max_value': None},
+    'length': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'z': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+}
+
+STRESSES_RECTANGLE_ERRORRETURN = {
+    'delta sigma z [kPa]': np.nan,
+    'delta sigma x [kPa]': np.nan,
+    'delta sigma y [kPa]': np.nan,
+    'delta tau zx [kPa]': np.nan,
+}
+
+
+@Validator(STRESSES_RECTANGLE, STRESSES_RECTANGLE_ERRORRETURN)
+def stresses_rectangle(
+        imposedstress, length, width, z,
+        **kwargs):
+    """
+    Calculates the stresses under the corner of a uniformly loaded rectangular area. Stresses under other points can be calculated by subdividing the rectangular in smaller sub-rectangles and using superposition stresses (justified because the solution is elastic). E.g. the stresses under the center of a rectangle is calculated by subdividing the rectangle into four equal sub-areas and calculating the stress below the corner of each and summing them.
+
+    :param imposedstress: Stress applied to the uniformly loaded area (:math:`q_s`) [:math:`kPa`]
+    :param length: Dimension of the longest edge of the rectangle (:math:`L`) [:math:`m`] - Suggested range: length >= 0.0
+    :param width: Dimension of the shortest edge of the rectangle (:math:`B`) [:math:`m`] - Suggested range: width >= 0.0
+    :param z: Depth below the footing (:math:`z`) [:math:`m`] - Suggested range: z >= 0.0
+
+    .. math::
+        \\Delta \\sigma_z = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} + \\frac{L B z}{R_3} \\left( \\frac{1}{R_1^2} + \\frac{1}{R_2^2} \\right) \\right]
+
+        \\Delta \\sigma_x = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} - \\frac{L B z}{R_1^2 R_3} \\right]
+
+        \\Delta \\sigma_y = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} - \\frac{L B z}{R_2^2 R_3} \\right]
+
+        \\Delta \\tau_{zx} = \\frac{q_s}{2 \\pi} \\left[ \\frac{B}{R_2} - \\frac{z^2 B}{R_1^2 R_3} \\right]
+
+        \\text{where}
+
+        R_1 = \\sqrt{L^2 + z^2}
+
+        R_2 = \\sqrt{B^2 + z^2}
+
+        R_3 = \\sqrt{L^2 + B^2 + z^2}
+
+    :returns: Dictionary with the following keys:
+
+        - 'delta sigma z [kPa]': Increase in vertical stress below the corner of the footing (:math:`\\Delta \\sigma_z`)  [:math:`kPa`]
+        - 'delta sigma x [kPa]': Increase in horizontal stress in the width direction below the corner of the footing (:math:`\\Delta \\sigma_x`)  [:math:`kPa`]
+        - 'delta sigma y [kPa]': Increase in horizontal stress in the length direction below the corner of the footing (:math:`\\Delta \\sigma_y`)  [:math:`kPa`]
+        - 'delta tau zx [kPa]': Increase in shear stress in the zx plane below the corner of the footing (:math:`\\Delta \\tau_{zx}`)  [:math:`kPa`]
+
+    .. figure:: images/stresses_rectangle_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Nomenclature used for calculation of stresses below the corner of a uniformly loaded rectangle
+
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+    R_1 = np.sqrt(length ** 2 + z ** 2)
+    R_2 = np.sqrt(width ** 2 + z ** 2)
+    R_3 = np.sqrt(length ** 2 + width ** 2 + z ** 2)
+
+    _delta_sigma_z = (imposedstress / (2 * np.pi)) * (
+        np.arctan((length * width) / (z * R_3)) +
+        ((length * width * z) / R_3) * ((1 / R_1 ** 2) + (1 / (R_2 ** 2)))
+    )
+    _delta_sigma_x = (imposedstress / (2 * np.pi)) * (
+        np.arctan((length * width) / (z * R_3)) -
+        ((length * width * z) / ((R_1 ** 2) * R_3))
+    )
+    _delta_sigma_y = (imposedstress / (2 * np.pi)) * (
+        np.arctan((length * width) / (z * R_3)) -
+        ((length * width * z) / ((R_2 ** 2) * R_3))
+    )
+    _delta_tau_zx = (imposedstress / (2 * np.pi)) * (
+        (width / R_2) -
+        ((z ** 2 * width) / (R_1 **2 * R_3))
+    )
+
+    return {
+        'delta sigma z [kPa]': _delta_sigma_z,
+        'delta sigma x [kPa]': _delta_sigma_x,
+        'delta sigma y [kPa]': _delta_sigma_y,
+        'delta tau zx [kPa]': _delta_tau_zx,
+    }

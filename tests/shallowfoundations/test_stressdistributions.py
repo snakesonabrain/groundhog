@@ -42,3 +42,11 @@ class Test_stressdistributions(unittest.TestCase):
             imposedstress=100, z=1, footing_radius=1, poissonsratio=0.3)
         self.assertAlmostEqual(result['delta sigma z [kPa]'], 64.64, 2)
         self.assertAlmostEqual(result['delta sigma r [kPa]'], -86.17, 2)
+
+    def test_stresses_rectangle(self):
+        result = stressdistribution.stresses_rectangle(
+            imposedstress=100, length=1, width=1, z=1)
+        self.assertAlmostEqual(result['delta sigma z [kPa]'], 17.52, 2)
+        self.assertAlmostEqual(result['delta sigma x [kPa]'], 3.74, 2)
+        self.assertAlmostEqual(result['delta sigma y [kPa]'], 3.74, 2)
+        self.assertAlmostEqual(result['delta tau zx [kPa]'], 6.66, 2)

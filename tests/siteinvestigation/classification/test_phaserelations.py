@@ -96,3 +96,8 @@ class Test_PhaseRelations(unittest.TestCase):
                 bulkunitweight=18
             )['e [-]'], 1.0625, 4
         )
+        self.assertAlmostEqual(
+            phaserelations.voidratio_bulkunitweight(
+                bulkunitweight=18
+            )['w [-]'], 0.401, 3
+        )

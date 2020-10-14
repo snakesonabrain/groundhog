@@ -99,7 +99,7 @@ def primaryconsolidationsettlement_oc(
 
         - 'delta z [m]': Primary consolidation settlement for the overconsolidated soil (:math:`\\delta z`)  [:math:`m`]
 
-    .. figure:: images/
+    .. figure:: images/primaryconsolidation_settlement.png
         :figwidth: 500.0
         :width: 450.0
         :align: center

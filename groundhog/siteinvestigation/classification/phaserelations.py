@@ -366,9 +366,11 @@ def voidratio_bulkunitweight(
     """
     Calculates the void ratio from the bulk unit weight for a soil with varying saturation.
 
-Since unit weight is generally better known or measured than void ratio, this conversion can be useful to derive the in-situ void ratio in a soil profile.
+    Since unit weight is generally better known or measured than void ratio, this conversion can be useful to derive the in-situ void ratio in a soil profile.
 
-The default behaviour of this function assumes saturated soil but the saturation can be changed for dry or partially saturated soil.
+    The default behaviour of this function assumes saturated soil but the saturation can be changed for dry or partially saturated soil.
+
+    The water content is also returned.
 
     :param bulkunitweight: The bulk unit weight of the soil (ratio of weight of water and solids to volume) (:math:`\\gamma`) [:math:`kN/m3`] - Suggested range: 10.0 <= bulkunitweight <= 25.0
     :param saturation: Saturation of the soil as a number between 0 (dry) and fully saturated (1) (:math:`S`) [:math:`-`] - Suggested range: 0.0 <= saturation <= 1.0 (optional, default= 1.0)
@@ -380,16 +382,21 @@ The default behaviour of this function assumes saturated soil but the saturation
 
         \\implies e = \\frac{\\gamma_w G_s - \\gamma}{\\gamma - S \\gamma_w}
 
+        w = \\frac{S e}{G_s}
+
     :returns: Dictionary with the following keys:
 
         - 'e [-]': Void ratio of the soil (:math:`e`)  [:math:`-`]
+        - 'w [-]': Water content of the soil (:math:`w`)  [:math:`-`]
 
     Reference - Budhu (2011). Soil mechanics and foundation engineering
 
     """
 
     _e = (unitweight_water * specific_gravity - bulkunitweight) / (bulkunitweight - saturation * unitweight_water)
+    _w = (saturation * _e) / specific_gravity
 
     return {
         'e [-]': _e,
+        'w [-]': _w
     }

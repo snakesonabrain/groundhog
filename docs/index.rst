@@ -55,11 +55,11 @@ Function documentation
 
    general/general_toplevel
 
-   classification/classification_toplevel
-
    site_investigation/site_investigation_toplevel
 
    piles/piles_toplevel
+
+   shallowfoundations/shallowfoundations_toplevel
 
    tunnels/tunnels_toplevel
 

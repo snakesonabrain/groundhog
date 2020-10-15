@@ -5,6 +5,8 @@ Site investigation
 .. toctree::
    :maxdepth: 2
 
-   pcpt_class
+   classification_toplevel
 
-   pcpt_functions
+   correlations_toplevel
+
+   insitutests_toplevel

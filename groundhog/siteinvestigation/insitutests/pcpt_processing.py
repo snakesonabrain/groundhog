@@ -1017,13 +1017,13 @@ class PCPTProcessing(object):
         try:
             for i, row in self.layerdata.iterrows():
                 if i > 0:
-                    for i, _range in enumerate(plot_ranges):
+                    for j, _range in enumerate(plot_ranges):
                         layer_trace = go.Scatter(
                             x=_range,
                             y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
                             line=dict(color='black', dash='dot'),
                             showlegend=False, mode='lines')
-                        fig.append_trace(layer_trace, 1, i+1)
+                        fig.append_trace(layer_trace, 1, j+1)
         except:
             pass
         for i, _range in enumerate(plot_ranges):
@@ -1042,7 +1042,7 @@ class PCPTProcessing(object):
             iplot(fig, filename='propertiesplot', config={'showLink': False})
 
     def plot_properties_withlog(self, prop_keys, plot_ranges, plot_ticks,
-            legend_titles=None, axis_titles=None, **kwargs):
+            legend_titles=None, axis_titles=None, showfig=True, showlayers=True, **kwargs):
         """
         Plots CPT properties vs depth and includes a mini-log on the left-hand side.
         The minilog is composed based on the entries in the ``Soil type`` column of the layering
@@ -1053,6 +1053,8 @@ class PCPTProcessing(object):
         :param z_tick: Tick mark distance for PCPT (optional, default=2)
         :param legend_titles: Tuple with entries to be used in the legend. If left blank, the keys are used
         :param axis_titles: Tuple with entries to be used as axis labels. If left blank, the keys are used
+        :param showfig: Boolean determining whether the figure needs to be shown in the notebook (default=True)
+        :param showlayers: Boolean determining whether layer positions need to be plotted (default=True)
         :param **kwargs: Specify keyword arguments for the ``general.plotting.plot_with_log`` function
         :return: Plotly figure with mini-log
         """
@@ -1085,8 +1087,29 @@ class PCPTProcessing(object):
             xtitles=axis_titles,
             xranges=plot_ranges,
             dticks=plot_ticks,
+            showfig=False,
             **kwargs
         )
+
+        # Plot layers
+        if showlayers:
+            try:
+                for i, row in self.layerdata.iterrows():
+                    if i > 0:
+                        for j, _range in enumerate(plot_ranges):
+                            layer_trace = go.Scatter(
+                                x=_range,
+                                y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
+                                line=dict(color='black', dash='dot'),
+                                showlegend=False, mode='lines')
+                            fig.append_trace(layer_trace, 1, j + 2)
+            except Exception as err:
+                pass
+        else:
+            pass
+
+        if showfig:
+            iplot(fig, filename='logplot')
         return fig
 
     def plot_robertson_chart(self, start_depth=None, end_depth=None,

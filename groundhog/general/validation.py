@@ -214,65 +214,6 @@ def map_args(method,var,*args,**kwargs):
     except Exception as err:
         raise ValueError("Error during mapping of validation parameters to function parameters - %s" % str(err))
 
-class ValidationDecorator(object):
-
-    def __init__(self, argument):
-        self.arg = argument
-
-    def __call__(self, fn):
-        @wraps(fn)
-        def decorated(*args, **kwargs):
-            validated = True
-            errorstring = ""
-
-            try:
-                validate = kwargs['validate']
-            except:
-                validate = None
-
-            try:
-                fail_silently = kwargs['fail_silently']
-            except:
-                fail_silently = True
-
-            if validate or validate is None:
-
-                try:
-                    var_validation = map_args(fn, self.arg, *args, **kwargs)
-
-                    for v in var_validation.keys():
-
-                        if var_validation[v]['type'] == 'float':
-                            validate_float(v, var_validation[v]['value'],
-                                           var_validation[v]['min_value'],
-                                           var_validation[v]['max_value'])
-                        elif var_validation[v]['type'] == 'int':
-                            validate_integer(v, var_validation[v]['value'],
-                                             var_validation[v]['min_value'],
-                                             var_validation[v]['max_value'])
-                        elif var_validation[v]['type'] == 'string':
-                            validate_string(v, var_validation[v]['value'],
-                                            options=var_validation[v]['options'],
-                                            regex=var_validation[v]['regex'])
-                        elif var_validation[v]['type'] == 'bool':
-                            validate_boolean(v, var_validation[v]['value'])
-                        elif var_validation[v]['type'] == 'list':
-                            validate_list(v, var_validation[v]['value'],
-                                          var_validation[v]['elementtype'],
-                                          var_validation[v]['order'],
-                                          var_validation[v]['unique'],
-                                          var_validation[v]['empty_allowed'])
-
-                except Exception as err:
-                    validated = False
-                    errorstring += str(err)
-            else:
-                pass  # No validation
-
-            return fn(*args, validated=validated, errorstring=errorstring, **kwargs)
-
-        return decorated
-
 
 class Validator(object):
     """
@@ -340,8 +281,12 @@ class Validator(object):
                                           var_validation[v]['unique'],
                                           var_validation[v]['empty_allowed'])
 
-                except:
-                    raise
+                except Exception as err:
+                    warnings.warn(str(err))
+                    if fail_silently:
+                        return output_for_errors
+                    else:
+                        raise
             else:
                 # No validation
                 pass

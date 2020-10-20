@@ -4,12 +4,12 @@
 __author__ = 'Bruno Stuyts'
 
 # Native Python packages
-import unittest
-import os
+import warnings
+import re
+from io import StringIO
 
 # 3rd party packages
 import pandas as pd
-import numpy as np
 
 GROUP_NAMES = {
     'PROJ': 'Project Information',
@@ -835,24 +835,6 @@ AGS_TABLES_SHORTHANDS = {
         'TRIT_MODE': 'Failure mode'
     }
 }
-
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-__author__ = 'Bruno Stuyts'
-
-# Native Python packages
-import warnings
-from copy import deepcopy
-import re
-from io import StringIO
-
-# 3rd party packages
-import numpy as np
-import pandas as pd
-
-# Project imports
-from agspandas.tables import AGS_TABLES, AGS_TABLES_SHORTHANDS
 
 
 class AGSConverter(object):

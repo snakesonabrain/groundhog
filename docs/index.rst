@@ -37,18 +37,27 @@ is not included in the default Anaconda installation.
 Tutorials
 ----------
 
-.. toctree::
-   :maxdepth: 2
+Tutorials are provided in the notebooks folder of the project. Jupyter notebooks are provided for the following examples:
 
-   tutorials/soilprofiles
+- Basic use of groundhog functions
 
-   tutorials/pcpt_processing
+- Soil profile definition, manipulation and plotting
 
-   tutorials/pile_calculation
+- PCPT data loading
+
+- PCPT data processing
+
+- Loading AGS data
+
+- Axial pile capacity calculation according to Belgian practice
 
 
 Function documentation
 -----------------------
+
+Detailed documentation is available on the functions and classes of the package.
+This documentation is essential for using the functions in ``groundhog`` correctly as the documentation
+specifies the physical meaning and the units of input and output variables.
 
 .. toctree::
    :maxdepth: 2

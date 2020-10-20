@@ -28,7 +28,7 @@ Installation requirements
 
 groundhog is written for Python 3.x. Downloading Anaconda3 is recommended for users not familiar with Python development.
 
-Copyright (c) 2017, Bruno Stuyts
+Copyright (c) 2017-2020, Bruno Stuyts
 All rights reserved.
 
 License
@@ -46,7 +46,7 @@ are permitted provided that the following conditions are met:
   list of conditions and the following disclaimer in the documentation and/or
   other materials provided with the distribution.
 
-  Neither the name of the {organization} nor the names of its
+  Neither the name of the software nor the names of its
   contributors may be used to endorse or promote products derived from
   this software without specific prior written permission.
 

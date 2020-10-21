@@ -5,6 +5,12 @@
 Welcome to GroundHog Geotechnical Libraries documentation!
 ====================================================================
 
+.. image:: https://badge.fury.io/py/groundhog.svg
+    :target: https://badge.fury.io/py/groundhog
+
+.. image:: tutorials/images/groundhog_banner_wide.png
+   :width: 800
+
 This Python package contains useful functionality for supporting automated geotechnical calculations.
 
 Functionality for onshore and offshore geotechnical problems is included. This package is under constant
@@ -34,8 +40,17 @@ groundhog is written for Python 3.7+. Downloading Anaconda3 is recommended for u
 Plotting functionality included in the package is built on plotly. The plotly package also needs to be installed and
 is not included in the default Anaconda installation.
 
+Installation is easily done using pip:
+
+.. code-block:: bash
+
+   pip install groundhog
+
 Tutorials
 ----------
+
+.. image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/snakesonabrain/groundhog/master
 
 Tutorials are provided in the notebooks folder of the project. Jupyter notebooks are provided for the following examples:
 
@@ -69,8 +84,6 @@ specifies the physical meaning and the units of input and output variables.
    piles/piles_toplevel
 
    shallowfoundations/shallowfoundations_toplevel
-
-   tunnels/tunnels_toplevel
 
 
 Acknowledgements

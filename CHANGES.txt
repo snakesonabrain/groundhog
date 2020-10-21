@@ -1,0 +1,7 @@
+v0.3.0, <datetobeconfirmed> -- End of 2020 update
+    - TODO Shallow foundation envelope calculations
+    - TODO Shallow foundation capacity tutorial
+    - TODO Settlement tutorial
+    - TODO Add at least three new soil parameter correlations
+
+v0.2.0 , 20 October 2020 -- Initial release.

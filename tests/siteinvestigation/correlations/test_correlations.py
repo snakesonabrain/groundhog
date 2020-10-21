@@ -33,3 +33,30 @@ class Test_Correlations(unittest.TestCase):
             241047, 0
         )
 
+    def test_permeability_d10_hazen(self):
+        self.assertAlmostEqual(
+            cohesionless.permeability_d10_hazen(0.1)['k [m/s]'],
+            1e-4, 5
+        )
+
+    def test_frictionangle_plasticityindex(self):
+        self.assertAlmostEqual(
+            cohesive.frictionangle_plasticityindex(50)['Effective friction angle [deg]'],
+            25.34,
+            2
+        )
+        self.assertAlmostEqual(
+            cohesive.frictionangle_plasticityindex(100)['Effective friction angle [deg]'],
+            21.4,
+            1
+        )
+        self.assertAlmostEqual(
+            cohesive.frictionangle_plasticityindex(1000)['Effective friction angle [deg]'],
+            1.7,
+            1
+        )
+        self.assertAlmostEqual(
+            cohesive.frictionangle_plasticityindex(200)['Effective friction angle [deg]'],
+            11.5,
+            1
+        )

@@ -1,18 +1,14 @@
 Groundhog - A general-purpose geotechnical package
 ====================================================
 
+![alt text][logo]
+
+[logo]: groundhog_banner_wide.png "Logo Title Text 2"
+
 This Python package contains useful functionality for supporting automated geotechnical calculations.
 
 Functionality for onshore and offshore geotechnical problems is included. This package is under constant
 development so any request for additional functionality can always be submitted to the package author.
-
-
-Installation requirements
--------------------------
-
-groundhog is written for Python 3.7+. Downloading Anaconda3 is recommended for users not familiar with Python development.
-Plotting functionality included in the package is built on plotly. The plotly package also needs to be installed and
-is not included in the default Anaconda installation.
 
 groundhog bundles a large amount of knowledge and provides it to end users through extensively documented functions. The aim of the package is as follows:
 
@@ -23,10 +19,21 @@ groundhog bundles a large amount of knowledge and provides it to end users throu
 groundhog is developed using a set of 10 Golden rules which are reflected in the groundhog function
 architecture and should also be followed by any contributors to the project.
 
+For more information, consult the [documentation](http://snakesonabrain.com/docs/groundhog/index.html) or get started using the [tutorial notebooks](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master). [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master)
+
 Installation requirements
 -------------------------
 
-groundhog is written for Python 3.x. Downloading Anaconda3 is recommended for users not familiar with Python development.
+groundhog is written for Python 3.7+. Downloading Anaconda3 is recommended for users not familiar with Python development.
+Plotting functionality included in the package is built on plotly. The plotly package also needs to be installed and
+is not included in the default Anaconda installation.
+
+Installing groundhog is easily done with pip:`
+
+```
+pip install groundhog
+```
+
 
 Copyright (c) 2017-2020, Bruno Stuyts
 All rights reserved.
@@ -34,7 +41,7 @@ All rights reserved.
 License
 --------
 
-groundhog is provided under a Creative Commons Attribution-ShareAlike 4.0 International Public License. Please check the license terms below and in the license file.
+groundhog is provided under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Please check the license terms below and in the license file.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -49,6 +56,8 @@ are permitted provided that the following conditions are met:
   Neither the name of the software nor the names of its
   contributors may be used to endorse or promote products derived from
   this software without specific prior written permission.
+  
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
 
 Disclaimer
 -------------

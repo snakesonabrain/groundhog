@@ -1373,10 +1373,10 @@ class PCPTProcessing(object):
     # endregion
 
 
-# TODO: Creating plotting functionality for longitudinal profiles
-def plot_longitudinal_profiles(
+def plot_longitudinal_profile(
     cpts=[], x_coords=[], y_coords=[], elevations=[],
-    option='name', start=None, end=None, band=1000, prop='qc [MPa]',
+    option='name', start=None, end=None, band=1000, extend_profile=False,
+    prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None):
     """
@@ -1392,6 +1392,7 @@ def plot_longitudinal_profiles(
     :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
     :param prop: Selected property for plotting (default='qc [MPa]')
     :param distance_unit: Unit for coordinates and elevation (default='m')
     :param scale_factor: Scale factor for the property (default=0.001)
@@ -1426,16 +1427,34 @@ def plot_longitudinal_profiles(
         'Z': elevations
     })
     for i, row in cpt_df.iterrows():
-        result = offsets(start_point, end_point, (row['X'], row['Y']))
-        cpt_df.loc[i, "Offset"] = result['offset to line']
-        cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
-        cpt_df.loc[i, "Before start"] = result['before start']
-        cpt_df.loc[i, "Behind end"] = result['behind end']
+        if row['X'] == start_point[0] and row['Y'] == start_point[1]:
+            cpt_df.loc[i, "Offset"] = 0
+            cpt_df.loc[i, "Projected offset"] = 0
+            cpt_df.loc[i, "Before start"] = False
+            cpt_df.loc[i, "Behind end"] = False
+        elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
+            cpt_df.loc[i, "Offset"] = 0
+            cpt_df.loc[i, "Projected offset"] = np.sqrt(
+                (start_point[0] - end_point[0]) ** 2 +
+                (start_point[1] - end_point[1]) ** 2)
+            cpt_df.loc[i, "Before start"] = False
+            cpt_df.loc[i, "Behind end"] = False
+        else:
+            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            cpt_df.loc[i, "Offset"] = result['offset to line']
+            cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
+            cpt_df.loc[i, "Before start"] = result['before start']
+            cpt_df.loc[i, "Behind end"] = result['behind end']
 
-    selected_cpts = cpt_df[
-        (cpt_df['Offset'] <= band) &
-        (cpt_df['Before start'] == False) &
-        (cpt_df['Behind end'] == False)]
+    if extend_profile:
+        selected_cpts = deepcopy(cpt_df[cpt_df['Offset'] <= band])
+    else:
+        selected_cpts = deepcopy(cpt_df[
+            (cpt_df['Offset'] <= band) &
+            (cpt_df['Before start'] == False) &
+            (cpt_df['Behind end'] == False)])
+
+    selected_cpts.sort_values('Projected offset', inplace=True)
 
     fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
 
@@ -1446,8 +1465,19 @@ def plot_longitudinal_profiles(
                 y=-np.array(row['CPT objects'].data['z [m]']) + row['Z'],
                 showlegend=True,
                 mode='lines',
-                name="%s - %.0f%s offset" % (row['CPT titles'], row['Offset'], distance_unit))
+                name="%s - %.0f%s offset" % (row['CPT titles'], row['Offset'], distance_unit),
+                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10])
+            )
+            _backbone = go.Scatter(
+                x=[row['Projected offset'], row['Projected offset']],
+                y=[(-np.array(row['CPT objects'].data['z [m]']) + row['Z']).min(),
+                   (-np.array(row['CPT objects'].data['z [m]']) + row['Z']).max()],
+                showlegend=False,
+                mode='lines',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10], dash='dot')
+            )
             fig.append_trace(_data, 1, 1)
+            fig.append_trace(_backbone, 1, 1)
         except Exception as err:
             warnings.warn("Trace not created for %s - %s" % (row['CPT titles'], str(err)))
 
@@ -1462,8 +1492,11 @@ def plot_longitudinal_profiles(
     if general_layout is None:
         fig['layout'].update(height=600, width=900,
              title='Longitudinal profile from %s to %s' % (str(start), str(end)),
-             hovermode='closest')
+             hovermode='closest',
+             legend=dict(orientation='h', x=0, y=-0.2))
     else:
         fig['layout'].update(general_layout)
     if showfig:
         iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+    return fig

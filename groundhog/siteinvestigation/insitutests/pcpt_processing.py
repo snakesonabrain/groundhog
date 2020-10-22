@@ -25,11 +25,11 @@ except:
                   'Install pydov to enable this functionality')
 
 # Project imports
-from groundhog.general.plotting import plot_with_log
+from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile
-
+from groundhog.general.parameter_mapping import offsets
 
 DEFAULT_CONE_PROPERTIES = SoilProfile({
     'Depth from [m]': [0, ],
@@ -885,7 +885,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='pcptplot', config={'showLink': False})
+            iplot(fig, filename='pcptplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
 
     def plot_normalised_pcpt(
@@ -973,7 +973,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='pcptnormalisedplot', config={'showLink': False})
+            iplot(fig, filename='pcptnormalisedplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_properties(
             self, prop_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
@@ -1039,7 +1039,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='propertiesplot', config={'showLink': False})
+            iplot(fig, filename='propertiesplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_properties_withlog(self, prop_keys, plot_ranges, plot_ticks,
             legend_titles=None, axis_titles=None, showfig=True, showlayers=True, **kwargs):
@@ -1200,7 +1200,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='robertson', config={'showLink': False})
+            iplot(fig, filename='robertson', config=GROUNDHOG_PLOTTING_CONFIG)
 
     # endregion
 
@@ -1343,7 +1343,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='propertiesplot', config={'showLink': False})
+            iplot(fig, filename='propertiesplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
     # endregion
 
@@ -1371,3 +1371,99 @@ class PCPTProcessing(object):
             return json.dumps(dict_pcpt)
 
     # endregion
+
+
+# TODO: Creating plotting functionality for longitudinal profiles
+def plot_longitudinal_profiles(
+    cpts=[], x_coords=[], y_coords=[], elevations=[],
+    option='name', start=None, end=None, band=1000, prop='qc [MPa]',
+    distance_unit='m', scale_factor=0.001,
+    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None):
+    """
+    Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
+    to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
+    is projected onto this line.
+
+    :param cpts: List with PCPTProcessing objects to be plotted
+    :param x_coords: Eastings of the selected CPTs (list with equal length as ``cpts``)
+    :param y_coords: Northings of the selected CPTs (list with equal length as ``cpts``)
+    :param elevations: Absolute elevations (e.g. in mLAT) of the CPTs (list with equal length as ``cpts``)
+    :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
+    :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param prop: Selected property for plotting (default='qc [MPa]')
+    :param distance_unit: Unit for coordinates and elevation (default='m')
+    :param scale_factor: Scale factor for the property (default=0.001)
+    :param showfig: Boolean determining whether the figure is shown (default=True)
+    :param xaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param yaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param general_layout: Dictionary with general layout options
+    :return: Plotly figure object
+    """
+
+    cpt_names = list(map(lambda _cpt: _cpt.title, cpts))
+
+    if option == 'name':
+        start_point = (x_coords[cpt_names.index(start)], y_coords[cpt_names.index(start)])
+        end_point = (x_coords[cpt_names.index(end)], y_coords[cpt_names.index(end)])
+    elif option == 'coords':
+        if start.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        start_point = start
+        if end.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        end_point = end
+    else:
+        raise ValueError("option should be 'name' or 'coords'")
+
+
+    cpt_df = pd.DataFrame({
+        'CPT objects': cpts,
+        'CPT titles': cpt_names,
+        'X': x_coords,
+        'Y': y_coords,
+        'Z': elevations
+    })
+    for i, row in cpt_df.iterrows():
+        result = offsets(start_point, end_point, (row['X'], row['Y']))
+        cpt_df.loc[i, "Offset"] = result['offset to line']
+        cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
+        cpt_df.loc[i, "Before start"] = result['before start']
+        cpt_df.loc[i, "Behind end"] = result['behind end']
+
+    selected_cpts = cpt_df[
+        (cpt_df['Offset'] <= band) &
+        (cpt_df['Before start'] == False) &
+        (cpt_df['Behind end'] == False)]
+
+    fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+
+    for i, row in selected_cpts.iterrows():
+        try:
+            _data = go.Scatter(
+                x=scale_factor * np.array(row['CPT objects'].data[prop]) + row['Projected offset'],
+                y=-np.array(row['CPT objects'].data['z [m]']) + row['Z'],
+                showlegend=True,
+                mode='lines',
+                name="%s - %.0f%s offset" % (row['CPT titles'], row['Offset'], distance_unit))
+            fig.append_trace(_data, 1, 1)
+        except Exception as err:
+            warnings.warn("Trace not created for %s - %s" % (row['CPT titles'], str(err)))
+
+    if xaxis_layout is None:
+        fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
+    else:
+        fig['layout']['xaxis1'].update(xaxis_layout)
+    if yaxis_layout is None:
+        fig['layout']['yaxis1'].update(title='Level [%s]' % (distance_unit))
+    else:
+        fig['layout']['yaxis1'].update(yaxis_layout)
+    if general_layout is None:
+        fig['layout'].update(height=600, width=900,
+             title='Longitudinal profile from %s to %s' % (str(start), str(end)),
+             hovermode='closest')
+    else:
+        fig['layout'].update(general_layout)
+    if showfig:
+        iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)

@@ -724,3 +724,20 @@ def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):
     sp.rename(columns = column_mapping, inplace = True)
     sp.check_profile()
     return sp
+
+
+def profile_from_dataframe(df, depth_key='Depth', unit='m', column_mapping={}):
+    """
+    Creates a soil profile from a Pandas dataframe
+    :param df: Dataframe to be converted
+    :param depth_key: Column key to be used for depth (default = 'Depth')
+    :param unit: Unit for the depth (default = 'm')
+    :param column_mapping: Dictionary for renaming columns. The keys in this dictionary are the old column names and the values are the new column names.
+    :return: ``SoilProfile`` object created as a deep copy of the dataframe
+    """
+    sp = deepcopy(df)
+    sp.__class__ = SoilProfile
+    sp.set_depthcolumn_name(name=depth_key, unit=unit)
+    sp.rename(columns=column_mapping, inplace=True)
+    sp.check_profile()
+    return sp

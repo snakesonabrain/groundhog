@@ -5,5 +5,6 @@ v0.3.0, <datetobeconfirmed> -- End of 2020 update
     - TODO Add at least three new soil parameter correlations
     - Added permeability calculation according to Hazen (1892)
     - Added correlation between plasticity index and friction angle according to Terzaghi, Peck and Mesri (1996)
+    - Added functionality for converting Pandas dataframes into SoilProfile objects
 
 v0.2.0 , 20 October 2020 -- Initial release.

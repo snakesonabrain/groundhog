@@ -11,9 +11,15 @@ from copy import deepcopy
 # 3rd party packages
 import pandas as pd
 import numpy as np
+from plotly import tools, subplots
+import plotly.graph_objs as go
+from plotly.colors import DEFAULT_PLOTLY_COLORS
+from plotly.offline import iplot
 
 # Project imports
-from groundhog.general.plotting import plot_with_log
+from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
+from groundhog.general.parameter_mapping import offsets
+
 
 class SoilProfile(pd.DataFrame):
     """
@@ -741,3 +747,163 @@ def profile_from_dataframe(df, depth_key='Depth', unit='m', column_mapping={}):
     sp.rename(columns=column_mapping, inplace=True)
     sp.check_profile()
     return sp
+
+
+def plot_fence_diagram(
+    profiles=[], titles=[], x_coords=[], y_coords=[], elevations=[],
+    option='name', start=None, end=None, band=1000, extend_profile=False,
+    fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
+    logwidth=1, distance_unit='m', return_layers=False,
+    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None):
+    """
+    Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
+    to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
+    is projected onto this line.
+
+    :param profiles: List with SoilProfile objects for which a log needs to be plotted
+    :param titles: List with titles for the SoilProfile objects for which a log needs to be plotted
+    :param x_coords: Eastings of the selected soil profiles (list with equal length as ``profiles``)
+    :param y_coords: Northings of the selected soil profiles (list with equal length as ``profiles``)
+    :param elevations: Absolute elevations (e.g. in mLAT) of the soil profiles (list with equal length as ``profiles``)
+    :param option: Determines whether soil profile names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
+    :param start: Soil profile name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
+    :param logwidth: Width of the soil logs as an absolute value (default = 1)
+    :param distance_unit: Unit for coordinates and elevation (default='m')
+    :param return_layers: Boolean determining whether layers need to be returned. These layers can be used to updata another plot (e.g. CPT longitudinal profile) (default=False)
+    :param showfig: Boolean determining whether the figure is shown (default=True)
+    :param xaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param yaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param general_layout: Dictionary with general layout options
+    :return: Plotly figure object
+    """
+    
+    if start not in titles:
+        raise ValueError('The soil profile used as starting point should be included in the list with titles')
+    if end not in titles:
+        raise ValueError('The soil profile used as end point should be included in the list with titles')
+
+    if option == 'name':
+        start_point = (x_coords[titles.index(start)], y_coords[titles.index(start)])
+        end_point = (x_coords[titles.index(end)], y_coords[titles.index(end)])
+    elif option == 'coords':
+        if start.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        start_point = start
+        if end.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        end_point = end
+    else:
+        raise ValueError("option should be 'name' or 'coords'")
+
+
+    profile_df = pd.DataFrame({
+        'Soil profiles': profiles,
+        'Titles': titles,
+        'X': x_coords,
+        'Y': y_coords,
+        'Z': elevations
+    })
+
+    # Calculate offsets from profile line
+    for i, row in profile_df.iterrows():
+        if row['X'] == start_point[0] and row['Y'] == start_point[1]:
+            profile_df.loc[i, "Offset"] = 0
+            profile_df.loc[i, "Projected offset"] = 0
+            profile_df.loc[i, "Before start"] = False
+            profile_df.loc[i, "Behind end"] = False
+        elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
+            profile_df.loc[i, "Offset"] = 0
+            profile_df.loc[i, "Projected offset"] = np.sqrt(
+                (start_point[0] - end_point[0]) ** 2 +
+                (start_point[1] - end_point[1]) ** 2)
+            profile_df.loc[i, "Before start"] = False
+            profile_df.loc[i, "Behind end"] = False
+        else:
+            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            profile_df.loc[i, "Offset"] = result['offset to line']
+            profile_df.loc[i, "Projected offset"] = result['offset to start projected']
+            profile_df.loc[i, "Before start"] = result['before start']
+            profile_df.loc[i, "Behind end"] = result['behind end']
+
+    # Determine which soil profiles need to be plotted
+    if extend_profile:
+        selected_profiles = deepcopy(profile_df[profile_df['Offset'] <= band])
+    else:
+        selected_profiles = deepcopy(profile_df[
+            (profile_df['Offset'] <= band) &
+            (profile_df['Before start'] == False) &
+            (profile_df['Behind end'] == False)])
+
+    selected_profiles.sort_values('Projected offset', inplace=True)
+
+    _layers = []
+    _backbone_traces = []
+    _annotations = []
+
+    for i, row in selected_profiles.iterrows():
+
+
+        for j, _layer in row["Soil profiles"].iterrows():
+            _fillcolor = fillcolordict[_layer['Soil type']]
+            _y0 = row['Z'] - _layer['Depth from [m]']
+            _y1 = row['Z'] - _layer['Depth to [m]']
+            _x0 = row['Projected offset'] - 0.5 * logwidth
+            _x1 = row['Projected offset'] + 0.5 * logwidth
+            _layers.append(
+                dict(type='rect', xref='x1', yref='y', x0=_x0, y0=_y0, x1=_x1, y1=_y1,
+                     fillcolor=_fillcolor, opacity=1))
+            _annotations.append(
+                dict(
+                    x=row['Projected offset'],
+                    y=row['Z'],
+                    text="Profile %s - Offset %.0f%s" % (
+                        row['Titles'], row['Offset'], distance_unit
+                ))
+            )
+
+
+        try:
+            _trace = go.Scatter(
+                x=[row['Projected offset'], row['Projected offset']],
+                y=[-row['Soil profiles']['Depth from [m]'].min() + row['Z'],
+                   -row['Soil profiles']['Depth to [m]'].max() + row['Z']],
+                showlegend=False,
+                mode='lines',
+                line=dict(color='black', width=0))
+            _backbone_traces.append(_trace)
+        except:
+            pass
+
+    if return_layers:
+        return _layers
+    else:
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+
+        for _trace in _backbone_traces:
+            fig.append_trace(_trace, 1, 1)
+
+        if xaxis_layout is None:
+            fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
+        else:
+            fig['layout']['xaxis1'].update(xaxis_layout)
+        if yaxis_layout is None:
+            fig['layout']['yaxis1'].update(title='Level [%s]' % (distance_unit))
+        else:
+            fig['layout']['yaxis1'].update(yaxis_layout)
+        if general_layout is None:
+            fig['layout'].update(height=600, width=900,
+                 title='Longitudinal profile from %s to %s' % (str(start), str(end)),
+                 hovermode='closest',
+                 legend=dict(orientation='h', x=0, y=-0.2))
+        else:
+            fig['layout'].update(general_layout)
+        fig['layout'].update(shapes=_layers)
+        fig['layout'].update(annotations=_annotations)
+        if showfig:
+            iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+        return fig

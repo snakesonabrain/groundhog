@@ -178,6 +178,15 @@ class Test_UndrainedCapacity(unittest.TestCase):
             3
         )
 
+    def test_envelope_rectangle_embedded(self):
+        self.rectangle_analysis.depth = 1
+        self.rectangle_analysis.skirted = True
+        self.rectangle_analysis.set_eccentricity(eccentricity_length=0, eccentricity_width=0)
+        self.rectangle_analysis.calculate_sliding_capacity()
+        self.rectangle_analysis.calculate_bearing_capacity()
+        self.rectangle_analysis.calculate_envelope()
+
+
     def test_envelope_circle(self):
         self.circle_analysis.set_eccentricity(eccentricity_width=0)
         self.circle_analysis.calculate_sliding_capacity()
@@ -316,11 +325,11 @@ class Test_DrainedCapacity(unittest.TestCase):
         self.rectangle_analysis.calculate_sliding_capacity(vertical_load=100)
         self.assertAlmostEqual(
             self.rectangle_analysis.sliding_base_only,
-            100 * np.tan(np.radians(38)), 3
+            100 * np.tan(np.radians(38 - 5)), 3
         )
         self.assertAlmostEqual(
             self.rectangle_analysis.sliding_full,
-            100 * np.tan(np.radians(38)), 3
+            100 * np.tan(np.radians(38 - 5)), 3
         )
 
     def test_sliding_circle(self):
@@ -328,11 +337,11 @@ class Test_DrainedCapacity(unittest.TestCase):
         self.circle_analysis.calculate_sliding_capacity(vertical_load=100)
         self.assertAlmostEqual(
             self.circle_analysis.sliding_base_only,
-            100 * np.tan(np.radians(38)), 3
+            100 * np.tan(np.radians(38 - 5)), 3
         )
         self.assertAlmostEqual(
             self.circle_analysis.sliding_full,
-            100 * np.tan(np.radians(38)), 3
+            100 * np.tan(np.radians(38 - 5)), 3
         )
 
     def test_sliding_rectangle_deep(self):
@@ -341,24 +350,25 @@ class Test_DrainedCapacity(unittest.TestCase):
         self.rectangle_analysis.calculate_sliding_capacity(vertical_load=100)
         self.assertAlmostEqual(
             self.rectangle_analysis.sliding_base_only,
-            100 * np.tan(np.radians(38)), 3
+            100 * np.tan(np.radians(38 - 5)), 3
         )
         self.assertAlmostEqual(
             self.rectangle_analysis.sliding_full,
-            100 * np.tan(np.radians(38)) + 0.5 * 3.9658627648456655 * 9 * 1 * 5, 3
+            100 * np.tan(np.radians(38 - 5)) + 0.5 * 3.097319104870605 * 9 * 1 * 5, 3
         )
 
     def test_sliding_circle_deep(self):
         self.circle_analysis.set_eccentricity(eccentricity_width=1)
         self.circle_analysis.depth = 1
         self.circle_analysis.calculate_sliding_capacity(vertical_load=100)
+        print(self.circle_analysis.sliding)
         self.assertAlmostEqual(
             self.circle_analysis.sliding_base_only,
-            100 * np.tan(np.radians(38)), 3
+            100 * np.tan(np.radians(38 - 5)), 3
         )
         self.assertAlmostEqual(
             self.circle_analysis.sliding_full,
-            100 * np.tan(np.radians(38)) + 0.5 * 3.9658627648456655 * 9 * 1 * 5, 3
+            100 * np.tan(np.radians(38 - 5)) + 0.5 * 3.097319104870605 * 9 * 1 * 5, 3
         )
 
     def test_envelope_rectangle(self):

@@ -8,9 +8,14 @@ import warnings
 
 # 3rd party packages
 import numpy as np
+from plotly import subplots
+import plotly.graph_objs as go
+from plotly.offline import iplot
+from plotly.colors import DEFAULT_PLOTLY_COLORS
 
 # Project imports
 from groundhog.general.validation import Validator
+from groundhog.general.plotting import GROUNDHOG_PLOTTING_CONFIG
 
 
 VERTICALCAPACITY_UNDRAINED_API = {
@@ -194,7 +199,7 @@ def verticalcapacity_undrained_api(effective_length, effective_width, su_base, s
 
     K_c = 1.0 + s_c + d_c - i_c - b_c - g_c
 
-    if not skirted and base_sigma_v == 0.0:
+    if not skirted and base_sigma_v == 0.0 and base_depth != 0:
         warnings.warn("Vertical effective stress at base for base embedded foundation is zero. Specify base_sigma_v"
                       " to take a non-zero value into account")
 
@@ -350,8 +355,12 @@ def verticalcapacity_drained_api(vertical_effective_stress, effective_friction_a
          ((np.tan(np.radians(45.0 + 0.5 * effective_friction_angle))) ** 2.0)
     N_gamma = 1.5 * (N_q - 1.0) * np.tan(np.radians(effective_friction_angle))
 
-    q_u = (vertical_effective_stress * (N_q - 1.0) * K_q + \
-                             0.5 * effective_unit_weight * effective_width * N_gamma * K_gamma)
+    if not skirted and base_depth > 0:
+        q_u = (vertical_effective_stress * N_q * K_q + \
+               0.5 * effective_unit_weight * effective_width * N_gamma * K_gamma)
+    else:
+        q_u = (vertical_effective_stress * (N_q - 1.0) * K_q + \
+                                 0.5 * effective_unit_weight * effective_width * N_gamma * K_gamma)
 
     if skirted:
         vertical_capacity = q_u * effective_width * effective_length
@@ -766,10 +775,11 @@ def envelope_drained_api(vertical_effective_stress,
 
 
     return {
-        'Envelope V unfactored [kN]': np.nan_to_num(_envelope_v),
-        'Envelope H unfactored [kN]': np.nan_to_num(_envelope_h),
-        'Envelope V factored [kN]': np.nan_to_num(_envelope_v) / factor_bearing,
-        'Envelope H factored [kN]': np.nan_to_num(_envelope_h) / factor_sliding,
+        'Envelope V unfactored [kN]': np.append(np.nan_to_num(_envelope_v).max(), np.nan_to_num(_envelope_v)),
+        'Envelope H unfactored [kN]': np.append(0, np.nan_to_num(_envelope_h)),
+        'Envelope V factored [kN]': np.append(np.nan_to_num(_envelope_v).max(), np.nan_to_num(_envelope_v)) /
+                                    factor_bearing,
+        'Envelope H factored [kN]': np.append(0, np.nan_to_num(_envelope_h)) / factor_sliding,
         'Envelope V uncorrected [kN]': np.nan_to_num(_envelope_v),
         'Envelope H uncorrected [kN]': np.nan_to_num(_envelope_h_unchanged),
         'Sliding cutoff V [kN]': np.nan_to_num(_envelope_v),
@@ -1170,6 +1180,61 @@ class ShallowFoundationCapacity(object):
             raise ValueError(
                 "Effective area is smaller than zero, reduce the eccentricity or increase the foundation size")
 
+    def plot_envelope(self, show_factored=True, show_uncorrected=False,
+                      xaxis_layout=None, yaxis_layout=None,
+                      general_layout=None):
+        """
+        Plot the bearing capacity envelope using Plotly. This method contains the shared code for
+        drained and undrained bearing capacity envelope plotting.
+
+        :param show_factored: Boolean determining whether the factored envelope is shown
+        :param show_uncorrected: Boolean determining whether the uncorrected envelope is shown
+        :param xaxis_layout: Dictionary with custom layout for the X-axis
+        :param yaxis_layout: Dictionary with custom layout for the Y-axis
+        :param general_layout: Dictionary with custom general layout
+        :param showfig: Boolean determining whether the figure is shown or not
+        :return: Returns a Plotly figure with the bearing capacity envelopes
+        """
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+        _data = go.Scatter(
+            x=self.envelope_H_unfactored,
+            y=self.envelope_V_unfactored,
+            showlegend=True, mode='lines', name='Unfactored',
+            line=dict(color=DEFAULT_PLOTLY_COLORS[0]))
+        fig.append_trace(_data, 1, 1)
+        if show_factored:
+            _data = go.Scatter(
+                x=self.envelope_H_factored,
+                y=self.envelope_V_factored,
+                showlegend=True, mode='lines', name='Factored',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[1]))
+            fig.append_trace(_data, 1, 1)
+        if show_uncorrected:
+            _data = go.Scatter(
+                x=self.envelope_H_uncorrected,
+                y=self.envelope_V_uncorrected,
+                showlegend=True, mode='lines', name='Uncorrected',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[2]))
+            fig.append_trace(_data, 1, 1)
+        if xaxis_layout is None:
+            fig['layout']['xaxis1'].update(
+                title='Horizontal load [kN]', range=(0, 1.1 * self.envelope_H_unfactored.max()))
+        else:
+            fig['layout']['xaxis1'].update(xaxis_layout)
+        if yaxis_layout is None:
+            fig['layout']['yaxis1'].update(
+                title='Vertical load [kN]', range=(0, 1.1 * self.envelope_V_unfactored.max()))
+        else:
+            fig['layout']['yaxis1'].update(yaxis_layout)
+        if general_layout is None:
+            fig['layout'].update(height=500, width=700,
+                                 title='Bearing capacity envelope',
+                                 hovermode='closest')
+        else:
+            fig['layout'].update(general_layout)
+
+        return fig
+
 
 class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
 
@@ -1177,6 +1242,8 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
         """
         Sets the soil parameters for undrained vertical bearing capacity and horizontal sliding analysis.
         Note that unit weight is used to assess the stress at base level, so the average unit weight above base level should be used
+
+        If the average undrained shear strength above base level is unspecified, the undrained shear strength at base level is used.
 
         :param unit_weight: Unit weight of the soil, used to calculate stress at base level (:math:`\\gamma`) [:math:`kN/m3`]  - Suggested range: 12<=unit_weight<=22
         :param su_base: Undrained shear strength at foundation base level (:math:`S_{uo}`) [:math:`kPa`]  - Suggested range: 0.0<=su_base
@@ -1187,7 +1254,10 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
         self.unit_weight = unit_weight
         self.su_base = su_base
         self.su_increase = su_increase
-        self.su_above_base = su_above_base
+        if np.math.isnan(su_above_base):
+            self.su_above_base = self.su_base
+        else:
+            self.su_above_base = su_above_base
 
     def calculate_bearing_capacity(self, **kwargs):
         """
@@ -1257,6 +1327,12 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
             - ``envelope_H_uncorrected``: H points for the uncorrected envelope (not accounting for effective area component only) [kN]
 
         """
+
+        if self.option == 'circle':
+            outofplane_dimension = self.diameter
+        else:
+            outofplane_dimension = self.length
+
         self.envelope = envelope_undrained_api(
             su_base=self.su_base,
             full_area=self.full_area,
@@ -1264,6 +1340,9 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
             effective_width=self.effective_width,
             factor_bearing=factor_bearing,
             factor_sliding=factor_sliding,
+            base_depth=self.depth,
+            su_above_base=self.su_above_base,
+            embedded_section_area=self.depth * outofplane_dimension,
             **kwargs)
         self.envelope_V_unfactored = self.envelope["Envelope V unfactored [kN]"]
         self.envelope_H_unfactored = self.envelope["Envelope H unfactored [kN]"]
@@ -1271,6 +1350,22 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
         self.envelope_H_factored = self.envelope["Envelope H factored [kN]"]
         self.envelope_V_uncorrected = self.envelope["Envelope V uncorrected [kN]"]
         self.envelope_H_uncorrected = self.envelope["Envelope H uncorrected [kN]"]
+
+    def plot_envelope(self, showfig=True, plot_title="Undrained bearing capacity envelope", **kwargs):
+        """
+        Plot the undrained bearing capacity envelope using Plotly.
+
+        Supplements the method from the parent class with specific statements for undrained conditions.
+        """
+
+        fig = super().plot_envelope(**kwargs)
+
+        fig['layout'].update(title=plot_title)
+
+        if showfig:
+            iplot(fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+        return fig
 
 
 class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
@@ -1311,7 +1406,7 @@ class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
         self.net_bearing_pressure = self.capacity['qu [kPa]']
         self.ultimate_capacity = self.capacity['vertical_capacity [kN]']
 
-    def calculate_sliding_capacity(self, vertical_load, **kwargs):
+    def calculate_sliding_capacity(self, vertical_load, interface_frictionangle=np.nan, **kwargs):
         """
         Calculates the sliding capacity for drained (long term) conditions
         :param kwargs: Additional arguments for the ``slidingcapacity_drained_api`` function (see function documentation)
@@ -1323,9 +1418,14 @@ class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
         else:
             outofplane_dimension = self.length
 
+        if np.math.isnan(interface_frictionangle):
+            interface_frictionangle = self.friction_angle - 5
+        else:
+            pass
+
         self.sliding = slidingcapacity_drained_api(
             vertical_load=vertical_load,
-            effective_friction_angle=self.friction_angle,
+            effective_friction_angle=interface_frictionangle,
             effective_unit_weight=self.effective_unit_weight,
             embedded_section_area=self.depth * outofplane_dimension,
             depth_to_base=self.depth,
@@ -1356,6 +1456,9 @@ class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
             - ``envelope_H_uncorrected``: H points for the uncorrected envelope (not accounting for effective area component only) [kN]
             - ``sliding_cutoff_V``: V points for the sliding cutoff [kN]
             - ``sliding_cutoff_H``: H points for the sliding cutoff [kN]
+            - ``sliding_cutoff_V_factored``: V points for the sliding cutoff factored [kN]
+            - ``sliding_cutoff_H_factored``: H points for the sliding cutoff factored [kN]
+
 
         """
         self.envelope = envelope_drained_api(
@@ -1376,5 +1479,38 @@ class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
         self.envelope_H_uncorrected = self.envelope["Envelope H uncorrected [kN]"]
         self.sliding_cutoff_V = self.envelope['Sliding cutoff V [kN]']
         self.sliding_cutoff_H = self.envelope['Sliding cutoff H [kN]']
+        self.sliding_cutoff_V_factored = self.envelope['Sliding cutoff V [kN]']
+        self.sliding_cutoff_H_factored = self.envelope['Sliding cutoff H [kN]'] / factor_sliding
+
+
+    def plot_envelope(self, showfig=True, show_cutoff=True, plot_title="Drained bearing capacity envelope", **kwargs):
+        """
+        Plot the drained bearing capacity envelope using Plotly.
+
+        Supplements the method from the parent class with specific statements for undrained conditions.
+        """
+
+        fig = super().plot_envelope(**kwargs)
+
+        if show_cutoff:
+            _data = go.Scatter(
+                x=self.sliding_cutoff_H,
+                y=self.sliding_cutoff_V,
+                showlegend=True, mode='lines', name='Sliding cutoff unfactored',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[0], dash='dot'))
+            fig.append_trace(_data, 1, 1)
+            _data = go.Scatter(
+                x=self.sliding_cutoff_H_factored,
+                y=self.sliding_cutoff_V_factored,
+                showlegend=True, mode='lines', name='Sliding cutoff factored',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[1], dash='dot'))
+            fig.append_trace(_data, 1, 1)
+
+        fig['layout'].update(title=plot_title)
+
+        if showfig:
+            iplot(fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+        return fig
 
 

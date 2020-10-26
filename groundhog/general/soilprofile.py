@@ -846,7 +846,6 @@ def plot_fence_diagram(
 
     for i, row in selected_profiles.iterrows():
 
-
         for j, _layer in row["Soil profiles"].iterrows():
             _fillcolor = fillcolordict[_layer['Soil type']]
             _y0 = row['Z'] - _layer['Depth from [m]']

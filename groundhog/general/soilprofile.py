@@ -754,7 +754,8 @@ def plot_fence_diagram(
     option='name', start=None, end=None, band=1000, extend_profile=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
     logwidth=1, distance_unit='m', return_layers=False,
-    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None):
+    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None,
+    show_annotations=True):
     """
     Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
     to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
@@ -778,6 +779,7 @@ def plot_fence_diagram(
     :param xaxis_layout: Dictionary with layout for the xaxis (default=None)
     :param yaxis_layout: Dictionary with layout for the xaxis (default=None)
     :param general_layout: Dictionary with general layout options
+    :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
     :return: Plotly figure object
     """
     
@@ -900,8 +902,11 @@ def plot_fence_diagram(
                  legend=dict(orientation='h', x=0, y=-0.2))
         else:
             fig['layout'].update(general_layout)
+
         fig['layout'].update(shapes=_layers)
-        fig['layout'].update(annotations=_annotations)
+
+        if show_annotations:
+            fig['layout'].update(annotations=_annotations)
         if showfig:
             iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
 

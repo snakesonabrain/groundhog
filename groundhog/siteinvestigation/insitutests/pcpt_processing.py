@@ -1378,7 +1378,8 @@ def plot_longitudinal_profile(
     option='name', start=None, end=None, band=1000, extend_profile=False,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
-    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None):
+    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None, legend_layout=None,
+    show_annotations=True):
     """
     Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
     to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
@@ -1399,7 +1400,9 @@ def plot_longitudinal_profile(
     :param showfig: Boolean determining whether the figure is shown (default=True)
     :param xaxis_layout: Dictionary with layout for the xaxis (default=None)
     :param yaxis_layout: Dictionary with layout for the xaxis (default=None)
-    :param general_layout: Dictionary with general layout options
+    :param general_layout: Dictionary with general layout options (default=None)
+    :param legend_layout: Dictionary with legend layout options (default=None)
+    :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
     :return: Plotly figure object
     """
 
@@ -1458,6 +1461,10 @@ def plot_longitudinal_profile(
 
     fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
 
+    _annotations = []
+
+    k = 0
+
     for i, row in selected_cpts.iterrows():
         try:
             _data = go.Scatter(
@@ -1478,6 +1485,25 @@ def plot_longitudinal_profile(
             )
             fig.append_trace(_data, 1, 1)
             fig.append_trace(_backbone, 1, 1)
+
+            if k % 2 == 0:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=row['Z'],
+                        text=row['CPT titles'])
+                )
+            else:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=-np.array(row['CPT objects'].data['z [m]']).max() + row['Z'],
+                        text=row['CPT titles'],
+                        ay=30)
+                )
+
+            k += 1
+
         except Exception as err:
             warnings.warn("Trace not created for %s - %s" % (row['CPT titles'], str(err)))
 
@@ -1492,10 +1518,18 @@ def plot_longitudinal_profile(
     if general_layout is None:
         fig['layout'].update(height=600, width=900,
              title='Longitudinal profile from %s to %s' % (str(start), str(end)),
-             hovermode='closest',
-             legend=dict(orientation='h', x=0, y=-0.2))
+             hovermode='closest')
     else:
         fig['layout'].update(general_layout)
+
+    if legend_layout is None:
+        fig['layout'].update(legend=dict(orientation='h', x=0, y=-0.2))
+    else:
+        fig['layout'].update(legend=legend_layout)
+
+    if show_annotations:
+        fig['layout'].update(annotations=_annotations)
+
     if showfig:
         iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
 

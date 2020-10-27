@@ -679,7 +679,9 @@ ENVELOPE_DRAINED_API_ERRORRETURN = {
     'Envelope V uncorrected [kN]': None,
     'Envelope H uncorrected [kN]': None,
     'Sliding cutoff V [kN]': None,
-    'Sliding cutoff H [kN]': None
+    'Sliding cutoff H [kN]': None,
+    'Sliding cutoff V factored [kN]': None,
+    'Sliding cutoff H factored [kN]': None
 }
 
 @Validator(ENVELOPE_DRAINED_API, ENVELOPE_DRAINED_API_ERRORRETURN)
@@ -708,7 +710,7 @@ def envelope_drained_api(vertical_effective_stress,
     :param effective_width: Minimum effective lateral dimension (:math:`B^{\\prime}`) [:math:`m`]  - Suggested range: 0.0<=effective_width
     :param full_area: Full base area of the foundation (:math:`A_b`) [:math:`m^2`]  - Suggested range: 0.0<=full_area
     :param width: Minimum true lateral dimension (:math:`B`) [:math:`m`]  - Suggested range: 0.0<=width
-    :param factor_sliding: Resistance factor for sliding, applied to the H component of the envelope (:math:`\\gamma_{sliding}`) [:math:`-`] - Suggested range: factor_sliding >= 1.0 (optional, default= 1.5)
+    :param factor_sliding: Resistance factor for sliding, applied to the H component of the sliding cutoff (:math:`\\gamma_{sliding}`) [:math:`-`] - Suggested range: factor_sliding >= 1.0 (optional, default= 1.5)
     :param factor_bearing: Resistance factor for bearing failure, applied to the V component of the envelope (:math:`\\gamma_{bearing}`) [:math:`-`] - Suggested range: factor_bearing >= 1.0 (optional, default= 2.0)
     :param effective_friction_angle_sliding: Effective friction angle for sliding failure (for appropriate stress level at foundation base). If unspecified, the effective friction angle of soil - 5° is used (:math:`\\delta^{\\prime}`) [:math:`deg`]  - Suggested range: 15.0<=effective_friction_angle<=45.0
 
@@ -729,8 +731,6 @@ def envelope_drained_api(vertical_effective_stress,
     Reference - API RP 2GEO
 
     """
-
-    #TODO: TAKE INTO ACCOUNT ECCENTRICITY FOR INCLINED LOAD + SKIRTS
 
     if np.math.isnan(effective_friction_angle_sliding):
         effective_friction_angle_sliding = effective_friction_angle - 5
@@ -779,11 +779,13 @@ def envelope_drained_api(vertical_effective_stress,
         'Envelope H unfactored [kN]': np.append(0, np.nan_to_num(_envelope_h)),
         'Envelope V factored [kN]': np.append(np.nan_to_num(_envelope_v).max(), np.nan_to_num(_envelope_v)) /
                                     factor_bearing,
-        'Envelope H factored [kN]': np.append(0, np.nan_to_num(_envelope_h)) / factor_sliding,
+        'Envelope H factored [kN]': np.append(0, np.nan_to_num(_envelope_h)) / factor_bearing,
         'Envelope V uncorrected [kN]': np.nan_to_num(_envelope_v),
         'Envelope H uncorrected [kN]': np.nan_to_num(_envelope_h_unchanged),
         'Sliding cutoff V [kN]': np.nan_to_num(_envelope_v),
-        'Sliding cutoff H [kN]': np.nan_to_num(_h_max)
+        'Sliding cutoff H [kN]': np.nan_to_num(_h_max),
+        'Sliding cutoff V factored [kN]': np.nan_to_num(_envelope_v),
+        'Sliding cutoff H factored [kN]': np.nan_to_num(_h_max) / factor_sliding
     }
 
 

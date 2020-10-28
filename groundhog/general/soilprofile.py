@@ -782,13 +782,13 @@ def plot_fence_diagram(
     :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
     :return: Plotly figure object
     """
-    
-    if start not in titles:
-        raise ValueError('The soil profile used as starting point should be included in the list with titles')
-    if end not in titles:
-        raise ValueError('The soil profile used as end point should be included in the list with titles')
 
     if option == 'name':
+        if start not in titles:
+            raise ValueError('The soil profile used as starting point should be included in the list with titles')
+        if end not in titles:
+            raise ValueError('The soil profile used as end point should be included in the list with titles')
+
         start_point = (x_coords[titles.index(start)], y_coords[titles.index(start)])
         end_point = (x_coords[titles.index(end)], y_coords[titles.index(end)])
     elif option == 'coords':

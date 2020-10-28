@@ -85,7 +85,7 @@ specifies the physical meaning and the units of input and output variables.
 
    shallowfoundations/shallowfoundations_toplevel
 
-   soildynamics/soildynamics/toplevel
+   soildynamics/soildynamics_toplevel
 
 
 Acknowledgements

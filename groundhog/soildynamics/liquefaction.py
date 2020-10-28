@@ -123,6 +123,13 @@ LIQUEFACTIONPROBABILITY_MOSS = {
     'CSR_star': {'type': 'float', 'min_value': 0.0, 'max_value': 0.6},
     'Pa': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
     'delta_qc_override': {'type': 'float', 'min_value': None, 'max_value': None},
+    'c_override': {'type': 'float', 'min_value': None, 'max_value': None},
+    'x1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'x2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'y1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'y2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'y3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'z1': {'type': 'float', 'min_value': None, 'max_value': None},
 }
 
 LIQUEFACTIONPROBABILITY_MOSS_ERRORRETURN = {
@@ -131,17 +138,21 @@ LIQUEFACTIONPROBABILITY_MOSS_ERRORRETURN = {
     'qc_95 [MPa]': np.nan,
     'qc1 [MPa]': np.nan,
     'qc1mod [MPa]': np.nan,
+    'c [-]': np.nan
 }
 
 
 @Validator(LIQUEFACTIONPROBABILITY_MOSS, LIQUEFACTIONPROBABILITY_MOSS_ERRORRETURN)
 def liquefactionprobability_moss(
         qc, sigma_vo_eff, Rf, CSR, CSR_star,
-        Pa=100.0, delta_qc_override=np.nan, **kwargs):
+        Pa=100.0, delta_qc_override=np.nan, c_override=np.nan,
+        x1=0.78, x2=-0.33, y1=-0.32, y2=-0.35, y3=0.49, z1=1.21,**kwargs):
     """
     Calculates the probability of liquefaction according to Moss et al. The cone tip resistance is normalised to a standard effective overburden pressure of 100kPa.
 
     The liquefaction probability is based on a database of case studies using Bayesian updating. The probability contours are digitised from the published figure and interpolation between the different values of normalised tip resistance for a given CSR is performed.
+
+    The calculation of the normalisation exponent :math:`c` is performed iteratively, or an override can be specified. While a normalisation exponent of 0.5 is generally assumed, performing the calculation results in a much better statistical fit.
 
     Soils with an increased friction ratio shows less potential for liquefaction. This is accounted for by modifying the normalised cone resistance using the friction ratio. The bound for modifying the friction ratio are 0.5 - 5%. Below 0.5%, there is no correction and above 5%, the correction for Rf=5% is applied.
 
@@ -152,15 +163,30 @@ def liquefactionprobability_moss(
     :param CSR_star: Equivalent uniform cyclic stress ratio (for magnitude 7.5 event) (:math:`CSR^{*}`) [:math:`-`] - Suggested range: 0.0 <= CSR_star <= 0.6
     :param Pa: Atmospheric pressure (:math:`p_a`) [:math:`kPa`] - Suggested range: 90.0 <= Pa <= 110.0 (optional, default= 100.0)
     :param delta_qc_override: Override for the correction to the normalised cone tip resistance (:math:`\\Delta q_c`) [:math:`MPa`] (optional, default=np.nan)
+    :param c_override: Override for the normalisation exponent (:math:`c`) [:math:`-`] (optional, default=np.nan)
+    :param x1: Factor x1 (:math:`x_1`) [:math:`-`] (optional, default=0.78)
+    :param x2: Factor x2 (:math:`x_2`) [:math:`-`] (optional, default=-0.33)
+    :param y1: Factor y1 (:math:`y_1`) [:math:`-`] (optional, default=-0.32)
+    :param y2: Factor y2 (:math:`y_2`) [:math:`-`] (optional, default=-0.35)
+    :param y3: Factor y3 (:math:`y_3`) [:math:`-`] (optional, default=0.49)
+    :param z1: Factor z1 (:math:`z_1`) [:math:`-`] (optional, default=1.21)
 
     .. math::
-        q_{c,1} = q_c \\left( \\frac{p_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.5}
+        q_{c,1} = q_c \\left( \\frac{p_a}{\\sigma_{vo}^{\\prime}} \\right)^{c}
 
-        \\Delta q_c = x_1 \\cdot \\ln (CSR) + x_2
+        c = f_1 \\cdot \\left( \\frac{R_f}{f_3} \\right)^{f_2}
 
-        x_1 = 0.38 \\cdot R_f - 0.19
+        f_1 = x_1 \\cdot q_c^{x_2}
 
-        x_2 = 1.46 \\cdot R_f  - 0.73
+        f_2 = -(y_1 \\cdot q_c^{y_2} + y_3 )
+
+        f_3 = abs( \\log_{10}(10 + q_c )^{z_1}
+
+        \\Delta q_c = \\alpha_1 \\cdot \\ln (CSR) + \\alpha_2
+
+        \\alpha_1 = 0.38 \\cdot R_f - 0.19
+
+        \\alpha_2 = 1.46 \\cdot R_f - 0.73
 
     :returns: Dictionary with the following keys:
 
@@ -169,6 +195,7 @@ def liquefactionprobability_moss(
         - 'qc_95 [MPa]': Cone tip resistance for 95% probability of liquefaction (:math:`q_{c,P_{L,95\\%}}`)  [:math:`MPa`]
         - 'qc1 [MPa]': Normalised cone tip resistance (:math:`q_{c,1}`)  [:math:`MPa`]
         - 'qc1mod [MPa]': Modified normalised cone tip resistance (:math:`q_{c,1} + \\Delta q_c`)  [:math:`MPa`]
+        - 'c [-]': Normalisation exponent  [:math:`-`]
 
     .. figure:: images/liquefactionprobability_moss_1.png
         :figwidth: 500.0
@@ -297,7 +324,17 @@ def liquefactionprobability_moss(
         _spline = interpolate.UnivariateSpline(_csr_array, _qc_array)
         qcpl_array = np.append(qcpl_array, _spline(CSR_star))
 
-    _qc1 = qc * np.sqrt(Pa / sigma_vo_eff)
+    if np.math.isnan(c_override):
+        _qc = qc
+        for i in range(10):
+            f_1 = x1 * (qc ** x2)
+            f_2 = -(y1 * (qc ** y2) + y3)
+            f_3 = (abs(np.log10(10 + qc)) ** z1)
+            _c = f_1 * ((Rf / f_3) ** f_2)
+            _qc = _qc * ((Pa / sigma_vo_eff) ** _c)
+        _qc1 = qc * ((Pa / sigma_vo_eff) ** _c)
+    else:
+        _c = c_override
 
     if np.math.isnan(delta_qc_override):
         if Rf < 0.5:
@@ -315,8 +352,8 @@ def liquefactionprobability_moss(
         _qc1mod = _qc1 + delta_qc_override
 
     _Pl = np.interp(_qc1mod, qcpl_array, pl_array)
-    _qc_5 = qcpl_array[-1]
-    _qc_95 = qcpl_array[0]
+    _qc_5 = max(0, qcpl_array[-1])
+    _qc_95 = max(0, qcpl_array[0])
 
     return {
         'Pl [pct]': _Pl,
@@ -324,4 +361,5 @@ def liquefactionprobability_moss(
         'qc_95 [MPa]': _qc_95,
         'qc1 [MPa]': _qc1,
         'qc1mod [MPa]': _qc1mod,
+        'c [-]': _c
     }

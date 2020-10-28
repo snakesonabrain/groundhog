@@ -41,18 +41,20 @@ class Test_liquefaction(unittest.TestCase):
     def test_liquefactionprobability_moss(self):
         result = liquefaction.liquefactionprobability_moss(
             qc=10,
-            sigma_vo_eff=80,
-            Rf=1.5,
-            CSR=0.4,
-            CSR_star=0.32
+            sigma_vo_eff=100,
+            Rf=0.4,
+            CSR=0.2,
+            CSR_star=0.2
         )
         self.assertAlmostEqual(
-            result['qc_5 [MPa]'], 14.31, 2
+            result['qc1 [MPa]'], 10, 2
         )
         self.assertAlmostEqual(
-            result['qc_95 [MPa]'], 9.74, 2
+            result['qc_5 [MPa]'], 11.47, 2
         )
         self.assertAlmostEqual(
-            result['Pl [pct]'], 43, 0
+            result['qc_95 [MPa]'], 6.76, 2
         )
-
+        self.assertAlmostEqual(
+            result['Pl [pct]'], 27, 0
+        )

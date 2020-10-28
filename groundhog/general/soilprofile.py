@@ -753,7 +753,7 @@ def plot_fence_diagram(
     profiles=[], titles=[], x_coords=[], y_coords=[], elevations=[],
     option='name', start=None, end=None, band=1000, extend_profile=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
-    logwidth=1, distance_unit='m', return_layers=False,
+    opacity=1, logwidth=1, distance_unit='m', return_layers=False,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None,
     show_annotations=True):
     """
@@ -772,6 +772,7 @@ def plot_fence_diagram(
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
+    :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
     :param logwidth: Width of the soil logs as an absolute value (default = 1)
     :param distance_unit: Unit for coordinates and elevation (default='m')
     :param return_layers: Boolean determining whether layers need to be returned. These layers can be used to updata another plot (e.g. CPT longitudinal profile) (default=False)
@@ -856,15 +857,27 @@ def plot_fence_diagram(
             _x1 = row['Projected offset'] + 0.5 * logwidth
             _layers.append(
                 dict(type='rect', xref='x1', yref='y', x0=_x0, y0=_y0, x1=_x1, y1=_y1,
-                     fillcolor=_fillcolor, opacity=1))
-            _annotations.append(
-                dict(
-                    x=row['Projected offset'],
-                    y=row['Z'],
-                    text="Profile %s - Offset %.0f%s" % (
-                        row['Titles'], row['Offset'], distance_unit
-                ))
-            )
+                     fillcolor=_fillcolor, opacity=opacity))
+            if i % 2 == 0:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=row['Z'],
+                        text="%s - Offset %.0f%s" % (
+                            row['Titles'], row['Offset'], distance_unit
+                    ))
+                )
+            else:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=-np.array(row['Soil profiles']['Depth to [m]']).max() + row['Z'],
+                        text="%s - Offset %.0f%s" % (
+                            row['Titles'], row['Offset'], distance_unit
+                        ),
+                        ay=30
+                    )
+                )
 
 
         try:

@@ -36,6 +36,7 @@ class SoilProfile(pd.DataFrame):
         super().__init__(*args, **kwargs)
         self.set_depthcolumn_name()
         self.check_profile()
+        self.title = None
 
     def set_depthcolumn_name(self, name="Depth", unit='m'):
         self.depth_from_col = "%s from [%s]" % (name, unit)
@@ -80,6 +81,27 @@ class SoilProfile(pd.DataFrame):
         Returns the maximum depth of the soil profile
         """
         return self[self.depth_to_col].max()
+
+    def set_position(self, easting, northing, elevation, srid=4326, datum='mLAT'):
+        """
+        Sets the position of a soil profile top in a given coordinate system.
+
+        By default, srid 4326 is used which means easting is longitude and northing is latitude.
+
+        The elevation is referenced to a chart datum for which mLAT (Lowest Astronomical Tide) is the default.
+
+        :param easting: X-coordinate of the CPT position
+        :param northing: Y-coordinate of the CPT position
+        :param elevation: Elevation of the CPT position
+        :param srid: SRID of the coordinate system (see http://epsg.io)
+        :param datum: Chart datum used for the elevation
+        :return: Sets the corresponding attributes of the ```PCPTProcessing``` object
+        """
+        self.easting = easting
+        self.northing = northing
+        self.elevation = elevation
+        self.srid = srid
+        self.datum = datum
 
     def layer_transitions(self, include_top=False, include_bottom=False):
         """
@@ -717,7 +739,7 @@ class SoilProfile(pd.DataFrame):
         self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn)
 
 
-def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):
+def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, **kwargs):
     """
     The method to read from Excel needs to be redefined for SoilProfile objects.
     The method allows for different depth keys (using the 'depth_key' and 'unit' keyword arguments
@@ -726,13 +748,14 @@ def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):
     """
     sp = pd.read_excel(path, **kwargs)
     sp.__class__ = SoilProfile
+    sp.title = title
     sp.set_depthcolumn_name(name=depth_key, unit=unit)
     sp.rename(columns = column_mapping, inplace = True)
     sp.check_profile()
     return sp
 
 
-def profile_from_dataframe(df, depth_key='Depth', unit='m', column_mapping={}):
+def profile_from_dataframe(df, title='', depth_key='Depth', unit='m', column_mapping={}):
     """
     Creates a soil profile from a Pandas dataframe
     :param df: Dataframe to be converted
@@ -743,6 +766,7 @@ def profile_from_dataframe(df, depth_key='Depth', unit='m', column_mapping={}):
     """
     sp = deepcopy(df)
     sp.__class__ = SoilProfile
+    sp.title = title
     sp.set_depthcolumn_name(name=depth_key, unit=unit)
     sp.rename(columns=column_mapping, inplace=True)
     sp.check_profile()
@@ -750,7 +774,7 @@ def profile_from_dataframe(df, depth_key='Depth', unit='m', column_mapping={}):
 
 
 def plot_fence_diagram(
-    profiles=[], titles=[], x_coords=[], y_coords=[], elevations=[],
+    profiles=[],
     option='name', start=None, end=None, band=1000, extend_profile=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
     opacity=1, logwidth=1, distance_unit='m', return_layers=False,
@@ -762,10 +786,6 @@ def plot_fence_diagram(
     is projected onto this line.
 
     :param profiles: List with SoilProfile objects for which a log needs to be plotted
-    :param titles: List with titles for the SoilProfile objects for which a log needs to be plotted
-    :param x_coords: Eastings of the selected soil profiles (list with equal length as ``profiles``)
-    :param y_coords: Northings of the selected soil profiles (list with equal length as ``profiles``)
-    :param elevations: Absolute elevations (e.g. in mLAT) of the soil profiles (list with equal length as ``profiles``)
     :param option: Determines whether soil profile names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
     :param start: Soil profile name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
@@ -784,14 +804,29 @@ def plot_fence_diagram(
     :return: Plotly figure object
     """
 
+    profile_names = []
+    x_coords = []
+    y_coords = []
+    elevations = []
+    for _profile in profiles:
+        try:
+            x_coords.append(_profile.easting)
+            y_coords.append(_profile.northing)
+            elevations.append(_profile.elevation)
+            profile_names.append(_profile.title)
+        except Exception as err:
+            warnings.warn(
+                "Profile %s - Error during processing for profile - %s" % (_profile.title, str(err)))
+            raise
+
     if option == 'name':
-        if start not in titles:
+        if start not in profile_names:
             raise ValueError('The soil profile used as starting point should be included in the list with titles')
-        if end not in titles:
+        if end not in profile_names:
             raise ValueError('The soil profile used as end point should be included in the list with titles')
 
-        start_point = (x_coords[titles.index(start)], y_coords[titles.index(start)])
-        end_point = (x_coords[titles.index(end)], y_coords[titles.index(end)])
+        start_point = (x_coords[profile_names.index(start)], y_coords[profile_names.index(start)])
+        end_point = (x_coords[profile_names.index(end)], y_coords[profile_names.index(end)])
     elif option == 'coords':
         if start.__len__() != 2:
             raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
@@ -805,7 +840,7 @@ def plot_fence_diagram(
 
     profile_df = pd.DataFrame({
         'Soil profiles': profiles,
-        'Titles': titles,
+        'Titles': profile_names,
         'X': x_coords,
         'Y': y_coords,
         'Z': elevations

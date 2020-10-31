@@ -47,25 +47,17 @@ class PCPTProcessing(object):
     Common correlations are also encoded.
     """
 
-    def __init__(self, title, easting=np.nan, northing=np.nan, elevation=np.nan, srid=4326, waterunitweight=10.25):
+    def __init__(self, title, waterunitweight=10.25):
         """
         Initialises a PCPTProcessing object based on a title. Optionally, a geographical position can be defined.
 
         An empty dataframe (`.data`) is created for storing the PCPT data
 
         :param title: Title for the PCPT test
-        :param easting: Easting for test location (optional, default=NaN)
-        :param northing: Northing for test location (optional, default=NaN)
-        :param elevation: Elevation for test location (optional, default=NaN)
-        :param srid: Projection ID for the location (optional, default=4325, see https://epsg.io/4326)
         :param waterunitweight: Unit weight of water used for effective stress calculations (default=10.25kN/m3 for seawater)
 
         """
         self.title = title
-        self.easting = easting
-        self.northing = northing
-        self.elevation = elevation
-        self.srid = srid
         self.data = pd.DataFrame()
         self.downhole_corrected = False
         self.waterunitweight=waterunitweight
@@ -634,6 +626,27 @@ class PCPTProcessing(object):
         self.data = pd.concat([first_data, second_data])
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
+
+    def set_position(self, easting, northing, elevation, srid=4326, datum='mLAT'):
+        """
+        Sets the position of a CPT in a given coordinate system.
+
+        By default, srid 4326 is used which means easting is longitude and northing is latitude.
+
+        The elevation is referenced to a chart datum for which mLAT (Lowest Astronomical Tide) is the default.
+
+        :param easting: X-coordinate of the CPT position
+        :param northing: Y-coordinate of the CPT position
+        :param elevation: Elevation of the CPT position
+        :param srid: SRID of the coordinate system (see http://epsg.io)
+        :param datum: Chart datum used for the elevation
+        :return: Sets the corresponding attributes of the ```PCPTProcessing``` object
+        """
+        self.easting = easting
+        self.northing = northing
+        self.elevation = elevation
+        self.srid = srid
+        self.datum = datum
 
     # endregion
 
@@ -1374,7 +1387,7 @@ class PCPTProcessing(object):
 
 
 def plot_longitudinal_profile(
-    cpts=[], x_coords=[], y_coords=[], elevations=[],
+    cpts=[],
     option='name', start=None, end=None, band=1000, extend_profile=False,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
@@ -1386,9 +1399,6 @@ def plot_longitudinal_profile(
     is projected onto this line.
 
     :param cpts: List with PCPTProcessing objects to be plotted
-    :param x_coords: Eastings of the selected CPTs (list with equal length as ``cpts``)
-    :param y_coords: Northings of the selected CPTs (list with equal length as ``cpts``)
-    :param elevations: Absolute elevations (e.g. in mLAT) of the CPTs (list with equal length as ``cpts``)
     :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
     :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
@@ -1406,7 +1416,20 @@ def plot_longitudinal_profile(
     :return: Plotly figure object
     """
 
-    cpt_names = list(map(lambda _cpt: _cpt.title, cpts))
+    cpt_names = []
+    x_coords = []
+    y_coords = []
+    elevations = []
+    for _cpt in cpts:
+        try:
+            x_coords.append(_cpt.easting)
+            y_coords.append(_cpt.northing)
+            elevations.append(_cpt.elevation)
+            cpt_names.append(_cpt.title)
+        except Exception as err:
+            warnings.warn(
+                "CPT %s - Error during processing for profile - %s" % (_cpt.title, str(err)))
+            raise
 
     if option == 'name':
         start_point = (x_coords[cpt_names.index(start)], y_coords[cpt_names.index(start)])

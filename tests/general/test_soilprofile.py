@@ -25,6 +25,7 @@ class Test_SoilProfile(unittest.TestCase):
                 'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND']
             }
         )
+        self.profile.title = "Test"
 
     def test_wrong_layering(self):
         self.assertRaises(IOError, sp.SoilProfile, ({

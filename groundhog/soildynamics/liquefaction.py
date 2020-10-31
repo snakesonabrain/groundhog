@@ -115,6 +115,98 @@ def cyclicstressratio_moss(
     }
 
 
+LIQUEFACTION_ROBERTSONFEAR = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'CSR': {'type': 'float', 'min_value': 0.073, 'max_value': 0.49},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+}
+
+LIQUEFACTION_ROBERTSONFEAR_ERRORRETURN = {
+    'qc1 [-]': np.nan,
+    'qc1 liquefaction [-]': np.nan,
+    'qc liquefaction [MPa]': np.nan,
+    'liquefaction': np.nan,
+}
+
+
+@Validator(LIQUEFACTION_ROBERTSONFEAR, LIQUEFACTION_ROBERTSONFEAR_ERRORRETURN)
+def liquefaction_robertsonfear(
+        qc, sigma_vo_eff, CSR,
+        atmospheric_pressure=100.0, **kwargs):
+    """
+    Calculates whether cyclic liquefaction can be triggered based on the normalised cone tip resistance and the cyclic shear stress ratio imposed on the soil by the earthquake event.
+
+    For earthquake magnitudes different from 7.5, CSR:math:`^*` should be used.
+
+    Note that this correlation was developed for clean sands and does not include any modifications for fines content.
+
+    It should also be noted that the correlation is based on averaged cone resistance values from field cases. So it applied to raw cone resistance data, they might be too conservative.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param CSR: Seismic shear stress ratio (:math:`CSR = \\tau_{avg} / \\sigma_{vo}^{\\prime}`) [:math:`-`] - Suggested range: 0.073 <= CSR <= 0.49
+    :param atmospheric_pressure: Atmospheric pressure used for normalisation (:math:`p_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+
+    .. math::
+        q_{c1} = (q_c / p_a) ( p_a /  \\sigma_{vo}^{\\prime} )^{0.5}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc1 [-]': Normalised dimensionless cone resistance (:math:`q_{c1}`)  [:math:`-`]
+        - 'qc1 liquefaction [-]': Normalised dimensionless cone tip resistance for which liquefaction is just triggered at the given CSR (:math:`q_{c1,liq}`)  [:math:`-`]
+        - 'qc liquefaction [MPa]': Cone tip resistance for which liquefaction is just triggered at the given CSR (:math:`q_{c,liq}`)  [:math:`MPa`]
+        - 'liquefaction': Liquefaction occurs?
+
+    .. figure:: images/liquefaction_robertsonfear_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Dataset supporting the liquefaction triggering function
+
+    Reference - Robertson, P. K., and C. E. Fear. "Application of CPT to evaluate liquefaction potential." CPT’95, Linkoping (1995): 57-79.
+
+    """
+
+    _trigger_points = (
+        (38.72211941170742, 0.07284893347618582),
+        (60.5259569494497, 0.10067790006817956),
+        (71.97623453783967, 0.11888380247394559),
+        (85.61020746079677, 0.14352196357261127),
+        (99.25002434985879, 0.17460017531898303),
+        (110.16460504529078, 0.20246810168501017),
+        (122.72134021622679, 0.23999026005649154),
+        (131.46586149800333, 0.27645271257426707),
+        (139.6717639037694, 0.3193571637284503),
+        (147.34196941657743, 0.37192363884289464),
+        (150.63991428849715, 0.40625888769845125),
+        (153.95831304178438, 0.4631343138209798),
+        (155.6238433817084, 0.4985487484172591)
+    )
+
+    _qc1 = np.array(list(map(lambda _x: _x[0], _trigger_points)))
+    _csr = np.array(list(map(lambda _x: _x[1], _trigger_points)))
+
+    _func = interpolate.UnivariateSpline(_csr, _qc1)
+
+    _qc1 = (1000 * qc / atmospheric_pressure) * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+    _qc1_liquefaction = _func(CSR)
+    _qc_liquefaction = (1e-3 * atmospheric_pressure * _qc1_liquefaction) / np.sqrt(atmospheric_pressure / sigma_vo_eff)
+
+    if _qc1 <= _qc1_liquefaction:
+        _liquefaction = True
+    else:
+        _liquefaction = False
+
+    return {
+        'qc1 [-]': _qc1,
+        'qc1 liquefaction [-]': _qc1_liquefaction,
+        'qc liquefaction [MPa]': _qc_liquefaction,
+        'liquefaction': _liquefaction,
+    }
+
+
 LIQUEFACTIONPROBABILITY_MOSS = {
     'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
     'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
@@ -155,6 +247,8 @@ def liquefactionprobability_moss(
     The calculation of the normalisation exponent :math:`c` is performed iteratively, or an override can be specified. While a normalisation exponent of 0.5 is generally assumed, performing the calculation results in a much better statistical fit.
 
     Soils with an increased friction ratio shows less potential for liquefaction. This is accounted for by modifying the normalised cone resistance using the friction ratio. The bound for modifying the friction ratio are 0.5 - 5%. Below 0.5%, there is no correction and above 5%, the correction for Rf=5% is applied.
+
+    It should also be noted that the correlation is based on averaged cone resistance values from field cases. So it applied to raw cone resistance data, they might be too conservative.
 
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
     :param sigma_vo_eff: Vertical effective stress at depth of interest (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0

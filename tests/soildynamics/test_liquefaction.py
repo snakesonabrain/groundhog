@@ -38,6 +38,22 @@ class Test_liquefaction(unittest.TestCase):
             result['CSR* [-]'], 0.117, 3
         )
 
+    def test_liquefaction_robertsonfear(self):
+        result = liquefaction.liquefaction_robertsonfear(
+            qc=10,
+            sigma_vo_eff=100,
+            CSR=0.2
+        )
+        self.assertTrue(result['liquefaction'])
+        self.assertAlmostEqual(
+            result['qc1 liquefaction [-]'],
+            110, 0
+        )
+        self.assertAlmostEqual(
+            result['qc liquefaction [MPa]'],
+            11, 0
+        )
+
     def test_liquefactionprobability_moss(self):
         result = liquefaction.liquefactionprobability_moss(
             qc=10,

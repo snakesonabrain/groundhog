@@ -9,6 +9,7 @@ v0.3.0, <datetobeconfirmed> -- End of 2020 update
     - Added plotting code for fence diagram with soil profiles
     - Added correlation for liquefaction probability based on CPT data according to Moss et al
     - Added equation for cyclic shear stress ratio according Moss et al.
-
+    - Added correlation for liquefaction triggering according to Robertson & Fear (1995)
+    - Added module for laboratory testing. Starting with submodule for sample preparation and undercompaction calculation according to Ladd (1978)
 
 v0.2.0 , 20 October 2020 -- Initial release.

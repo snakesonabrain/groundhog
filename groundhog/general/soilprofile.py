@@ -927,12 +927,29 @@ def plot_fence_diagram(
         except:
             pass
 
+    mean_profile_depth = selected_profiles['Z'].mean()
+
+    _soilcolors = []
+    for key, value in fillcolordict.items():
+        try:
+            _trace = go.Bar(
+                x=[0, 0],
+                y=[mean_profile_depth, mean_profile_depth],
+                name=key,
+                marker=dict(color=value))
+            _soilcolors.append(_trace)
+        except:
+            pass
+
     if return_layers:
-        return _layers
+        return _layers, _annotations, _backbone_traces, _soilcolors
     else:
         fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
 
         for _trace in _backbone_traces:
+            fig.append_trace(_trace, 1, 1)
+
+        for _trace in _soilcolors:
             fig.append_trace(_trace, 1, 1)
 
         if xaxis_layout is None:
@@ -940,7 +957,8 @@ def plot_fence_diagram(
         else:
             fig['layout']['xaxis1'].update(xaxis_layout)
         if yaxis_layout is None:
-            fig['layout']['yaxis1'].update(title='Level [%s]' % (distance_unit))
+            fig['layout']['yaxis1'].update(
+                title='Level [%s]' % (distance_unit))
         else:
             fig['layout']['yaxis1'].update(yaxis_layout)
         if general_layout is None:

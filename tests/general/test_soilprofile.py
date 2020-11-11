@@ -13,6 +13,8 @@ import numpy as np
 
 # Project imports
 from groundhog.general import soilprofile as sp
+from groundhog.siteinvestigation.classification.phaserelations import voidratio_bulkunitweight
+from groundhog.soildynamics.liquefaction import liquefactionprobability_moss
 
 
 class Test_SoilProfile(unittest.TestCase):
@@ -264,3 +266,44 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertEqual(profile['Total vertical stress to [kPa]'].iloc[-1], 376)
         self.assertEqual(profile['Effective vertical stress to [kPa]'].iloc[-1], 216)
         self.assertEqual(profile['Hydrostatic pressure to [kPa]'].iloc[-1], 160)
+
+    def test_applyfunction(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Relative density': ['Loose', 'Medium dense', None, 'Dense'],
+            'Total unit weight [kN/m3]': [19, 18, 17, 20],
+            'Dr [%]': [40, 60, np.nan, 80],
+            'qc from [MPa]': [1, np.nan, 10, 40],
+            'qc to [MPa]': [2, np.nan, 10, 50]
+        })
+        profile.applyfunction(
+            function=voidratio_bulkunitweight,
+            outputkey="Void ratio [-]",
+            resultkey="e [-]",
+            parametermapping={
+                'bulkunitweight': 'Total unit weight [kN/m3]'
+            }
+        )
+        self.assertAlmostEqual(
+            profile.loc[1, "Void ratio [-]"], 1.0625, 4
+        )
+        profile.applyfunction(
+            function=liquefactionprobability_moss,
+            outputkey='Liquefaction probability [pct]',
+            resultkey='Pl [pct]',
+            parametermapping={
+                'qc': 'qc [MPa]'
+            },
+            sigma_vo_eff=100,
+            Rf=0.4,
+            CSR=0.2,
+            CSR_star=0.2
+        )
+        self.assertAlmostEqual(
+            profile.loc[2, 'Liquefaction probability from [pct]'], 27, 0
+        )
+        self.assertAlmostEqual(
+            profile.loc[2, 'Liquefaction probability to [pct]'], 27, 0
+        )

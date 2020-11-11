@@ -101,3 +101,9 @@ class Test_PhaseRelations(unittest.TestCase):
                 bulkunitweight=18
             )['w [-]'], 0.401, 3
         )
+
+    def test_unitweight_watercontent_saturated(self):
+        self.assertAlmostEqual(
+            phaserelations.unitweight_watercontent_saturated(water_content=0.4)['gamma [kN/m3]'],
+            18.01, 2
+        )

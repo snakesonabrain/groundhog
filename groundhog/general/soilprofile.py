@@ -739,6 +739,49 @@ class SoilProfile(pd.DataFrame):
         self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn)
 
 
+    def applyfunction(self, function, resultkey, outputkey, parametermapping=dict(), **kwargs):
+        """
+        Applies a groundhog function to a soil profile. The function is applied to each row of the soilprofile.
+        The result is stored in a column with name ``output``. ``resultkey`` determines which key of the function
+        output dictionary is used as the result.
+
+        The parameters of the function are mapped to columns
+        of the soil profile using the parametermapping dictionary. The keys of this dictionary are the function arguments,
+        the values are the corresponding columns of the soilprofile. For parameters with linear variation, this
+        method only needs to be applied once and the soil parameter name (without from or to) needs to be supplied in
+        the ``parametermapping`` dictionary.
+
+        :param function: Function to be applied
+        :param resultkey: Column name for the result (for parameters with linear variation, two result columns are created)
+        :param outputkey: The key of the function output dictionary to be used for the result
+        :param parametermapping: Dictionary mapping parameters of the function to column names
+        :param kwargs: Additional keyword arguments of the function which are not mapped to soil profile columns
+        :return:
+        """
+        # Validate the column names in parametermapping
+        for key, value in parametermapping.items():
+            if value not in self.numerical_soil_parameters():
+                raise ValueError(
+                    "Column %s does not exist in the soil profile, check your soil profile" % value)
+
+        # Apply the function to each row
+        for i, row in self.iterrows():
+            function_dict = dict()
+            for key, value in parametermapping.items():
+                if self.check_linear_variation(value):
+                    # Apply function for linear parameter variation
+                    function_dict[key] = row[value.replace(' [', ' from [')]
+                    self.loc[i, outputkey.replace(' [', ' from [')] = \
+                        function(**{**function_dict, **kwargs})[resultkey]
+                    function_dict[key] = row[value.replace(' [', ' to [')]
+                    self.loc[i, outputkey.replace(' [', ' to [')] = \
+                        function(**{**function_dict, **kwargs})[resultkey]
+                else:
+                    function_dict[key] = row[value]
+                    self.loc[i, outputkey] = \
+                        function(**{**function_dict, **kwargs})[resultkey]
+
+
 def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, **kwargs):
     """
     The method to read from Excel needs to be redefined for SoilProfile objects.

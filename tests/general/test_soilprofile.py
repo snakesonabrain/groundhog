@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from groundhog.shallowfoundations.settlement import primaryconsolidationsettlement_nc
 
 __author__ = 'Bruno Stuyts'
 
@@ -13,6 +14,8 @@ import numpy as np
 
 # Project imports
 from groundhog.general import soilprofile as sp
+from groundhog.siteinvestigation.classification.phaserelations import voidratio_bulkunitweight
+from groundhog.soildynamics.liquefaction import liquefactionprobability_moss
 
 
 class Test_SoilProfile(unittest.TestCase):
@@ -24,6 +27,19 @@ class Test_SoilProfile(unittest.TestCase):
                 'Depth to [m]': [1, 5, 10, 20],
                 'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND']
             }
+        )
+        self.profile.title = "Test"
+
+    def test_layerthickness(self):
+        self.profile.calculate_layerthickness()
+        self.assertEqual(
+            self.profile.loc[1, "Layer thickness [m]"], 4
+        )
+
+    def test_layercenter(self):
+        self.profile.calculate_center()
+        self.assertEqual(
+            self.profile.loc[1, "Depth center [m]"], 3
         )
 
     def test_wrong_layering(self):
@@ -56,6 +72,17 @@ class Test_SoilProfile(unittest.TestCase):
             'qc from [MPa]': [1, 3, 10, 40],
             'qc to [MPa]': [1, 3, 10, 40]
         })
+
+    def test_calculate_parameter_center(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'qc from [MPa]': [1, 3, 10, 40],
+            'qc to [MPa]': [1, 3, 10, 40]
+        })
+        profile.calculate_parameter_center('qc [MPa]')
+        self.assertEqual(profile.loc[2, 'qc center [MPa]'], 10)
 
     def test_profile_creation(self):
         self.assertEqual(self.profile.max_depth, 20)
@@ -263,3 +290,44 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertEqual(profile['Total vertical stress to [kPa]'].iloc[-1], 376)
         self.assertEqual(profile['Effective vertical stress to [kPa]'].iloc[-1], 216)
         self.assertEqual(profile['Hydrostatic pressure to [kPa]'].iloc[-1], 160)
+
+    def test_applyfunction(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Relative density': ['Loose', 'Medium dense', None, 'Dense'],
+            'Total unit weight [kN/m3]': [19, 18, 17, 20],
+            'Dr [%]': [40, 60, np.nan, 80],
+            'qc from [MPa]': [1, np.nan, 10, 40],
+            'qc to [MPa]': [2, np.nan, 10, 50]
+        })
+        profile.applyfunction(
+            function=voidratio_bulkunitweight,
+            outputkey="Void ratio [-]",
+            resultkey="e [-]",
+            parametermapping={
+                'bulkunitweight': 'Total unit weight [kN/m3]'
+            }
+        )
+        self.assertAlmostEqual(
+            profile.loc[1, "Void ratio [-]"], 1.0625, 4
+        )
+        profile.applyfunction(
+            function=liquefactionprobability_moss,
+            outputkey='Liquefaction probability [pct]',
+            resultkey='Pl [pct]',
+            parametermapping={
+                'qc': 'qc [MPa]'
+            },
+            sigma_vo_eff=100,
+            Rf=0.4,
+            CSR=0.2,
+            CSR_star=0.2
+        )
+        self.assertAlmostEqual(
+            profile.loc[2, 'Liquefaction probability from [pct]'], 27, 0
+        )
+        self.assertAlmostEqual(
+            profile.loc[2, 'Liquefaction probability to [pct]'], 27, 0
+        )

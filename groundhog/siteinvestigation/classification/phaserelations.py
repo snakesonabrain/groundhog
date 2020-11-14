@@ -400,3 +400,47 @@ def voidratio_bulkunitweight(
         'e [-]': _e,
         'w [-]': _w
     }
+
+
+UNITWEIGHT_WATERCONTENT_SATURATED = {
+    'water_content': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'specific_gravity': {'type': 'float', 'min_value': 2.5, 'max_value': 2.8},
+    'gamma_w': {'type': 'float', 'min_value': 9.5, 'max_value': 10.5},
+}
+
+UNITWEIGHT_WATERCONTENT_SATURATED_ERRORRETURN = {
+    'gamma [kN/m3]': np.nan,
+}
+
+
+@Validator(UNITWEIGHT_WATERCONTENT_SATURATED, UNITWEIGHT_WATERCONTENT_SATURATED_ERRORRETURN)
+def unitweight_watercontent_saturated(
+        water_content,
+        specific_gravity=2.65, gamma_w=10.0, **kwargs):
+    """
+    Calculates the bulk unit weight from water content for a saturated soil. A specific gravity needs to be assumed or derived from pycnometer test results.
+
+    :param water_content: Water content of the sample (:math:`w`) [:math:`-`] - Suggested range: 0.0 <= water_content <= 2.0
+    :param specific_gravity: Specific gravity of the soil (:math:`G_s`) [:math:`-`] - Suggested range: 2.5 <= specific_gravity <= 2.8 (optional, default= 2.65)
+    :param gamma_w: Unit weight of water (:math:`\\gamma_w`) [:math:`kN/m3`] - Suggested range: 9.5 <= gamma_w <= 10.5 (optional, default= 10.0)
+
+    .. math::
+        S \\cdot e = w \\cdot G_s
+
+        \\gamma = \\left( \\frac{G_s + S \\cdot e}{1 + e} \\right) \\cdot \\gamma_w
+
+        \\gamma = \\left( \\frac{G_s \\cdot (1 + w)}{1 + w \\cdot G_s} \\right) \\cdot \\gamma_w
+
+    :returns: Dictionary with the following keys:
+
+        - 'gamma [kN/m3]': Bulk unit weight of the saturated sample (:math:`\\gamma`)  [:math:`kN/m3`]
+
+    Reference - UGent In-house practice
+
+    """
+
+    _gamma = ((specific_gravity * (1 + water_content)) / (1 + water_content * specific_gravity)) * gamma_w
+
+    return {
+        'gamma [kN/m3]': _gamma,
+    }

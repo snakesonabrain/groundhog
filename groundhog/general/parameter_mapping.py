@@ -120,3 +120,80 @@ def reverse_dict(input_dict):
     :return: Dictionary with keys turned into values and vice-versa
     """
     return {y:x for x,y in input_dict.items()}
+
+
+def offsets(startpoint, endpoint, point):
+    """
+    Calculates the offset between a point and a line joining a given start- and endpoint.
+    The offset from the projected point to the start and end point is also calculated.
+    Through analytical calculations, the position of the point is also determined.
+
+    :param startpoint: Tuple with x and y coordinates of the starting point
+    :param endpoint: Tuple with x and y coordinates of the end point
+    :param point: Point for which the offset to the section needs to be computed
+
+    :returns: Dictionary with the following keys:
+
+        - 'offset start to point': Distance between start point and point of interest
+        - 'offset end to point': Distance between end point and point of interest
+        - 'offset to line': Offset between point and the line joining start and end point
+        - 'offset to start projected': Offset from the start point (negative is before the start point)
+        - 'offset to end projected': Offset from the end point (negative is behing the end point)
+        - 'angle start [deg]': Angle between line joining start and end point and line joining point and start point
+        - 'angle end [deg]': Angle between line joining start and end point and line joining point and end point
+        - 'before start': Boolean determining if point lies before the start point
+        - 'behind end': Boolean determining if point lies behind the end point
+
+    """
+
+    if endpoint[0] != startpoint[0]:
+        a = (endpoint[1] - startpoint[1]) / (endpoint[0] - startpoint[0])
+    else:
+        a = 1e9
+    b = -1
+    c = startpoint[1] - a * startpoint[0]
+
+    vector_1 = np.array([endpoint[0] - startpoint[0], endpoint[1] - startpoint[1]])
+    vector_2 = np.array([point[0] - startpoint[0], point[1] - startpoint[1]])
+    vector_3 = np.array([point[0] - endpoint[0], point[1] - endpoint[1]])
+
+    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+    unit_vector_3 = vector_3 / np.linalg.norm(vector_3)
+
+    dot_product_start = np.dot(unit_vector_1, unit_vector_2)
+    dot_product_end = np.dot(unit_vector_1, unit_vector_3)
+    angle_start = np.degrees(np.arccos(dot_product_start))
+    angle_end = np.degrees(np.arccos(dot_product_end))
+    if angle_start > 90:
+        before_start = True
+    else:
+        before_start = False
+
+    if angle_end > 90:
+        behind_end = False
+    else:
+        behind_end = True
+
+    offset_start = np.linalg.norm(vector_2)
+    offset_end = np.linalg.norm(vector_3)
+    offset_to_line = np.abs(a * point[0] + b * point[1] + c) / np.sqrt(a ** 2 + b ** 2)
+    offset_to_start = np.sqrt(offset_start ** 2 - offset_to_line ** 2)
+    offset_to_end = np.sqrt(offset_end ** 2 - offset_to_line ** 2)
+
+    if before_start:
+        offset_to_start = -1 * offset_to_start
+    if behind_end:
+        offset_to_end = -1 * offset_to_end
+
+    return {
+        'offset start to point': offset_start,
+        'offset end to point': offset_end,
+        'offset to line': offset_to_line,
+        'offset to start projected': offset_to_start,
+        'offset to end projected': offset_to_end,
+        'angle start [deg]': angle_start,
+        'angle end [deg]': angle_end,
+        'before start': before_start,
+        'behind end': behind_end
+    }

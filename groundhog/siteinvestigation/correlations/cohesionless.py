@@ -56,3 +56,48 @@ def gmax_sand_hardinblack(
     return {
         'Gmax [kPa]': _Gmax,
     }
+
+
+PERMEABILITY_D10_HAZEN = {
+    'grain_size': {'type': 'float', 'min_value': 0.01, 'max_value': 2.0},
+    'coefficient_C': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+PERMEABILITY_D10_HAZEN_ERRORRETURN = {
+    'k [m/s]': np.nan,
+}
+
+
+@Validator(PERMEABILITY_D10_HAZEN, PERMEABILITY_D10_HAZEN_ERRORRETURN)
+def permeability_d10_hazen(
+        grain_size,
+        coefficient_C=0.01, **kwargs):
+    """
+    Calculates the permeability of a granular soil based on its grain size. Extensive investigation has shown that the fine particles have the greatest influence on permeability since they fill the voids between larger grains. The correlation by Hazen (1892) uses the 10th percentile grain size. Other authors have argues that the 5th percentile would be a better choice.
+
+    :param grain_size: Grain size for which 10% of the particles are finer (:math:`D_{10}`) [:math:`mm`] - Suggested range: 0.01 <= grain_size <= 2.0
+    :param coefficient_C: Calibration coefficient containing the effect of the shape of pore channels (:math:`C_{10)`) [:math:`-`] (optional, default= 0.01)
+
+    .. math::
+        k = C_{10} \\cdot D_{10}^2
+
+    :returns: Dictionary with the following keys:
+
+        - 'k [m/s]': Permeability of the granular soil (:math:`k`)  [:math:`m/s`]
+
+    .. figure:: images/permeability_d10_hazen_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Data supporting the Hazen correlation
+
+    Reference - Terzaghi, K., Peck, R. B., & Mesri, G. (1996). Soil mechanics in engineering practice. John Wiley & Sons.
+
+    """
+
+    _k = coefficient_C * (grain_size ** 2)
+
+    return {
+        'k [m/s]': _k,
+    }

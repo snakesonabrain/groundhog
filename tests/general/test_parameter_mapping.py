@@ -77,3 +77,41 @@ class Test_map_depth_properties(unittest.TestCase):
             np.math.isnan(result[result["Depth [m]"] == 5]["Effective friction angle [deg]"].iloc[0])
         )
 
+class Test_offsets(unittest.TestCase):
+
+    def test_offsets_before(self):
+        result = parameter_mapping.offsets(
+            startpoint=(0, 0),
+            endpoint=(1, 0),
+            point=(-1, 1)
+        )
+        self.assertTrue(result['before start'])
+        self.assertFalse(result['behind end'])
+        self.assertEqual(result['offset to line'], 1)
+        self.assertAlmostEqual(result['offset to start projected'], -1, 5)
+        self.assertAlmostEqual(result['offset to end projected'], 2, 5)
+
+    def test_offsets_between(self):
+        result = parameter_mapping.offsets(
+            startpoint=(0, 0),
+            endpoint=(0, 2),
+            point=(1, 1)
+        )
+        self.assertFalse(result['before start'])
+        self.assertFalse(result['behind end'])
+        self.assertAlmostEqual(result['offset to line'], 1, 5)
+        self.assertAlmostEqual(result['offset to start projected'], 1, 5)
+        self.assertAlmostEqual(result['offset to end projected'], 1, 5)
+
+    def test_offsets_behind(self):
+        result = parameter_mapping.offsets(
+            startpoint=(2, 2),
+            endpoint=(0, 0),
+            point=(-1, 0)
+        )
+        self.assertFalse(result['before start'])
+        self.assertTrue(result['behind end'])
+        self.assertAlmostEqual(result['offset to line'], np.sqrt(0.5), 5)
+        self.assertAlmostEqual(result['offset to start projected'], np.sqrt(8) + np.sqrt(0.5), 5)
+        self.assertAlmostEqual(result['offset to end projected'], -np.sqrt(0.5), 5)
+

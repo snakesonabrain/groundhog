@@ -18,6 +18,7 @@ from plotly.offline import iplot
 # Project imports
 from groundhog.general.validation import check_layer_overlap
 from groundhog.general.parameter_mapping import map_depth_properties
+from groundhog.general.plotting import GROUNDHOG_PLOTTING_CONFIG
 
 
 class KoppejanCalculation(object):
@@ -338,7 +339,7 @@ class KoppejanCalculation(object):
             margin=plot_margin,
             legend=dict(orientation=legend_orientation, x=legend_x, y=legend_y))
         if show_fig:
-            iplot(self.shaft_fig, filename='shaftplot', config={'showLink': False})
+            iplot(self.shaft_fig, filename='shaftplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_baseconstruction(
             self, plot_width=500, plot_height=600, plot_title=None, plot_margin=dict(t=50, l=50, b=50), show_fig=True,
@@ -406,5 +407,5 @@ class KoppejanCalculation(object):
                              margin=plot_margin,
                              hovermode='closest')
         if show_fig:
-            iplot(self.base_fig, filename='depthplot', config={'showLink': False})
+            iplot(self.base_fig, filename='depthplot', config=GROUNDHOG_PLOTTING_CONFIG)
 

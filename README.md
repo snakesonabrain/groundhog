@@ -1,6 +1,8 @@
 Groundhog - A general-purpose geotechnical package
 ====================================================
 
+[![PyPI version](https://badge.fury.io/py/groundhog.svg)](https://badge.fury.io/py/groundhog)
+
 ![alt text][logo]
 
 [logo]: groundhog_banner_wide.png "Logo Title Text 2"

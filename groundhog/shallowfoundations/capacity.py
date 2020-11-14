@@ -8,9 +8,14 @@ import warnings
 
 # 3rd party packages
 import numpy as np
+from plotly import subplots
+import plotly.graph_objs as go
+from plotly.offline import iplot
+from plotly.colors import DEFAULT_PLOTLY_COLORS
 
 # Project imports
 from groundhog.general.validation import Validator
+from groundhog.general.plotting import GROUNDHOG_PLOTTING_CONFIG
 
 
 VERTICALCAPACITY_UNDRAINED_API = {
@@ -21,7 +26,7 @@ VERTICALCAPACITY_UNDRAINED_API = {
     'su_above_base': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'base_depth': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'skirted': {'type': 'bool', },
-    'base_sigma_v_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'base_sigma_v': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'roughness': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
     'horizontal_load': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'foundation_inclination': {'type': 'float', 'min_value': -90.0, 'max_value': 90.0},
@@ -31,6 +36,7 @@ VERTICALCAPACITY_UNDRAINED_API = {
 }
 
 VERTICALCAPACITY_UNDRAINED_API_ERRORRETURN = {
+    'qu [kPa]': np.nan,
     'vertical_capacity [kN]': np.nan,
     'Su2 [kPa]': np.nan,
     'K_c [-]': np.nan,
@@ -44,7 +50,7 @@ VERTICALCAPACITY_UNDRAINED_API_ERRORRETURN = {
 
 @Validator(VERTICALCAPACITY_UNDRAINED_API, VERTICALCAPACITY_UNDRAINED_API_ERRORRETURN)
 def verticalcapacity_undrained_api(effective_length, effective_width, su_base, su_increase=0.0, su_above_base=np.nan,
-                                   base_depth=0.0, skirted=True, base_sigma_v_eff=0.0, roughness=0.67, horizontal_load=0.0, foundation_inclination=0.0,
+                                   base_depth=0.0, skirted=True, base_sigma_v=0.0, roughness=0.67, horizontal_load=0.0, foundation_inclination=0.0,
                                    ground_surface_inclination=0.0, bearing_capacity_factor=5.14,
                                    factor_f_override=np.nan, **kwargs):
     """
@@ -69,7 +75,7 @@ def verticalcapacity_undrained_api(effective_length, effective_width, su_base, s
     :param su_above_base: Average undrained shear strength above base level (:math:`s_{u,ave}`) [:math:`kPa`] (optional, default=np.nan) - Suggested range: 0.0<=su_above_base
     :param base_depth: Depth to the base of the foundation (:math:`D`) [:math:`m`] (optional, default=0.0) - Suggested range: 0.0<=base_depth
     :param skirted: Determines whether a foundation is skirted or base-embedded without skirts (optional, default=True)
-    :param base_sigma_v_eff: Vertical effective stress at base level. Only used for non-skirted base-embedded foundations (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] (optional, default=0.0)
+    :param base_sigma_v: Vertical total stress at base level. Only used for non-skirted base-embedded foundations (:math:`\\sigma_{vo}`) [:math:`kPa`] (optional, default=0.0)
     :param roughness: Value for roughness (0.0 for fully smooth, 1.0 for fully rough) (:math:`-`) [:math:`-`] (optional, default=0.67) - Suggested range: 0.0<=roughness<=1.0
     :param horizontal_load: Horizontal load acting on effective area of foundation (:math:`H^{\\prime}`) [:math:`kN`] (optional, default=0.0) - Suggested range: 0.0<=horizontal_load
     :param foundation_inclination: Foundation inclination as defined in figure (:math:`\\nu`) [:math:`deg`] (optional, default=0.0) - Suggested range: -90.0<=foundation_inclination<=90.0
@@ -78,11 +84,16 @@ def verticalcapacity_undrained_api(effective_length, effective_width, su_base, s
     :param factor_f_override: Direct specification of the factor F (:math:`F`) [:math:`-`] (optional, default=np.nan) - Suggested range: 0.0<=factor_f_override<=2.0
 
     .. math::
-        Q_d = (s_u \\cdot N_c \\cdot K_c) \\cdot A^{\\prime} + \\sigma_{vo}^{\\prime} \\quad \\text{ (constant)}
 
-        Q_d = F \\cdot \\left( s_{uo} \\cdot N_c + \\frac{\\kappa \\cdot B^{\\prime}}{4} \\right) \\cdot K_c \\cdot A^{\\prime}  + \\sigma_{vo}^{\\prime} \\quad \\text{ (linearly increasing) }
+        q_u = s_u \\cdot N_c \\cdot K_c \\quad \\text{ (constant)}
 
-        \\text{Exclude the }  \\sigma_{vo}^{\\prime} \\text{ term for skirted foundations}
+        q_u = F \\cdot \\left( s_{uo} \\cdot N_c + \\frac{\\kappa \\cdot B^{\\prime}}{4} \\right) \\cdot K_c  \\quad \\text{ (linearly increasing) }
+
+        Q_d = (s_u \\cdot N_c \\cdot K_c + \\sigma_{vo}) \\cdot A^{\\prime} \\quad \\text{ (constant)}
+
+        Q_d = \\left[ F \\cdot \\left( s_{uo} \\cdot N_c + \\frac{\\kappa \\cdot B^{\\prime}}{4} \\right) \\cdot K_c + \\sigma_{vo} \\right] \\cdot A^{\\prime}  \\quad \\text{ (linearly increasing) }
+
+        \\text{Exclude the }  \\sigma_{vo} \\text{ term for skirted foundations}
 
         K_c = 1 + s_c + d_c  - i_c - b_c - g_c
 
@@ -120,9 +131,9 @@ def verticalcapacity_undrained_api(effective_length, effective_width, su_base, s
 
         H^{\\prime} = H_{total} - H_{d,outside} / \\gamma_{sliding} - \\Delta H / \\gamma_{sliding}
 
-    :returns:   Vertical capacity (:math:`Q_d`) [:math:`kN`], Combined correction factor (:math:`K_c`) [:math:`-`], Shape factor (:math:`s_c`) [:math:`-`], Depth factor (:math:`d_c`) [:math:`-`], Load inclination factor (:math:`i_c`) [:math:`-`], Foundation inclination factor (:math:`b_c`) [:math:`-`], Ground inclination factor (:math:`g_c`) [:math:`-`], Correction factor for shear strength increase (:math:`F`) [:math:`-`]
+    :returns:   Net bearing pressure (:math:`q_u`) [:math:`kPa`], Vertical capacity (:math:`Q_d`) [:math:`kN`], Combined correction factor (:math:`K_c`) [:math:`-`], Shape factor (:math:`s_c`) [:math:`-`], Depth factor (:math:`d_c`) [:math:`-`], Load inclination factor (:math:`i_c`) [:math:`-`], Foundation inclination factor (:math:`b_c`) [:math:`-`], Ground inclination factor (:math:`g_c`) [:math:`-`], Correction factor for shear strength increase (:math:`F`) [:math:`-`]
 
-    :rtype: Python dictionary with keys ['vertical_capacity [kN]','K_c [-]','s_c [-]','d_c [-]','i_c [-]','b_c [-]','g_c [-]','F [-]']
+    :rtype: Python dictionary with keys ['qu [kPa]', 'vertical_capacity [kN]','K_c [-]','s_c [-]','d_c [-]','i_c [-]','b_c [-]','g_c [-]','F [-]']
 
     .. figure:: images/api_correction_factor_undrained_linear.png
         :figwidth: 500
@@ -188,22 +199,24 @@ def verticalcapacity_undrained_api(effective_length, effective_width, su_base, s
 
     K_c = 1.0 + s_c + d_c - i_c - b_c - g_c
 
-    if not skirted and base_sigma_v_eff == 0.0:
-        warnings.warn("Vertical effective stress at base for base embedded foundation is zero. Specify base_sigma_v_eff"
+    if not skirted and base_sigma_v == 0.0 and base_depth != 0:
+        warnings.warn("Vertical effective stress at base for base embedded foundation is zero. Specify base_sigma_v"
                       " to take a non-zero value into account")
 
     if su_increase == 0.0:
-        vertical_capacity = su_base * bearing_capacity_factor * K_c * effective_width * effective_length
+        qu = su_base * bearing_capacity_factor * K_c
+        vertical_capacity =  qu * effective_width * effective_length
         if not skirted:
-            vertical_capacity += base_sigma_v_eff
+            vertical_capacity += base_sigma_v * effective_width * effective_length
     else:
-        vertical_capacity = F_factor * (su_base * bearing_capacity_factor + \
-                                        0.25 * su_increase * effective_width) * \
-                            K_c * effective_length * effective_width
+        qu = F_factor * K_c * (su_base * bearing_capacity_factor + \
+                                        0.25 * su_increase * effective_width)
+        vertical_capacity = qu * effective_length * effective_width
         if not skirted:
-            vertical_capacity += base_sigma_v_eff
+            vertical_capacity += base_sigma_v * effective_width * effective_width
 
     return {
+        'qu [kPa]': qu,
         'vertical_capacity [kN]': vertical_capacity,
         'Su2 [kPa]': su2,
         'K_c [-]': K_c,
@@ -230,6 +243,7 @@ VERTICALCAPACITY_DRAINED_API = {
 }
 
 VERTICALCAPACITY_DRAINED_API_ERRORRETURN = {
+    'qu [kPa]': np.nan,
     'vertical_capacity [kN]': np.nan,
     'N_q [-]': np.nan,
     'N_gamma [-]': np.nan,
@@ -249,8 +263,8 @@ VERTICALCAPACITY_DRAINED_API_ERRORRETURN = {
 
 @Validator(VERTICALCAPACITY_DRAINED_API, VERTICALCAPACITY_DRAINED_API_ERRORRETURN)
 def verticalcapacity_drained_api(vertical_effective_stress, effective_friction_angle, effective_unit_weight,
-                                 effective_length, effective_width, base_depth=0.0, skirted=True, load_inclination=0.0,
-                                 foundation_inclination=0.0, ground_surface_inclination=0.0,
+                                 effective_length, effective_width, base_depth=0.0, skirted=True,
+                                 load_inclination=0.0, foundation_inclination=0.0, ground_surface_inclination=0.0,
                                  **kwargs):
     """
     Calculates the vertical capacity for a shallow foundation in sand with effective friction angle characterized from drained triaxial tests. For constructing an envelope, this value needs to be multiplied by the tangent of the inclination to obtain the H-coordinate of the envelope point.
@@ -279,7 +293,9 @@ def verticalcapacity_drained_api(vertical_effective_stress, effective_friction_a
     :param ground_surface_inclination: Ground surface inclination as defined in figure  (:math:`\\beta`) [:math:`deg`] (optional, default=0.0) - Suggested range: -90.0<=ground_surface_inclination<=90.0
 
     .. math::
-        Q_d^{\\prime} = \\left [ p_o^{\\prime} (N_q - 1) K_q + 0.5 \\gamma^{\\prime} B^{\\prime} N_{\\gamma} K_{\\gamma} \\right ] A^{\\prime}
+        q_u = p_o^{\\prime} (N_q - 1) K_q + 0.5 \\gamma^{\\prime} B^{\\prime} N_{\\gamma} K_{\\gamma}
+
+        Q_d^{\\prime} = \\left[ p_o^{\\prime} (N_q - 1) K_q + 0.5 \\gamma^{\\prime} B^{\\prime} N_{\\gamma} K_{\\gamma} \\right] A^{\\prime}
 
         \\text{Use }  N_q \\text{ instead of } (N_q - 1) \\text{ for non-skirted, base embedded foundations}
 
@@ -338,15 +354,20 @@ def verticalcapacity_drained_api(vertical_effective_stress, effective_friction_a
     N_q = (np.exp(np.pi * np.tan(np.radians(effective_friction_angle)))) * \
          ((np.tan(np.radians(45.0 + 0.5 * effective_friction_angle))) ** 2.0)
     N_gamma = 1.5 * (N_q - 1.0) * np.tan(np.radians(effective_friction_angle))
-    if skirted:
-        vertical_capacity = (vertical_effective_stress * (N_q - 1.0) * K_q + \
-                             0.5 * effective_unit_weight * effective_width * N_gamma * K_gamma) * \
-                            (effective_width * effective_length)
+
+    if not skirted and base_depth > 0:
+        q_u = (vertical_effective_stress * N_q * K_q + \
+               0.5 * effective_unit_weight * effective_width * N_gamma * K_gamma)
     else:
-        vertical_capacity = (vertical_effective_stress * (N_q) * K_q + \
-                             0.5 * effective_unit_weight * effective_width * N_gamma * K_gamma) * \
-                            (effective_width * effective_length)
+        q_u = (vertical_effective_stress * (N_q - 1.0) * K_q + \
+                                 0.5 * effective_unit_weight * effective_width * N_gamma * K_gamma)
+
+    if skirted:
+        vertical_capacity = q_u * effective_width * effective_length
+    else:
+        vertical_capacity = q_u * effective_width * effective_length
     return {
+        'qu [kPa]': q_u,
         'vertical_capacity [kN]': vertical_capacity,
         'N_q [-]': N_q,
         'N_gamma [-]': N_gamma,
@@ -594,7 +615,7 @@ def effectivearea_circle_api(foundation_radius, vertical_load=np.nan, overturnin
     .. math::
         A^{\\prime} = 2s=B^{\\prime} L^{\\prime}
 
-        L^{\\prime}=(2s \\sqrt{\\frac{R+e_2}{R-e_2}})^{1/2}
+        L^{\\prime}=\\left( 2s \\sqrt{\\frac{R+e_2}{R-e_2}} \\right)^{1/2}
 
         B^{\\prime} = L^{\\prime} \\sqrt{\\frac{R-e_2}{R+e_2}}
 
@@ -640,63 +661,84 @@ def effectivearea_circle_api(foundation_radius, vertical_load=np.nan, overturnin
 
 ENVELOPE_DRAINED_API = {
     'vertical_effective_stress': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'effective_friction_angle_bearing': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
+    'effective_friction_angle': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
     'effective_friction_angle_sliding': {'type': 'float', 'min_value': 15.0, 'max_value': 45.0},
     'effective_unit_weight': {'type': 'float', 'min_value': 3.0, 'max_value': 12.0},
     'effective_length': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'effective_width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'length': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None}
+    'full_area': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'factor_sliding': {'type': 'float', 'min_value': 1.0, 'max_value': None},
+    'factor_bearing': {'type': 'float', 'min_value': 1.0, 'max_value': None},
 }
 
 ENVELOPE_DRAINED_API_ERRORRETURN = {
-    'envelope_v [kN]': None,
-    'envelope_h [kN]': None,
-    'envelope_h_unchanged [kN]': None,
-    'sliding_cuttoff [kN]': None
+    'Envelope V unfactored [kN]': None,
+    'Envelope H unfactored [kN]': None,
+    'Envelope V factored [kN]': None,
+    'Envelope H factored [kN]': None,
+    'Envelope V uncorrected [kN]': None,
+    'Envelope H uncorrected [kN]': None,
+    'Sliding cutoff V [kN]': None,
+    'Sliding cutoff H [kN]': None,
+    'Sliding cutoff V factored [kN]': None,
+    'Sliding cutoff H factored [kN]': None
 }
 
 @Validator(ENVELOPE_DRAINED_API, ENVELOPE_DRAINED_API_ERRORRETURN)
 def envelope_drained_api(vertical_effective_stress,
-                         effective_friction_angle_bearing, effective_friction_angle_sliding, effective_unit_weight,
+                         effective_friction_angle, effective_unit_weight,
                          effective_length, effective_width,
-                         length, width, **kwargs):
+                         full_area, factor_sliding=1.5, factor_bearing=2.0,
+                         effective_friction_angle_sliding=np.nan, **kwargs):
     """
-    Calculates a drained failure envelope for shallow foundations according to API RP 2GEO. Note that optional keyword arguments can be specified as documented in the function verticalcapacity_drained_api.
+    Calculates a drained failure envelope for shallow foundations according to API RP 2GEO.
+    Note that optional keyword arguments can be specified as documented in the function ``verticalcapacity_drained_api``.
 
-    The envelope is calculated be varying the inclination of the load. Note that the equation for inclination factor will become negative for large inclinations. These values are filtered from the envelope.
+    The envelope is calculated be varying the inclination of the load.
+    Note that the equation for inclination factor will become negative for large inclinations.
+    These values are filtered from the envelope.
 
-    We derive the ultimate horizontal load in bearing from the equation for inclination but need to remember that this should only account for the horizontal capacity on the effective area.
+    We derive the ultimate horizontal load in bearing from the equation for inclination
+    but need to remember that this should only account for the horizontal capacity on the effective area.
+
+    A sliding cut-off is also calculated based on the ultimate sliding resistance.
 
     :param vertical_effective_stress: Vertical effect stress at depth corresponding to foundation base (:math:`p_o^{\\prime}`) [:math:`kPa`]  - Suggested range: 0.0<=vertical_effective_stress
-    :param effective_friction_angle_bearing: Effective friction angle for bearing failure (for appropriate stress level at foundation base) (:math:`\\phi^{\\prime}`) [:math:`deg`]  - Suggested range: 20.0<=effective_friction_angle<=50.0
-    :param effective_friction_angle_sliding: Effective friction angle for sliding failure (for appropriate stress level at foundatoin base) (:math:`\\delta^{\\prime}`) [:math:`deg`]  - Suggested range: 15.0<=effective_friction_angle<=45.0
+    :param effective_friction_angle: Effective friction angle for bearing failure (for appropriate stress level at foundation base) (:math:`\\phi^{\\prime}`) [:math:`deg`]  - Suggested range: 20.0<=effective_friction_angle<=50.0
     :param effective_unit_weight: Effective unit weight at foundation base (:math:`\\gamma^{\\prime}`) [:math:`kN/m3`]  - Suggested range: 3.0<=effective_unit_weight<=12.0
     :param effective_length: Effective length of the footing (:math:`L^{\\prime}`) [:math:`m`]  - Suggested range: 0.0<=effective_length
     :param effective_width: Minimum effective lateral dimension (:math:`B^{\\prime}`) [:math:`m`]  - Suggested range: 0.0<=effective_width
-    :param length: True length of the footing (:math:`L`) [:math:`m`]  - Suggested range: 0.0<=length
+    :param full_area: Full base area of the foundation (:math:`A_b`) [:math:`m^2`]  - Suggested range: 0.0<=full_area
     :param width: Minimum true lateral dimension (:math:`B`) [:math:`m`]  - Suggested range: 0.0<=width
-
+    :param factor_sliding: Resistance factor for sliding, applied to the H component of the sliding cutoff (:math:`\\gamma_{sliding}`) [:math:`-`] - Suggested range: factor_sliding >= 1.0 (optional, default= 1.5)
+    :param factor_bearing: Resistance factor for bearing failure, applied to the V component of the envelope (:math:`\\gamma_{bearing}`) [:math:`-`] - Suggested range: factor_bearing >= 1.0 (optional, default= 2.0)
+    :param effective_friction_angle_sliding: Effective friction angle for sliding failure (for appropriate stress level at foundation base). If unspecified, the effective friction angle of soil - 5° is used (:math:`\\delta^{\\prime}`) [:math:`deg`]  - Suggested range: 15.0<=effective_friction_angle<=45.0
 
     .. math::
         \\tan(\\text{inclination}) = \\frac{H_{eff}}{Q} = \\frac{H - H_{\\text{outside eff}} - \\Delta H}{Q}
 
     :returns: Dictionary with the following keys:
 
-        - 'envelope_v [kN]': Vertical capacities for the envelope (:math:`V`)  [:math:`kN`]
-        - 'envelope_h [kN]': Horizontal capacities for the envelope (:math:`H`)  [:math:`kN`]
-        - 'envelope_h_unchanged [kN]': Horizontal capacities for the envelope without accounting for effective area component only (:math:`H`)  [:math:`kN`]
+        - 'Envelope V unfactored [kN]': Unfactored vertical capacities for the envelope (:math:`V`)  [:math:`kN`]
+        - 'Envelope H unfactored [kN]': Unfactored  horizontal capacities for the envelope (:math:`H^{\\prime}`)  [:math:`kN`]
+        - 'Envelope V factored [kN]': Factored vertical capacities for the envelope (:math:`V / \\gamma_v`)  [:math:`kN`]
+        - 'Envelope H factored [kN]': Factored  horizontal capacities for the envelope (:math:`H / \\gamma_h`)  [:math:`kN`]
+        - 'Envelope V uncorrected [kN]': Vertical capacities for the envelope without accounting for effective area component only (:math:`V`)  [:math:`kN`]
+        - 'Envelope H uncorrected [kN]': Horizontal capacities for the envelope without accounting for effective area component only (:math:`H`)  [:math:`kN`]
+        - 'Sliding cutoff V [kN]': Vertical capacities for sliding cutoff  [:math:`kN`]
+        - 'Sliding cutoff H [kN]': Horizontal capacities for sliding cutoff  [:math:`kN`]
 
     Reference - API RP 2GEO
 
     """
 
-    #TODO: TAKE INTO ACCOUNT ECCENTRICITY FOR INCLINED LOAD + SKIRTS
+    if np.math.isnan(effective_friction_angle_sliding):
+        effective_friction_angle_sliding = effective_friction_angle - 5
 
     _inclinations = np.linspace(0.0, 90.0, 100)
     _envelope_v = np.array(list(map(lambda inclination: verticalcapacity_drained_api(
         vertical_effective_stress=vertical_effective_stress,
-        effective_friction_angle=effective_friction_angle_bearing,
+        effective_friction_angle=effective_friction_angle,
         effective_unit_weight=effective_unit_weight,
         effective_length=effective_length,
         effective_width=effective_width,
@@ -720,7 +762,7 @@ def envelope_drained_api(vertical_effective_stress,
             **kwargs)
         _h_max.append(s['sliding_capacity [kN]'])
         base = s['base_capacity [kN]']
-        base_eff = (base * effective_length * effective_width) / (length * width)
+        base_eff = (base * effective_length * effective_width) / (full_area)
         base_outside_eff = base - base_eff
         _h_base.append(base)
         _h_base_eff.append(base_eff)
@@ -733,17 +775,24 @@ def envelope_drained_api(vertical_effective_stress,
 
 
     return {
-        'envelope_v [kN]': _envelope_v,
-        'envelope_h [kN]': _envelope_h,
-        'envelope_h_unchanged [kN]': _envelope_h_unchanged,
-        'sliding_cuttoff [kN]': _h_max
+        'Envelope V unfactored [kN]': np.append(np.nan_to_num(_envelope_v).max(), np.nan_to_num(_envelope_v)),
+        'Envelope H unfactored [kN]': np.append(0, np.nan_to_num(_envelope_h)),
+        'Envelope V factored [kN]': np.append(np.nan_to_num(_envelope_v).max(), np.nan_to_num(_envelope_v)) /
+                                    factor_bearing,
+        'Envelope H factored [kN]': np.append(0, np.nan_to_num(_envelope_h)) / factor_bearing,
+        'Envelope V uncorrected [kN]': np.nan_to_num(_envelope_v),
+        'Envelope H uncorrected [kN]': np.nan_to_num(_envelope_h_unchanged),
+        'Sliding cutoff V [kN]': np.nan_to_num(_envelope_v),
+        'Sliding cutoff H [kN]': np.nan_to_num(_h_max),
+        'Sliding cutoff V factored [kN]': np.nan_to_num(_envelope_v),
+        'Sliding cutoff H factored [kN]': np.nan_to_num(_h_max) / factor_sliding
     }
+
 
 
 ENVELOPE_UNDRAINED_API = {
     'su_base': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'length': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'full_area': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'effective_length': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'effective_width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'factor_sliding': {'type': 'float', 'min_value': 1.0, 'max_value': None},
@@ -751,31 +800,42 @@ ENVELOPE_UNDRAINED_API = {
 }
 
 ENVELOPE_UNDRAINED_API_ERRORRETURN = {
-    'envelope_v_unfactored [kN]': None,
-    'envelope_h_unfactored [kN]': None,
-    'envelope_v_factored [kN]': None,
-    'envelope_h_factored [kN]': None,
-    'envelope_v_uncorrected [kN]': None,
-    'envelope_h_uncorrected [kN]': None,
-    'sliding_capacity': None,
-    'bearing_capacity': None,
+    'Envelope V unfactored [kN]': None,
+    'Envelope H unfactored [kN]': None,
+    'Envelope V factored [kN]': None,
+    'Envelope H factored [kN]': None,
+    'Envelope V uncorrected [kN]': None,
+    'Envelope H uncorrected [kN]': None,
+    'Sliding capacity': None,
+    'Bearing capacity': None,
 }
 
 
 @Validator(ENVELOPE_UNDRAINED_API, ENVELOPE_UNDRAINED_API_ERRORRETURN)
 def envelope_undrained_api(
-        su_base, length, width, effective_length, effective_width,
+        su_base, full_area, effective_length, effective_width,
         factor_sliding=1.5, factor_bearing=2.0, **kwargs):
     """
-    Calculates the undrained failure envelope according to API RP 2GEO. It is important to note than only the horizontal load acting on the effective area is taken into account for the envelope. To achieve this, the horizontal load points for the envelope are selected between 0 and the total horizontal capacity (including contributions from skirt resistance and total base area). Subsequently, a load inclination is calculated using only the effective area component of this horizontal load (subtract skirt resistance and horizontal capacity outside effective area). This inclination is used in the vertical capacity equation (through the inclination factor).
+    Calculates the undrained failure envelope according to API RP 2GEO.
+    It is important to note than only the horizontal load acting on the effective area is taken into account
+    for the envelope. To achieve this, the horizontal load points for the envelope are selected between 0
+    and the total horizontal capacity (including contributions from skirt resistance
+    and total base area).
 
-The envelope is calculated twice, first without correction for additional eccentricity at base level and next with a correction for this additional eccentricity. This two step approach is required since the load inclination is not known a priori.
+    Subsequently, a load inclination is calculated using only the effective area component of
+    this horizontal load (subtract skirt resistance and horizontal capacity outside effective area).
+    This inclination is used in the vertical capacity equation (through the inclination factor).
 
-To override the behaviour of the bearing and sliding capacity functions, use the optional keywords arguments defined in the function definitions of slidingcapacity_undrained_api and verticalcapacity_undrained_api
+    The envelope is calculated twice, first without correction for additional eccentricity at base level
+    and next with a correction for this additional eccentricity. This two step approach
+    is required since the load inclination is not known a priori.
+
+    To override the behaviour of the bearing and sliding capacity functions,
+    use the optional keywords arguments defined in the function definitions of
+    ``slidingcapacity_undrained_api`` and ``verticalcapacity_undrained_api``
 
     :param su_base: Undrained shear strength at the foundation base (:math:`S_{uo}`) [:math:`kPa`] - Suggested range: 0.0 <= su_base <= 1000.0
-    :param length: Total foundation length (:math:`L`) [:math:`m`] - Suggested range: length >= 0.0
-    :param width: Total foundation with (:math:`B`) [:math:`m`] - Suggested range: width >= 0.0
+    :param full_area: Total area at the base length (:math:`A_b`) [:math:`m^2`] - Suggested range: full_area >= 0.0
     :param effective_length: Effective length (:math:`L^{\\prime}`) [:math:`m`] - Suggested range: effective_length >= 0.0
     :param effective_width: Effective width (:math:`B^{\\prime}`) [:math:`m`] - Suggested range: effective_width >= 0.0
     :param factor_sliding: Resistance factor for sliding, applied to the H component of the envelope (:math:`\\gamma_{sliding}`) [:math:`-`] - Suggested range: factor_sliding >= 1.0 (optional, default= 1.5)
@@ -786,14 +846,14 @@ To override the behaviour of the bearing and sliding capacity functions, use the
 
     :returns: Dictionary with the following keys:
 
-        - 'envelope_v_unfactored [kN]': List with unfactored vertical capacities for the envelope (:math:`V`)  [:math:`kN`]
-        - 'envelope_h_unfactored [kN]': List with unfactored horizontal capacities for the envelope (:math:`H`)  [:math:`kN`]
-        - 'envelope_v_factored [kN]': List with factored vertical capacities for the envelope (:math:`V_{factored}`)  [:math:`kN`]
-        - 'envelope_h_factored [kN]': List with factored horizontal capacities for the envelope (:math:`H_{factored}`)  [:math:`kN`]
-        - 'envelope_v_uncorrected [kN]': List with vertical capacities for the envelope, not corrected for the additional eccentricity (:math:`V_{uncorrected}`)  [:math:`kN`]
-        - 'envelope_h_uncorrected [kN]': List with horizontal capacities for the envelope, not corrected for the additional eccentricity (:math:`H_{uncorrected}`)  [:math:`kN`]
-        - 'sliding_capacity': Dictionary with details for the sliding capacity calculation
-        - 'bearing_capacity': Dictionary with details for the bearing capacity calculation for purely vertical load
+        - 'Envelope V unfactored [kN]': List with unfactored vertical capacities for the envelope (:math:`V`)  [:math:`kN`]
+        - 'Envelope H unfactored [kN]': List with unfactored horizontal capacities for the envelope (:math:`H`)  [:math:`kN`]
+        - 'Envelope V factored [kN]': List with factored vertical capacities for the envelope (:math:`V_{factored}`)  [:math:`kN`]
+        - 'Envelope H factored [kN]': List with factored horizontal capacities for the envelope (:math:`H_{factored}`)  [:math:`kN`]
+        - 'Envelope V uncorrected [kN]': List with vertical capacities for the envelope, not corrected for the additional eccentricity (:math:`V_{uncorrected}`)  [:math:`kN`]
+        - 'Envelope H uncorrected [kN]': List with horizontal capacities for the envelope, not corrected for the additional eccentricity (:math:`H_{uncorrected}`)  [:math:`kN`]
+        - 'Sliding capacity': Dictionary with details for the sliding capacity calculation
+        - 'Bearing capacity': Dictionary with details for the bearing capacity calculation for purely vertical load
 
     .. figure:: images/envelope_undrained_api_1.png
         :figwidth: 500.0
@@ -808,12 +868,12 @@ To override the behaviour of the bearing and sliding capacity functions, use the
 
     # Calculate the sliding capacity
     _sliding_capacity = slidingcapacity_undrained_api(
-        su_base=su_base, foundation_area=length * width, **kwargs)
+        su_base=su_base, foundation_area=full_area, **kwargs)
     # Select horizontal loads between zero and the total sliding capacity
     _horizontal_load = np.linspace(0.0, _sliding_capacity['sliding_capacity [kN]'], 100)
     # Calculate the sliding capacity outside effective area
     _h_outside = _sliding_capacity['base_resistance [kN]'] * \
-        (1.0 - ((effective_length * effective_width) / (length * width)))
+        (1.0 - ((effective_length * effective_width) / (full_area)))
     # Subtract factored sliding capacity outside effective area and factored skirt resistance from horizontal load
     _horizontal_load_corrected = np.maximum(
         np.zeros(_horizontal_load.__len__()),
@@ -863,14 +923,14 @@ To override the behaviour of the bearing and sliding capacity functions, use the
         _envelope_h_factored = _envelope_h_unfactored / factor_sliding
 
     return {
-        'envelope_v_unfactored [kN]': _envelope_v_unfactored,
-        'envelope_h_unfactored [kN]': _envelope_h_unfactored,
-        'envelope_v_factored [kN]': _envelope_v_factored,
-        'envelope_h_factored [kN]': _envelope_h_factored,
-        'envelope_v_uncorrected [kN]': _envelope_v_uncorrected,
-        'envelope_h_uncorrected [kN]': _envelope_h_uncorrected,
-        'sliding_capacity': _sliding_capacity,
-        'bearing_capacity': _bearing_capacity,
+        'Envelope V unfactored [kN]': np.nan_to_num(_envelope_v_unfactored),
+        'Envelope H unfactored [kN]': np.nan_to_num(_envelope_h_unfactored),
+        'Envelope V factored [kN]': np.nan_to_num(_envelope_v_factored),
+        'Envelope H factored [kN]': np.nan_to_num(_envelope_h_factored),
+        'Envelope V uncorrected [kN]': np.nan_to_num(_envelope_v_uncorrected),
+        'Envelope H uncorrected [kN]': np.nan_to_num(_envelope_h_uncorrected),
+        'Sliding capacity': _sliding_capacity,
+        'Bearing capacity': _bearing_capacity,
     }
 
 
@@ -1040,3 +1100,419 @@ def ngamma_frictionangle_davisbooker(
         'Ngamma_smooth [-]': _Ngamma_smooth,
         'Ngamma_rough [-]': _Ngamma_rough,
     }
+
+
+class ShallowFoundationCapacity(object):
+
+    def __init__(self, title):
+        """
+        Generates a ShallowFoundationCapacity object.
+        All shared functionality for drained and undrained analysis is set in this class.
+        The drained and undrained capacity analyses inherit from this class.
+        :param title: Title for the analysis
+        """
+
+    def set_geometry(self, option='rectangle', length=np.nan, width=np.nan, diameter=np.nan, depth=0,
+                     skirted=False):
+        """
+        Sets the geometry of the shallow foundation.
+        :param option: Geometrical option. Choose from ``'rectangle'`` and ``'circle'``
+        :param length: Largest foundation dimension, specify for rectangular foundation (:math:`L`) [:math:`m`]
+        :param width: Shortest foundation dimension, specify  for rectangular foundation (:math:`B`) [:math:`m`]
+        :param diameter: Diameter of the foundation, specify  for circular foundation (:math:`2 \\ cdot R`) [:math:`m`]
+        :param depth: Depth from the soil surface to the base of the foundation (default=0m) (:math:`D`) [:math:`m`]
+        :param skirted: Boolean determining whether seabed penetrating skirts are used or not (default=False)
+        :return: Sets the geometrical properties of the analysis
+        """
+        self.option = option
+
+        if option == 'rectangle':
+            if (np.math.isnan(length)) or (np.math.isnan(width)):
+                raise ValueError("Length and width should be specified for a rectangular foundation")
+            self.length = length
+            self.width = width
+            self.diameter = np.nan
+            self.full_area = self.length * self.width
+        elif option == 'circle':
+            if np.math.isnan(diameter):
+                raise ValueError("Diameter should be specified for a circular foundation")
+            self.diameter = diameter
+            self.full_area = 0.25 * np.pi * (self.diameter ** 2)
+            self.length = np.nan
+            self.width = np.nan
+        self.depth = depth
+        self.skirted = skirted
+
+    def set_eccentricity(self, eccentricity_width, eccentricity_length=np.nan):
+        """
+        When a foundation is loaded out of its center, it will lose some of its bearing capacity.
+        For a rectangular foundation, eccentricity can be measured in the direction of the width (:math:`e_B`)
+        and in the direction of the length (:math:`e_L`).
+        For a circular foundation, only the eccentricty in the direction of the width needs to be specified.
+        :param eccentricity_width: Eccentricity in width direction for rectangular foundation or eccentricity for a circular foundation
+        :param eccentricity_length: Eccentricity in length direction for rectangular foundation, ignored for circular foundation
+        :return: Calculates the effective area of the foundation
+        """
+        if self.option == 'rectangle':
+            if np.math.isnan(eccentricity_length):
+                raise ValueError("Eccentricity in the length direction needs to be specified")
+            eccentricity_result = effectivearea_rectangle_api(
+                length=self.length,
+                width=self.width,
+                eccentricity_length=eccentricity_length,
+                eccentricity_width=eccentricity_width)
+            self.effective_area = eccentricity_result['effective_area [m2]']
+            self.effective_length = eccentricity_result['effective_length [m]']
+            self.effective_width = eccentricity_result['effective_width [m]']
+            self.eccentricity_length = eccentricity_length
+            self.eccentricity_width = eccentricity_width
+            self.eccentricity = np.nan
+        elif self.option == 'circle':
+            eccentricity_result = effectivearea_circle_api(
+                foundation_radius=0.5 * self.diameter,
+                eccentricity=eccentricity_width)
+            self.effective_area = eccentricity_result['effective_area [m2]']
+            self.effective_length = eccentricity_result['effective_length [m]']
+            self.effective_width = eccentricity_result['effective_width [m]']
+            self.eccentricity = eccentricity_width
+            self.eccentricity_length = np.nan
+            self.eccentricity_width = np.nan
+
+        if self.effective_area < 0:
+            raise ValueError(
+                "Effective area is smaller than zero, reduce the eccentricity or increase the foundation size")
+
+    def plot_envelope(self, show_factored=True, show_uncorrected=False,
+                      xaxis_layout=None, yaxis_layout=None,
+                      general_layout=None):
+        """
+        Plot the bearing capacity envelope using Plotly. This method contains the shared code for
+        drained and undrained bearing capacity envelope plotting.
+
+        :param show_factored: Boolean determining whether the factored envelope is shown
+        :param show_uncorrected: Boolean determining whether the uncorrected envelope is shown
+        :param xaxis_layout: Dictionary with custom layout for the X-axis
+        :param yaxis_layout: Dictionary with custom layout for the Y-axis
+        :param general_layout: Dictionary with custom general layout
+        :param showfig: Boolean determining whether the figure is shown or not
+        :return: Returns a Plotly figure with the bearing capacity envelopes
+        """
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+        _data = go.Scatter(
+            x=self.envelope_H_unfactored,
+            y=self.envelope_V_unfactored,
+            showlegend=True, mode='lines', name='Unfactored',
+            line=dict(color=DEFAULT_PLOTLY_COLORS[0]))
+        fig.append_trace(_data, 1, 1)
+        if show_factored:
+            _data = go.Scatter(
+                x=self.envelope_H_factored,
+                y=self.envelope_V_factored,
+                showlegend=True, mode='lines', name='Factored',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[1]))
+            fig.append_trace(_data, 1, 1)
+        if show_uncorrected:
+            _data = go.Scatter(
+                x=self.envelope_H_uncorrected,
+                y=self.envelope_V_uncorrected,
+                showlegend=True, mode='lines', name='Uncorrected',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[2]))
+            fig.append_trace(_data, 1, 1)
+        if xaxis_layout is None:
+            fig['layout']['xaxis1'].update(
+                title='Horizontal load [kN]', range=(0, 1.1 * self.envelope_H_unfactored.max()))
+        else:
+            fig['layout']['xaxis1'].update(xaxis_layout)
+        if yaxis_layout is None:
+            fig['layout']['yaxis1'].update(
+                title='Vertical load [kN]', range=(0, 1.1 * self.envelope_V_unfactored.max()))
+        else:
+            fig['layout']['yaxis1'].update(yaxis_layout)
+        if general_layout is None:
+            fig['layout'].update(height=500, width=700,
+                                 title='Bearing capacity envelope',
+                                 hovermode='closest')
+        else:
+            fig['layout'].update(general_layout)
+
+        return fig
+
+
+class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
+
+    def set_soilparameters_undrained(self, unit_weight, su_base, su_increase=0.0, su_above_base=np.nan):
+        """
+        Sets the soil parameters for undrained vertical bearing capacity and horizontal sliding analysis.
+        Note that unit weight is used to assess the stress at base level, so the average unit weight above base level should be used
+
+        If the average undrained shear strength above base level is unspecified, the undrained shear strength at base level is used.
+
+        :param unit_weight: Unit weight of the soil, used to calculate stress at base level (:math:`\\gamma`) [:math:`kN/m3`]  - Suggested range: 12<=unit_weight<=22
+        :param su_base: Undrained shear strength at foundation base level (:math:`S_{uo}`) [:math:`kPa`]  - Suggested range: 0.0<=su_base
+        :param su_increase: Linear increase in undrained shear strength (:math:`\\kappa`) [:math:`kPa/m`] (optional, default=0.0) - Suggested range: 0.0<=su_increase
+        :param su_above_base: Average undrained shear strength above base level (:math:`s_{u,ave}`) [:math:`kPa`] (optional, default=np.nan) - Suggested range: 0.0<=su_above_base
+        :return: Sets the soil parameters for the analysis
+        """
+        self.unit_weight = unit_weight
+        self.su_base = su_base
+        self.su_increase = su_increase
+        if np.math.isnan(su_above_base):
+            self.su_above_base = self.su_base
+        else:
+            self.su_above_base = su_above_base
+
+    def calculate_bearing_capacity(self, **kwargs):
+        """
+        Calculates the vertical bearing capacity for undrained (short term) conditions
+        :param kwargs: Additional arguments for the ``verticalcapacity_undrained_api`` function (see function documentation)
+        :return: ``capacity`` attribute contains the results of the analysis, ``ultimate_capacity`` gives the ultimate capacity in kN, ``net_bearing_pressure`` gives the net ultimate bearing pressure :math:`q_u` in kPa
+        """
+        base_stress = self.unit_weight * self.depth
+
+        self.capacity = verticalcapacity_undrained_api(
+            effective_length=self.effective_length,
+            effective_width=self.effective_width,
+            su_base=self.su_base,
+            su_increase=self.su_increase,
+            su_above_base=self.su_above_base,
+            base_depth=self.depth,
+            skirted=self.skirted,
+            base_sigma_v=base_stress,
+            **kwargs)
+        self.net_bearing_pressure = self.capacity['qu [kPa]']
+        self.ultimate_capacity = self.capacity['vertical_capacity [kN]']
+
+    def calculate_sliding_capacity(self, **kwargs):
+        """
+        Calculates the sliding capacity for undrained (short term) conditions
+        :param kwargs: Additional arguments for the ``slidingcapacity_undrained_api`` function (see function documentation)
+        :return: ``sliding`` attribute contains the results of the analysis, ``sliding_base_only`` gives the sliding capacity at the foundation base :math:`H_d` in kN, ``sliding_full`` gives the ultimate sliding resistance considering both base sliding and passive resistance :math:`H_d + \\Delta H` in kN
+        """
+
+        if np.math.isnan(self.su_above_base):
+            self.su_above_base = 0
+
+        if self.option == 'circle':
+            outofplane_dimension = self.diameter
+        else:
+            outofplane_dimension = self.length
+
+        self.sliding = slidingcapacity_undrained_api(
+            su_base=self.su_base,
+            foundation_area=self.full_area,
+            su_above_base=self.su_above_base,
+            embedded_section_area=self.depth * outofplane_dimension,
+            **kwargs
+        )
+        self.sliding_base_only = self.sliding['base_resistance [kN]']
+        self.sliding_full = self.sliding['sliding_capacity [kN]']
+
+    def calculate_envelope(self, factor_sliding=1.5, factor_bearing=2, **kwargs):
+        """
+        Calculates the bearing capacity envelope for undrained (short term conditions).
+        This envelope describes the interaction between vertical and horizontal load and the resulting VH capacity.
+        The envelope is factored with a factor for vertical bearing capacity (default=2)
+        and a factor for sliding capacity (default=1.5).
+
+        This method applied the ``envelope_undrained_api`` function.
+
+        :param factor_sliding: Safety factor for vertical bearing capacity (default=2)
+        :param factor_bearing: Safety factor for sliding capacity (default=1.5)
+        :param kwargs: Optional keyword arguments for the ``envelope_undrained_api`` function
+        :return: Sets a number of attributes
+
+            - ``envelope_V_unfactored``: V points for the unfactored envelope [kN]
+            - ``envelope_H_unfactored``: H points for the unfactored envelope [kN]
+            - ``envelope_V_factored``: V points for the factored envelope [kN]
+            - ``envelope_H_factored``: H points for the factored envelope [kN]
+            - ``envelope_V_uncorrected``: V points for the uncorrected envelope (not accounting for effective area component only) [kN]
+            - ``envelope_H_uncorrected``: H points for the uncorrected envelope (not accounting for effective area component only) [kN]
+
+        """
+
+        if self.option == 'circle':
+            outofplane_dimension = self.diameter
+        else:
+            outofplane_dimension = self.length
+
+        self.envelope = envelope_undrained_api(
+            su_base=self.su_base,
+            full_area=self.full_area,
+            effective_length=self.effective_length,
+            effective_width=self.effective_width,
+            factor_bearing=factor_bearing,
+            factor_sliding=factor_sliding,
+            base_depth=self.depth,
+            su_above_base=self.su_above_base,
+            embedded_section_area=self.depth * outofplane_dimension,
+            **kwargs)
+        self.envelope_V_unfactored = self.envelope["Envelope V unfactored [kN]"]
+        self.envelope_H_unfactored = self.envelope["Envelope H unfactored [kN]"]
+        self.envelope_V_factored = self.envelope["Envelope V factored [kN]"]
+        self.envelope_H_factored = self.envelope["Envelope H factored [kN]"]
+        self.envelope_V_uncorrected = self.envelope["Envelope V uncorrected [kN]"]
+        self.envelope_H_uncorrected = self.envelope["Envelope H uncorrected [kN]"]
+
+    def plot_envelope(self, showfig=True, plot_title="Undrained bearing capacity envelope", **kwargs):
+        """
+        Plot the undrained bearing capacity envelope using Plotly.
+
+        Supplements the method from the parent class with specific statements for undrained conditions.
+        """
+
+        fig = super().plot_envelope(**kwargs)
+
+        fig['layout'].update(title=plot_title)
+
+        if showfig:
+            iplot(fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+        return fig
+
+
+class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
+    pass
+
+    def set_soilparameters_drained(self, effective_unit_weight, friction_angle, effective_stress_base):
+        """
+        Sets the soil parameters for drained vertical bearing capacity and horizontal sliding analysis.
+        Note that effective unit weight is used. Because the vertical effective stress at base level can be different
+        from the virgin effective stress, it is specified directly
+
+        :param effective_unit_weight: Effective unit weight of the soil (:math:`\\gamma^{\\prime}`) [:math:`kN/m3`]  - Suggested range: 2<=effective_unit_weight<=12
+        :param friction_angle: Effective friction angle for the soil below foundation base level (:math:`\\varphi^{\\prime}`) [:math:`deg`]  - Suggested range: 20<=friction_angle<=50
+        :param effective_stress_base: Vertical effective stress at base (or skirt tip) level (:math:`\\sigma_{v0}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0<=effective_stress_base
+        :return: Sets the soil parameters for the analysis
+        """
+        self.effective_unit_weight = effective_unit_weight
+        self.friction_angle = friction_angle
+        self.effective_stress_base = effective_stress_base
+
+    def calculate_bearing_capacity(self, **kwargs):
+        """
+        Calculates the vertical bearing capacity for drained (long term) conditions
+        :param kwargs: Additional arguments for the ``verticalcapacity_drained_api`` function (see function documentation)
+        :return: ``capacity`` attribute contains the results of the analysis, ``ultimate_capacity`` gives the ultimate capacity in kN, ``net_bearing_pressure`` gives the net ultimate bearing pressure :math:`q_u` in kPa
+        """
+
+        self.capacity = verticalcapacity_drained_api(
+            vertical_effective_stress=self.effective_stress_base,
+            effective_friction_angle=self.friction_angle,
+            effective_unit_weight=self.effective_unit_weight,
+            effective_length=self.effective_length,
+            effective_width=self.effective_width,
+            base_depth=self.depth,
+            skirted=self.skirted,
+            **kwargs)
+
+        self.net_bearing_pressure = self.capacity['qu [kPa]']
+        self.ultimate_capacity = self.capacity['vertical_capacity [kN]']
+
+    def calculate_sliding_capacity(self, vertical_load, interface_frictionangle=np.nan, **kwargs):
+        """
+        Calculates the sliding capacity for drained (long term) conditions
+        :param kwargs: Additional arguments for the ``slidingcapacity_drained_api`` function (see function documentation)
+        :return: ``sliding`` attribute contains the results of the analysis, ``sliding_base_only`` gives the sliding capacity at the foundation base :math:`H_d` in kN, ``sliding_full`` gives the ultimate sliding resistance considering both base sliding and passive resistance :math:`H_d + \\Delta H` in kN
+        """
+
+        if self.option == 'circle':
+            outofplane_dimension = self.diameter
+        else:
+            outofplane_dimension = self.length
+
+        if np.math.isnan(interface_frictionangle):
+            interface_frictionangle = self.friction_angle - 5
+        else:
+            pass
+
+        self.sliding = slidingcapacity_drained_api(
+            vertical_load=vertical_load,
+            effective_friction_angle=interface_frictionangle,
+            effective_unit_weight=self.effective_unit_weight,
+            embedded_section_area=self.depth * outofplane_dimension,
+            depth_to_base=self.depth,
+            **kwargs
+        )
+        self.sliding_full = self.sliding['sliding_capacity [kN]']
+        self.sliding_base_only = self.sliding['base_capacity [kN]']
+
+    def calculate_envelope(self, factor_sliding=1.5, factor_bearing=2, **kwargs):
+        """
+        Calculates the bearing capacity envelope for drained (long term conditions).
+        This envelope describes the interaction between vertical and horizontal load and the resulting VH capacity.
+        The envelope is factored with a factor for vertical bearing capacity (default=2)
+        and a factor for sliding capacity (default=1.5).
+
+        This method applied the ``envelope_drained_api`` function.
+
+        :param factor_sliding: Safety factor for vertical bearing capacity (default=2)
+        :param factor_bearing: Safety factor for sliding capacity (default=1.5)
+        :param kwargs: Optional keyword arguments for the ``envelope_undrained_api`` function
+        :return: Sets a number of attributes
+
+            - ``envelope_V_unfactored``: V points for the unfactored envelope [kN]
+            - ``envelope_H_unfactored``: H points for the unfactored envelope [kN]
+            - ``envelope_V_factored``: V points for the factored envelope [kN]
+            - ``envelope_H_factored``: H points for the factored envelope [kN]
+            - ``envelope_V_uncorrected``: V points for the uncorrected envelope (not accounting for effective area component only) [kN]
+            - ``envelope_H_uncorrected``: H points for the uncorrected envelope (not accounting for effective area component only) [kN]
+            - ``sliding_cutoff_V``: V points for the sliding cutoff [kN]
+            - ``sliding_cutoff_H``: H points for the sliding cutoff [kN]
+            - ``sliding_cutoff_V_factored``: V points for the sliding cutoff factored [kN]
+            - ``sliding_cutoff_H_factored``: H points for the sliding cutoff factored [kN]
+
+
+        """
+        self.envelope = envelope_drained_api(
+            vertical_effective_stress=self.effective_stress_base,
+            effective_friction_angle=self.friction_angle,
+            effective_unit_weight=self.effective_unit_weight,
+            full_area=self.full_area,
+            effective_length=self.effective_length,
+            effective_width=self.effective_width,
+            factor_bearing=factor_bearing,
+            factor_sliding=factor_sliding,
+            **kwargs)
+        self.envelope_V_unfactored = self.envelope["Envelope V unfactored [kN]"]
+        self.envelope_H_unfactored = self.envelope["Envelope H unfactored [kN]"]
+        self.envelope_V_factored = self.envelope["Envelope V factored [kN]"]
+        self.envelope_H_factored = self.envelope["Envelope H factored [kN]"]
+        self.envelope_V_uncorrected = self.envelope["Envelope V uncorrected [kN]"]
+        self.envelope_H_uncorrected = self.envelope["Envelope H uncorrected [kN]"]
+        self.sliding_cutoff_V = self.envelope['Sliding cutoff V [kN]']
+        self.sliding_cutoff_H = self.envelope['Sliding cutoff H [kN]']
+        self.sliding_cutoff_V_factored = self.envelope['Sliding cutoff V [kN]']
+        self.sliding_cutoff_H_factored = self.envelope['Sliding cutoff H [kN]'] / factor_sliding
+
+
+    def plot_envelope(self, showfig=True, show_cutoff=True, plot_title="Drained bearing capacity envelope", **kwargs):
+        """
+        Plot the drained bearing capacity envelope using Plotly.
+
+        Supplements the method from the parent class with specific statements for undrained conditions.
+        """
+
+        fig = super().plot_envelope(**kwargs)
+
+        if show_cutoff:
+            _data = go.Scatter(
+                x=self.sliding_cutoff_H,
+                y=self.sliding_cutoff_V,
+                showlegend=True, mode='lines', name='Sliding cutoff unfactored',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[0], dash='dot'))
+            fig.append_trace(_data, 1, 1)
+            _data = go.Scatter(
+                x=self.sliding_cutoff_H_factored,
+                y=self.sliding_cutoff_V_factored,
+                showlegend=True, mode='lines', name='Sliding cutoff factored',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[1], dash='dot'))
+            fig.append_trace(_data, 1, 1)
+
+        fig['layout'].update(title=plot_title)
+
+        if showfig:
+            iplot(fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+        return fig
+
+

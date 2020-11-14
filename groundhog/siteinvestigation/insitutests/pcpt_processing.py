@@ -25,11 +25,11 @@ except:
                   'Install pydov to enable this functionality')
 
 # Project imports
-from groundhog.general.plotting import plot_with_log
+from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
-from groundhog.general.soilprofile import SoilProfile
-
+from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
+from groundhog.general.parameter_mapping import offsets
 
 DEFAULT_CONE_PROPERTIES = SoilProfile({
     'Depth from [m]': [0, ],
@@ -47,25 +47,17 @@ class PCPTProcessing(object):
     Common correlations are also encoded.
     """
 
-    def __init__(self, title, easting=np.nan, northing=np.nan, elevation=np.nan, srid=4326, waterunitweight=10.25):
+    def __init__(self, title, waterunitweight=10.25):
         """
         Initialises a PCPTProcessing object based on a title. Optionally, a geographical position can be defined.
 
         An empty dataframe (`.data`) is created for storing the PCPT data
 
         :param title: Title for the PCPT test
-        :param easting: Easting for test location (optional, default=NaN)
-        :param northing: Northing for test location (optional, default=NaN)
-        :param elevation: Elevation for test location (optional, default=NaN)
-        :param srid: Projection ID for the location (optional, default=4325, see https://epsg.io/4326)
         :param waterunitweight: Unit weight of water used for effective stress calculations (default=10.25kN/m3 for seawater)
 
         """
         self.title = title
-        self.easting = easting
-        self.northing = northing
-        self.elevation = elevation
-        self.srid = srid
         self.data = pd.DataFrame()
         self.downhole_corrected = False
         self.waterunitweight=waterunitweight
@@ -635,6 +627,27 @@ class PCPTProcessing(object):
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
 
+    def set_position(self, easting, northing, elevation, srid=4326, datum='mLAT'):
+        """
+        Sets the position of a CPT in a given coordinate system.
+
+        By default, srid 4326 is used which means easting is longitude and northing is latitude.
+
+        The elevation is referenced to a chart datum for which mLAT (Lowest Astronomical Tide) is the default.
+
+        :param easting: X-coordinate of the CPT position
+        :param northing: Y-coordinate of the CPT position
+        :param elevation: Elevation of the CPT position
+        :param srid: SRID of the coordinate system (see http://epsg.io)
+        :param datum: Chart datum used for the elevation
+        :return: Sets the corresponding attributes of the ```PCPTProcessing``` object
+        """
+        self.easting = easting
+        self.northing = northing
+        self.elevation = elevation
+        self.srid = srid
+        self.datum = datum
+
     # endregion
 
     # region Layer-based processing and correction
@@ -885,7 +898,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='pcptplot', config={'showLink': False})
+            iplot(fig, filename='pcptplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
 
     def plot_normalised_pcpt(
@@ -973,7 +986,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='pcptnormalisedplot', config={'showLink': False})
+            iplot(fig, filename='pcptnormalisedplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_properties(
             self, prop_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
@@ -1039,7 +1052,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='propertiesplot', config={'showLink': False})
+            iplot(fig, filename='propertiesplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_properties_withlog(self, prop_keys, plot_ranges, plot_ticks,
             legend_titles=None, axis_titles=None, showfig=True, showlayers=True, **kwargs):
@@ -1200,7 +1213,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='robertson', config={'showLink': False})
+            iplot(fig, filename='robertson', config=GROUNDHOG_PLOTTING_CONFIG)
 
     # endregion
 
@@ -1343,7 +1356,7 @@ class PCPTProcessing(object):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='propertiesplot', config={'showLink': False})
+            iplot(fig, filename='propertiesplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
     # endregion
 
@@ -1371,3 +1384,385 @@ class PCPTProcessing(object):
             return json.dumps(dict_pcpt)
 
     # endregion
+
+
+def plot_longitudinal_profile(
+    cpts=[],
+    option='name', start=None, end=None, band=1000, extend_profile=False,
+    prop='qc [MPa]',
+    distance_unit='m', scale_factor=0.001,
+    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None, legend_layout=None,
+    show_annotations=True):
+    """
+    Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
+    to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
+    is projected onto this line.
+
+    :param cpts: List with PCPTProcessing objects to be plotted
+    :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
+    :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param prop: Selected property for plotting (default='qc [MPa]')
+    :param distance_unit: Unit for coordinates and elevation (default='m')
+    :param scale_factor: Scale factor for the property (default=0.001)
+    :param showfig: Boolean determining whether the figure is shown (default=True)
+    :param xaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param yaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param general_layout: Dictionary with general layout options (default=None)
+    :param legend_layout: Dictionary with legend layout options (default=None)
+    :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
+    :return: Plotly figure object
+    """
+
+    cpt_names = []
+    x_coords = []
+    y_coords = []
+    elevations = []
+    for _cpt in cpts:
+        try:
+            x_coords.append(_cpt.easting)
+            y_coords.append(_cpt.northing)
+            elevations.append(_cpt.elevation)
+            cpt_names.append(_cpt.title)
+        except Exception as err:
+            warnings.warn(
+                "CPT %s - Error during processing for profile - %s" % (_cpt.title, str(err)))
+            raise
+
+    if option == 'name':
+        start_point = (x_coords[cpt_names.index(start)], y_coords[cpt_names.index(start)])
+        end_point = (x_coords[cpt_names.index(end)], y_coords[cpt_names.index(end)])
+    elif option == 'coords':
+        if start.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        start_point = start
+        if end.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        end_point = end
+    else:
+        raise ValueError("option should be 'name' or 'coords'")
+
+
+    cpt_df = pd.DataFrame({
+        'CPT objects': cpts,
+        'CPT titles': cpt_names,
+        'X': x_coords,
+        'Y': y_coords,
+        'Z': elevations
+    })
+    for i, row in cpt_df.iterrows():
+        if row['X'] == start_point[0] and row['Y'] == start_point[1]:
+            cpt_df.loc[i, "Offset"] = 0
+            cpt_df.loc[i, "Projected offset"] = 0
+            cpt_df.loc[i, "Before start"] = False
+            cpt_df.loc[i, "Behind end"] = False
+        elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
+            cpt_df.loc[i, "Offset"] = 0
+            cpt_df.loc[i, "Projected offset"] = np.sqrt(
+                (start_point[0] - end_point[0]) ** 2 +
+                (start_point[1] - end_point[1]) ** 2)
+            cpt_df.loc[i, "Before start"] = False
+            cpt_df.loc[i, "Behind end"] = False
+        else:
+            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            cpt_df.loc[i, "Offset"] = result['offset to line']
+            cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
+            cpt_df.loc[i, "Before start"] = result['before start']
+            cpt_df.loc[i, "Behind end"] = result['behind end']
+
+    if extend_profile:
+        selected_cpts = deepcopy(cpt_df[cpt_df['Offset'] <= band])
+    else:
+        selected_cpts = deepcopy(cpt_df[
+            (cpt_df['Offset'] <= band) &
+            (cpt_df['Before start'] == False) &
+            (cpt_df['Behind end'] == False)])
+
+    selected_cpts.sort_values('Projected offset', inplace=True)
+
+    fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+
+    _annotations = []
+
+    k = 0
+
+    for i, row in selected_cpts.iterrows():
+        try:
+            for _push in row['CPT objects'].data["Push"].unique():
+
+                push_data = row['CPT objects'].data[row['CPT objects'].data["Push"] == _push]
+                _push_trace = go.Scatter(
+                    x=scale_factor * np.array(push_data[prop]) + row['Projected offset'],
+                    y=-np.array(push_data['z [m]']) + row['Z'],
+                    line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10]),
+                    showlegend=False,
+                    mode='lines',
+                    name='qc')
+                fig.append_trace(_push_trace, 1, 1)
+
+            _backbone = go.Scatter(
+                x=[row['Projected offset'], row['Projected offset']],
+                y=[(-np.array(row['CPT objects'].data['z [m]']) + row['Z']).min(),
+                   (-np.array(row['CPT objects'].data['z [m]']) + row['Z']).max()],
+                showlegend=True,
+                mode='lines',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10], dash='dot'),
+                name="%s - %.0f%s offset" % (row['CPT titles'], row['Offset'], distance_unit)
+            )
+            fig.append_trace(_backbone, 1, 1)
+
+            if k % 2 == 0:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=row['Z'],
+                        text=row['CPT titles'])
+                )
+            else:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=-np.array(row['CPT objects'].data['z [m]']).max() + row['Z'],
+                        text=row['CPT titles'],
+                        ay=30)
+                )
+
+            k += 1
+
+        except Exception as err:
+            warnings.warn("Trace not created for %s - %s" % (row['CPT titles'], str(err)))
+
+    if xaxis_layout is None:
+        fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
+    else:
+        fig['layout']['xaxis1'].update(xaxis_layout)
+    if yaxis_layout is None:
+        fig['layout']['yaxis1'].update(title='Level [%s]' % (distance_unit))
+    else:
+        fig['layout']['yaxis1'].update(yaxis_layout)
+    if general_layout is None:
+        fig['layout'].update(height=600, width=900,
+             title='Longitudinal profile from %s to %s' % (str(start), str(end)),
+             hovermode='closest')
+    else:
+        fig['layout'].update(general_layout)
+
+    if legend_layout is None:
+        fig['layout'].update(legend=dict(orientation='h', x=0, y=-0.2))
+    else:
+        fig['layout'].update(legend=legend_layout)
+
+    if show_annotations:
+        fig['layout'].update(annotations=_annotations)
+
+    if showfig:
+        iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+    return fig
+
+def plot_combined_longitudinal_profile(
+    cpts=[],
+    profiles=[],
+    option='name', start=None, end=None, band=1000, extend_profile=False,
+    fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
+    opacity=1, logwidth=1,
+    prop='qc [MPa]',
+    distance_unit='m', scale_factor=0.001,
+    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None, legend_layout=None,
+    show_annotations=True):
+    """
+    Creates a longitudinal profile along selected CPTs and ``SoilProfile`` objects. A line is drawn from the first
+    to the last location and the plot of the selected parameter (``prop``) vs depth
+    is projected onto this line.
+
+    This function also adds ``SoilProfile`` objects to the plot through mini-logs.
+
+    :param cpts: List with PCPTProcessing objects to be plotted
+    :param profiles: List with SoilProfile objects for which a log needs to be plotted
+    :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
+    :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
+    :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
+    :param logwidth: Width of the soil logs as an absolute value (default = 1)
+    :param prop: Selected property for plotting (default='qc [MPa]')
+    :param distance_unit: Unit for coordinates and elevation (default='m')
+    :param scale_factor: Scale factor for the property (default=0.001)
+    :param showfig: Boolean determining whether the figure is shown (default=True)
+    :param xaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param yaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param general_layout: Dictionary with general layout options (default=None)
+    :param legend_layout: Dictionary with legend layout options (default=None)
+    :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
+    :return: Plotly figure object
+    """
+
+    cpt_names = []
+    x_coords = []
+    y_coords = []
+    elevations = []
+    for _cpt in cpts:
+        try:
+            x_coords.append(_cpt.easting)
+            y_coords.append(_cpt.northing)
+            elevations.append(_cpt.elevation)
+            cpt_names.append(_cpt.title)
+        except Exception as err:
+            warnings.warn(
+                "CPT %s - Error during processing for profile - %s" % (_cpt.title, str(err)))
+            raise
+
+    if option == 'name':
+        start_point = (x_coords[cpt_names.index(start)], y_coords[cpt_names.index(start)])
+        end_point = (x_coords[cpt_names.index(end)], y_coords[cpt_names.index(end)])
+    elif option == 'coords':
+        if start.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        start_point = start
+        if end.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        end_point = end
+    else:
+        raise ValueError("option should be 'name' or 'coords'")
+
+    _layers_profile, _annotations_profile, _backbone_profile_traces, _soilcolors = plot_fence_diagram(
+        profiles=profiles,
+        option='coords',
+        start=start_point,
+        end=end_point,
+        band=band,
+        extend_profile=extend_profile,
+        fillcolordict=fillcolordict,
+        opacity=opacity,
+        logwidth=logwidth,
+        distance_unit=distance_unit,
+        return_layers=True)
+
+    cpt_df = pd.DataFrame({
+        'CPT objects': cpts,
+        'CPT titles': cpt_names,
+        'X': x_coords,
+        'Y': y_coords,
+        'Z': elevations
+    })
+    for i, row in cpt_df.iterrows():
+        if row['X'] == start_point[0] and row['Y'] == start_point[1]:
+            cpt_df.loc[i, "Offset"] = 0
+            cpt_df.loc[i, "Projected offset"] = 0
+            cpt_df.loc[i, "Before start"] = False
+            cpt_df.loc[i, "Behind end"] = False
+        elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
+            cpt_df.loc[i, "Offset"] = 0
+            cpt_df.loc[i, "Projected offset"] = np.sqrt(
+                (start_point[0] - end_point[0]) ** 2 +
+                (start_point[1] - end_point[1]) ** 2)
+            cpt_df.loc[i, "Before start"] = False
+            cpt_df.loc[i, "Behind end"] = False
+        else:
+            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            cpt_df.loc[i, "Offset"] = result['offset to line']
+            cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
+            cpt_df.loc[i, "Before start"] = result['before start']
+            cpt_df.loc[i, "Behind end"] = result['behind end']
+
+    if extend_profile:
+        selected_cpts = deepcopy(cpt_df[cpt_df['Offset'] <= band])
+    else:
+        selected_cpts = deepcopy(cpt_df[
+            (cpt_df['Offset'] <= band) &
+            (cpt_df['Before start'] == False) &
+            (cpt_df['Behind end'] == False)])
+
+    selected_cpts.sort_values('Projected offset', inplace=True)
+
+    fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+
+    for _trace in _backbone_profile_traces:
+        fig.append_trace(_trace, 1, 1)
+
+    for _trace in _soilcolors:
+        fig.append_trace(_trace, 1, 1)
+
+    _annotations = []
+
+    k = 0
+
+    for i, row in selected_cpts.iterrows():
+        try:
+            for _push in row['CPT objects'].data["Push"].unique():
+                push_data = row['CPT objects'].data[row['CPT objects'].data["Push"] == _push]
+                _push_trace = go.Scatter(
+                    x=scale_factor * np.array(push_data[prop]) + row['Projected offset'],
+                    y=-np.array(push_data['z [m]']) + row['Z'],
+                    line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10]),
+                    showlegend=False, mode='lines', name=r'$ q_c $')
+                fig.append_trace(_push_trace, 1, 1)
+
+            _backbone = go.Scatter(
+                x=[row['Projected offset'], row['Projected offset']],
+                y=[(-np.array(row['CPT objects'].data['z [m]']) + row['Z']).min(),
+                   (-np.array(row['CPT objects'].data['z [m]']) + row['Z']).max()],
+                showlegend=False,
+                mode='lines',
+                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10], dash='dot')
+            )
+            fig.append_trace(_backbone, 1, 1)
+
+            if k % 2 == 0:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=row['Z'],
+                        text=row['CPT titles'],
+                        ay=-60)
+                )
+            else:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=-np.array(row['CPT objects'].data['z [m]']).max() + row['Z'],
+                        text=row['CPT titles'],
+                        ay=60)
+                )
+
+            k += 1
+
+        except Exception as err:
+            warnings.warn("Trace not created for %s - %s" % (row['CPT titles'], str(err)))
+
+    _annotations = _annotations + _annotations_profile
+
+    if xaxis_layout is None:
+        fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
+    else:
+        fig['layout']['xaxis1'].update(xaxis_layout)
+    if yaxis_layout is None:
+        fig['layout']['yaxis1'].update(title='Level [%s]' % (distance_unit))
+    else:
+        fig['layout']['yaxis1'].update(yaxis_layout)
+    if general_layout is None:
+        fig['layout'].update(height=600, width=900,
+             title='Longitudinal profile from %s to %s' % (str(start), str(end)),
+             hovermode='closest')
+    else:
+        fig['layout'].update(general_layout)
+
+    if legend_layout is None:
+        fig['layout'].update(legend=dict(orientation='h', x=0, y=-0.2))
+    else:
+        fig['layout'].update(legend=legend_layout)
+
+    if show_annotations:
+        fig['layout'].update(annotations=_annotations)
+
+    fig['layout'].update(shapes=_layers_profile)
+
+    if showfig:
+        iplot(fig, filename='longitudinalcombinedplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+    return fig
+

@@ -21,6 +21,7 @@ except:
     warnings.warn('Plotly could not be imported. Install plotly using conda (conda install plotly) to enable interactive plotting of results')
 
 # Project imports
+from groundhog.general.plotting import GROUNDHOG_PLOTTING_CONFIG
 
 
 class DeBeerCalculation(object):
@@ -453,7 +454,7 @@ class DeBeerCalculation(object):
                                         margin=plot_margin,
                                         legend=dict(orientation=legend_orientation, x=legend_x, y=legend_y))
         if show_fig:
-            iplot(self.base_plot, filename='baseplot', config={'showLink': False})
+            iplot(self.base_plot, filename='baseplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
 
     def correct_shaft_qc(self, cone_type="E"):
@@ -601,7 +602,7 @@ class DeBeerCalculation(object):
                                         margin=plot_margin,
                                         legend=dict(orientation=legend_orientation, x=legend_x, y=legend_y))
         if show_fig:
-            iplot(self.unit_shaft_plot, filename='shaftplot', config={'showLink': False})
+            iplot(self.unit_shaft_plot, filename='shaftplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
 
     def set_shaft_base_factors(self, alpha_b_tertiary_clay, alpha_b_other,

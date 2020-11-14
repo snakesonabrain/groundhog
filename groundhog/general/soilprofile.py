@@ -11,9 +11,15 @@ from copy import deepcopy
 # 3rd party packages
 import pandas as pd
 import numpy as np
+from plotly import tools, subplots
+import plotly.graph_objs as go
+from plotly.colors import DEFAULT_PLOTLY_COLORS
+from plotly.offline import iplot
 
 # Project imports
-from groundhog.general.plotting import plot_with_log
+from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
+from groundhog.general.parameter_mapping import offsets
+
 
 class SoilProfile(pd.DataFrame):
     """
@@ -30,6 +36,7 @@ class SoilProfile(pd.DataFrame):
         super().__init__(*args, **kwargs)
         self.set_depthcolumn_name()
         self.check_profile()
+        self.title = None
 
     def set_depthcolumn_name(self, name="Depth", unit='m'):
         self.depth_from_col = "%s from [%s]" % (name, unit)
@@ -75,6 +82,27 @@ class SoilProfile(pd.DataFrame):
         """
         return self[self.depth_to_col].max()
 
+    def set_position(self, easting, northing, elevation, srid=4326, datum='mLAT'):
+        """
+        Sets the position of a soil profile top in a given coordinate system.
+
+        By default, srid 4326 is used which means easting is longitude and northing is latitude.
+
+        The elevation is referenced to a chart datum for which mLAT (Lowest Astronomical Tide) is the default.
+
+        :param easting: X-coordinate of the CPT position
+        :param northing: Y-coordinate of the CPT position
+        :param elevation: Elevation of the CPT position
+        :param srid: SRID of the coordinate system (see http://epsg.io)
+        :param datum: Chart datum used for the elevation
+        :return: Sets the corresponding attributes of the ```PCPTProcessing``` object
+        """
+        self.easting = easting
+        self.northing = northing
+        self.elevation = elevation
+        self.srid = srid
+        self.datum = datum
+
     def layer_transitions(self, include_top=False, include_bottom=False):
         """
         Returns a Numpy array with the layer transition depths.
@@ -86,6 +114,22 @@ class SoilProfile(pd.DataFrame):
         if include_bottom:
             transitions = np.append(transitions, self[self.depth_to_col].iloc[-1])
         return transitions
+
+    def calculate_layerthickness(self, layerthicknesscol="Layer thickness [m]"):
+        """
+        Adds a column with the layer thickness to the soil profile
+        :param layerthicknesscol: Name of the column with the layer thickness
+        :return: Adds a column with the layer thickness
+        """
+        self[layerthicknesscol] = self[self.depth_to_col] - self[self.depth_from_col]
+
+    def calculate_center(self, layercentercol="Depth center [m]"):
+        """
+        Adds a column with the layer center depth to the soil profile
+        :param layercentercol: Name of the column with the layer center
+        :return: Adds a column with the layer center
+        """
+        self[layercentercol] = 0.5 * (self[self.depth_to_col] + self[self.depth_from_col])
 
     def soil_parameters(self, condense_linear=True):
         """
@@ -548,6 +592,23 @@ class SoilProfile(pd.DataFrame):
         else:
             raise ValueError("Rule should be 'min', 'mean' or 'max'")
 
+    def calculate_parameter_center(self, parameter, suffix="center"):
+        """
+        Calculates the value of a soil parameter at the center. The soil parameter needs to be a linearly varying numerical soil parameter.
+        :param parameter: Numerical soil parameter for which the value at the center needs to be computed.
+        :param suffix: Suffix to use instead of ``from`` or ``to``
+        :return: Adds an extra column with ``from`` or ``to`` in the column name replaced by the chosen suffix
+        """
+        if parameter not in self.numerical_soil_parameters():
+            raise ValueError("Chosen parameter should be a numerical parameter")
+        else:
+            pass
+
+        if self.check_linear_variation(parameter):
+            self[parameter.replace(' [', ' %s [' % suffix)] = 0.5 * (
+                self[parameter.replace(' [', ' from [')] + self[parameter.replace(' [', ' to [')]
+            )
+
     def cut_profile(self, top_depth, bottom_depth):
         """
         Returns a deep copy of the ``SoilProfile`` between the specified bounds
@@ -711,7 +772,51 @@ class SoilProfile(pd.DataFrame):
         self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn)
 
 
-def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):
+    def applyfunction(self, function, resultkey, outputkey, parametermapping=dict(), **kwargs):
+        """
+        Applies a groundhog function to a soil profile. The function is applied to each row of the soilprofile.
+        The result is stored in a column with name ``output``. ``resultkey`` determines which key of the function
+        output dictionary is used as the result.
+
+        The parameters of the function are mapped to columns
+        of the soil profile using the parametermapping dictionary. The keys of this dictionary are the function arguments,
+        the values are the corresponding columns of the soilprofile. For parameters with linear variation, this
+        method only needs to be applied once and the soil parameter name (without from or to) needs to be supplied in
+        the ``parametermapping`` dictionary.
+
+        :param function: Function to be applied
+        :param resultkey: Column name for the result (for parameters with linear variation, two result columns are created)
+        :param outputkey: The key of the function output dictionary to be used for the result
+        :param parametermapping: Dictionary mapping parameters of the function to column names
+        :param applyatcenter: Boolean determining whether the function needs to be applied at the center of the layer for a linearly varying parameter. A single output column will then be returned (default=False).
+        :param kwargs: Additional keyword arguments of the function which are not mapped to soil profile columns
+        :return:
+        """
+        # Validate the column names in parametermapping
+        for key, value in parametermapping.items():
+            if value not in self.numerical_soil_parameters():
+                raise ValueError(
+                    "Column %s does not exist in the soil profile, check your soil profile" % value)
+
+        # Apply the function to each row
+        for i, row in self.iterrows():
+            function_dict = dict()
+            for key, value in parametermapping.items():
+                if self.check_linear_variation(value):
+                    # Apply function for linear parameter variation
+                    function_dict[key] = row[value.replace(' [', ' from [')]
+                    self.loc[i, outputkey.replace(' [', ' from [')] = \
+                        function(**{**function_dict, **kwargs})[resultkey]
+                    function_dict[key] = row[value.replace(' [', ' to [')]
+                    self.loc[i, outputkey.replace(' [', ' to [')] = \
+                        function(**{**function_dict, **kwargs})[resultkey]
+                else:
+                    function_dict[key] = row[value]
+                    self.loc[i, outputkey] = \
+                        function(**{**function_dict, **kwargs})[resultkey]
+
+
+def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, **kwargs):
     """
     The method to read from Excel needs to be redefined for SoilProfile objects.
     The method allows for different depth keys (using the 'depth_key' and 'unit' keyword arguments
@@ -720,7 +825,232 @@ def read_excel(path, depth_key='Depth', unit='m', column_mapping={}, **kwargs):
     """
     sp = pd.read_excel(path, **kwargs)
     sp.__class__ = SoilProfile
+    sp.title = title
     sp.set_depthcolumn_name(name=depth_key, unit=unit)
     sp.rename(columns = column_mapping, inplace = True)
     sp.check_profile()
     return sp
+
+
+def profile_from_dataframe(df, title='', depth_key='Depth', unit='m', column_mapping={}):
+    """
+    Creates a soil profile from a Pandas dataframe
+    :param df: Dataframe to be converted
+    :param depth_key: Column key to be used for depth (default = 'Depth')
+    :param unit: Unit for the depth (default = 'm')
+    :param column_mapping: Dictionary for renaming columns. The keys in this dictionary are the old column names and the values are the new column names.
+    :return: ``SoilProfile`` object created as a deep copy of the dataframe
+    """
+    sp = deepcopy(df)
+    sp.__class__ = SoilProfile
+    sp.title = title
+    sp.set_depthcolumn_name(name=depth_key, unit=unit)
+    sp.rename(columns=column_mapping, inplace=True)
+    sp.check_profile()
+    return sp
+
+
+def plot_fence_diagram(
+    profiles=[],
+    option='name', start=None, end=None, band=1000, extend_profile=False,
+    fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
+    opacity=1, logwidth=1, distance_unit='m', return_layers=False,
+    showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None,
+    show_annotations=True):
+    """
+    Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
+    to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
+    is projected onto this line.
+
+    :param profiles: List with SoilProfile objects for which a log needs to be plotted
+    :param option: Determines whether soil profile names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
+    :param start: Soil profile name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
+    :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
+    :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
+    :param logwidth: Width of the soil logs as an absolute value (default = 1)
+    :param distance_unit: Unit for coordinates and elevation (default='m')
+    :param return_layers: Boolean determining whether layers need to be returned. These layers can be used to updata another plot (e.g. CPT longitudinal profile) (default=False)
+    :param showfig: Boolean determining whether the figure is shown (default=True)
+    :param xaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param yaxis_layout: Dictionary with layout for the xaxis (default=None)
+    :param general_layout: Dictionary with general layout options
+    :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
+    :return: Plotly figure object
+    """
+
+    profile_names = []
+    x_coords = []
+    y_coords = []
+    elevations = []
+    for _profile in profiles:
+        try:
+            x_coords.append(_profile.easting)
+            y_coords.append(_profile.northing)
+            elevations.append(_profile.elevation)
+            profile_names.append(_profile.title)
+        except Exception as err:
+            warnings.warn(
+                "Profile %s - Error during processing for profile - %s" % (_profile.title, str(err)))
+            raise
+
+    if option == 'name':
+        if start not in profile_names:
+            raise ValueError('The soil profile used as starting point should be included in the list with titles')
+        if end not in profile_names:
+            raise ValueError('The soil profile used as end point should be included in the list with titles')
+
+        start_point = (x_coords[profile_names.index(start)], y_coords[profile_names.index(start)])
+        end_point = (x_coords[profile_names.index(end)], y_coords[profile_names.index(end)])
+    elif option == 'coords':
+        if start.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        start_point = start
+        if end.__len__() != 2:
+            raise ValueError("If option 'coords' is selected, start should contain an x,y pair")
+        end_point = end
+    else:
+        raise ValueError("option should be 'name' or 'coords'")
+
+
+    profile_df = pd.DataFrame({
+        'Soil profiles': profiles,
+        'Titles': profile_names,
+        'X': x_coords,
+        'Y': y_coords,
+        'Z': elevations
+    })
+
+    # Calculate offsets from profile line
+    for i, row in profile_df.iterrows():
+        if row['X'] == start_point[0] and row['Y'] == start_point[1]:
+            profile_df.loc[i, "Offset"] = 0
+            profile_df.loc[i, "Projected offset"] = 0
+            profile_df.loc[i, "Before start"] = False
+            profile_df.loc[i, "Behind end"] = False
+        elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
+            profile_df.loc[i, "Offset"] = 0
+            profile_df.loc[i, "Projected offset"] = np.sqrt(
+                (start_point[0] - end_point[0]) ** 2 +
+                (start_point[1] - end_point[1]) ** 2)
+            profile_df.loc[i, "Before start"] = False
+            profile_df.loc[i, "Behind end"] = False
+        else:
+            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            profile_df.loc[i, "Offset"] = result['offset to line']
+            profile_df.loc[i, "Projected offset"] = result['offset to start projected']
+            profile_df.loc[i, "Before start"] = result['before start']
+            profile_df.loc[i, "Behind end"] = result['behind end']
+
+    # Determine which soil profiles need to be plotted
+    if extend_profile:
+        selected_profiles = deepcopy(profile_df[profile_df['Offset'] <= band])
+    else:
+        selected_profiles = deepcopy(profile_df[
+            (profile_df['Offset'] <= band) &
+            (profile_df['Before start'] == False) &
+            (profile_df['Behind end'] == False)])
+
+    selected_profiles.sort_values('Projected offset', inplace=True)
+
+    _layers = []
+    _backbone_traces = []
+    _annotations = []
+
+    for i, row in selected_profiles.iterrows():
+
+        for j, _layer in row["Soil profiles"].iterrows():
+            _fillcolor = fillcolordict[_layer['Soil type']]
+            _y0 = row['Z'] - _layer['Depth from [m]']
+            _y1 = row['Z'] - _layer['Depth to [m]']
+            _x0 = row['Projected offset'] - 0.5 * logwidth
+            _x1 = row['Projected offset'] + 0.5 * logwidth
+            _layers.append(
+                dict(type='rect', xref='x1', yref='y', x0=_x0, y0=_y0, x1=_x1, y1=_y1,
+                     fillcolor=_fillcolor, opacity=opacity))
+            if i % 2 == 0:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=row['Z'],
+                        text="%s - Offset %.0f%s" % (
+                            row['Titles'], row['Offset'], distance_unit
+                    ))
+                )
+            else:
+                _annotations.append(
+                    dict(
+                        x=row['Projected offset'],
+                        y=-np.array(row['Soil profiles']['Depth to [m]']).max() + row['Z'],
+                        text="%s - Offset %.0f%s" % (
+                            row['Titles'], row['Offset'], distance_unit
+                        ),
+                        ay=30
+                    )
+                )
+
+
+        try:
+            _trace = go.Scatter(
+                x=[row['Projected offset'], row['Projected offset']],
+                y=[-row['Soil profiles']['Depth from [m]'].min() + row['Z'],
+                   -row['Soil profiles']['Depth to [m]'].max() + row['Z']],
+                showlegend=False,
+                mode='lines',
+                line=dict(color='black', width=0))
+            _backbone_traces.append(_trace)
+        except:
+            pass
+
+    mean_profile_depth = selected_profiles['Z'].mean()
+
+    _soilcolors = []
+    for key, value in fillcolordict.items():
+        try:
+            _trace = go.Bar(
+                x=[0, 0],
+                y=[mean_profile_depth, mean_profile_depth],
+                name=key,
+                marker=dict(color=value))
+            _soilcolors.append(_trace)
+        except:
+            pass
+
+    if return_layers:
+        return _layers, _annotations, _backbone_traces, _soilcolors
+    else:
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+
+        for _trace in _backbone_traces:
+            fig.append_trace(_trace, 1, 1)
+
+        for _trace in _soilcolors:
+            fig.append_trace(_trace, 1, 1)
+
+        if xaxis_layout is None:
+            fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
+        else:
+            fig['layout']['xaxis1'].update(xaxis_layout)
+        if yaxis_layout is None:
+            fig['layout']['yaxis1'].update(
+                title='Level [%s]' % (distance_unit))
+        else:
+            fig['layout']['yaxis1'].update(yaxis_layout)
+        if general_layout is None:
+            fig['layout'].update(height=600, width=900,
+                 title='Longitudinal profile from %s to %s' % (str(start), str(end)),
+                 hovermode='closest',
+                 legend=dict(orientation='h', x=0, y=-0.2))
+        else:
+            fig['layout'].update(general_layout)
+
+        fig['layout'].update(shapes=_layers)
+
+        if show_annotations:
+            fig['layout'].update(annotations=_annotations)
+        if showfig:
+            iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+        return fig

@@ -115,6 +115,22 @@ class SoilProfile(pd.DataFrame):
             transitions = np.append(transitions, self[self.depth_to_col].iloc[-1])
         return transitions
 
+    def calculate_layerthickness(self, layerthicknesscol="Layer thickness [m]"):
+        """
+        Adds a column with the layer thickness to the soil profile
+        :param layerthicknesscol: Name of the column with the layer thickness
+        :return: Adds a column with the layer thickness
+        """
+        self[layerthicknesscol] = self[self.depth_to_col] - self[self.depth_from_col]
+
+    def calculate_center(self, layercentercol="Depth center [m]"):
+        """
+        Adds a column with the layer center depth to the soil profile
+        :param layercentercol: Name of the column with the layer center
+        :return: Adds a column with the layer center
+        """
+        self[layercentercol] = 0.5 * (self[self.depth_to_col] + self[self.depth_from_col])
+
     def soil_parameters(self, condense_linear=True):
         """
         Returns a list of soil parameters available in the soil profile.
@@ -576,6 +592,23 @@ class SoilProfile(pd.DataFrame):
         else:
             raise ValueError("Rule should be 'min', 'mean' or 'max'")
 
+    def calculate_parameter_center(self, parameter, suffix="center"):
+        """
+        Calculates the value of a soil parameter at the center. The soil parameter needs to be a linearly varying numerical soil parameter.
+        :param parameter: Numerical soil parameter for which the value at the center needs to be computed.
+        :param suffix: Suffix to use instead of ``from`` or ``to``
+        :return: Adds an extra column with ``from`` or ``to`` in the column name replaced by the chosen suffix
+        """
+        if parameter not in self.numerical_soil_parameters():
+            raise ValueError("Chosen parameter should be a numerical parameter")
+        else:
+            pass
+
+        if self.check_linear_variation(parameter):
+            self[parameter.replace(' [', ' %s [' % suffix)] = 0.5 * (
+                self[parameter.replace(' [', ' from [')] + self[parameter.replace(' [', ' to [')]
+            )
+
     def cut_profile(self, top_depth, bottom_depth):
         """
         Returns a deep copy of the ``SoilProfile`` between the specified bounds
@@ -755,6 +788,7 @@ class SoilProfile(pd.DataFrame):
         :param resultkey: Column name for the result (for parameters with linear variation, two result columns are created)
         :param outputkey: The key of the function output dictionary to be used for the result
         :param parametermapping: Dictionary mapping parameters of the function to column names
+        :param applyatcenter: Boolean determining whether the function needs to be applied at the center of the layer for a linearly varying parameter. A single output column will then be returned (default=False).
         :param kwargs: Additional keyword arguments of the function which are not mapped to soil profile columns
         :return:
         """

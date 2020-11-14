@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from groundhog.shallowfoundations.settlement import primaryconsolidationsettlement_nc
 
 __author__ = 'Bruno Stuyts'
 
@@ -28,6 +29,18 @@ class Test_SoilProfile(unittest.TestCase):
             }
         )
         self.profile.title = "Test"
+
+    def test_layerthickness(self):
+        self.profile.calculate_layerthickness()
+        self.assertEqual(
+            self.profile.loc[1, "Layer thickness [m]"], 4
+        )
+
+    def test_layercenter(self):
+        self.profile.calculate_center()
+        self.assertEqual(
+            self.profile.loc[1, "Depth center [m]"], 3
+        )
 
     def test_wrong_layering(self):
         self.assertRaises(IOError, sp.SoilProfile, ({
@@ -59,6 +72,17 @@ class Test_SoilProfile(unittest.TestCase):
             'qc from [MPa]': [1, 3, 10, 40],
             'qc to [MPa]': [1, 3, 10, 40]
         })
+
+    def test_calculate_parameter_center(self):
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'qc from [MPa]': [1, 3, 10, 40],
+            'qc to [MPa]': [1, 3, 10, 40]
+        })
+        profile.calculate_parameter_center('qc [MPa]')
+        self.assertEqual(profile.loc[2, 'qc center [MPa]'], 10)
 
     def test_profile_creation(self):
         self.assertEqual(self.profile.max_depth, 20)

@@ -1,7 +1,7 @@
 v0.3.0, <datetobeconfirmed> -- End of 2020 update
     - Shallow foundation envelope calculations
     - Shallow foundation capacity tutorial
-    - TODO Settlement tutorial
+    - Added Settlement tutorial
     - Added permeability calculation according to Hazen (1892)
     - Added correlation between plasticity index and friction angle according to Terzaghi, Peck and Mesri (1996)
     - Added functionality for converting Pandas dataframes into SoilProfile objects

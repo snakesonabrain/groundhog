@@ -331,3 +331,15 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertAlmostEqual(
             profile.loc[2, 'Liquefaction probability to [pct]'], 27, 0
         )
+
+    def test_profile_from_dataframe(self):
+        """
+        Check whether a SoilProfile is correctly created from a dataframe, even when the index does not start at 0
+        :return:
+        """
+        df = pd.DataFrame({
+            'Depth from [m]': [-2, 0, 2, 4],
+            'Depth to [m]': [0, 2, 4, 6],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'CLAY']
+        })
+        sp.profile_from_dataframe(df[1:])

@@ -652,7 +652,10 @@ class PCPTProcessing(object):
 
     # region Layer-based processing and correction
 
-    def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES, vertical_total_stress=None, vertical_effective_stress=None, waterlevel=0):
+    def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES,
+                       initial_vertical_total_stress=0,
+                       vertical_total_stress=None,
+                       vertical_effective_stress=None, waterlevel=0):
         """
         Maps the soil properties defined in the layering and the cone properties to the grid
         defined by the cone data. The procedure also calculates the total and effective vertical stress.
@@ -661,6 +664,7 @@ class PCPTProcessing(object):
 
         :param layer_profile: ``SoilProfile`` object with the layer properties (need to contain the soil parameter ``Total unit weight [kN/m3]``
         :param cone_profile: ``SoilProfile`` object with the cone properties (default=``DEFAULT_CONE_PROPERTIES``)
+        :param initial_vertical_total_stress: Initial vertical total stress at the highest point of the soil profile
         :param vertical_total_stress: Pre-calculated total vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param vertical_effective_stress: Pre-calculated effective vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param map_cone: Boolean determining whether cone properties need to be mapped or not (default=True)

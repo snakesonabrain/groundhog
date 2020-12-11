@@ -1,3 +1,7 @@
+v0.4.0, Date TBC -- 2021 New Year's release
+    - Added a module for dynamic soil properties to soildynamics
+    - Bugfix for SoilProfile from dataframe
+
 v0.3.0, 14 November 2020 -- End of 2020 update
     - Shallow foundation envelope calculations
     - Shallow foundation capacity tutorial

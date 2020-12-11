@@ -677,6 +677,22 @@ class PCPTProcessing(object):
         if 'Total unit weight [kN/m3]' not in layer_profile.numerical_soil_parameters():
             raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
 
+        # Validate that cone property boundaries fully contain the CPT info
+        for _profiletype, _profile in zip(("Layering", "Cone properties"), (layer_profile, cone_profile)):
+            # Validate that layer boundaries fully contain the CPT info
+            if _profile.min_depth > self.data['z [m]'].min():
+                raise ValueError(
+                    "%s starts below minimum CPT depth. " % _profiletype +
+                    "Ensure that layering fully contains CPT data (%.2fm - %.2fm)" % (
+                        self.data['z [m]'].min(), self.data['z [m]'].max()
+                    ))
+            if _profile.max_depth < self.data['z [m]'].max():
+                raise ValueError(
+                    "%s ends above minimum CPT depth. " % _profiletype +
+                    "Ensure that layering fully contains CPT data (%.2fm - %.2fm)" % (
+                        self.data['z [m]'].min(), self.data['z [m]'].max()
+                    ))
+
         # Map cone properties
         _mapped_cone_props = cone_profile.map_soilprofile(self.data['z [m]'])
 
@@ -693,9 +709,9 @@ class PCPTProcessing(object):
         if vertical_total_stress is None:
             # Calculate vertical total stress
             self.data["Vertical total stress [kPa]"] = np.append(
-                0,
+                initial_vertical_total_stress,
                 (np.array(self.data["z [m]"].diff()[1:]) *
-                 np.array(self.data["Total unit weight [kN/m3]"][0:-1])).cumsum())
+                 np.array(self.data["Total unit weight [kN/m3]"][0:-1])).cumsum() + initial_vertical_total_stress)
         else:
             self.data["Vertical total stress [kPa]"] = vertical_total_stress
 

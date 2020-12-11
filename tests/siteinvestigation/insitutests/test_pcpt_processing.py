@@ -60,6 +60,82 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
         )
 
+    def test_pcpt_mapping_nonzero_initial_stress(self):
+        """
+        Test mapping of soil and cone properties to the PCPT grid
+        :return:
+        """
+        # Create layering
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 20],
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        self.test_pandas_pcpt_creation()
+        self.pandas_pcpt.map_properties(layer_profile=layers, initial_vertical_total_stress=100)
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[206, "area ratio [-]"], 0.8, 1
+        )
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[206, "Water pressure [kPa]"], 42.23, 2
+        )
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 131.51, 2
+        )
+        self.assertEqual(
+            self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
+        )
+
+    def test_pcpt_mapping_errors(self):
+        """
+        Test mapping of soil and cone properties to the PCPT grid
+        :return:
+        """
+        # Create layering
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 16], # PCPT data exceeds max depth
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        self.test_pandas_pcpt_creation()
+        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers)
+
+        layers = SoilProfile({
+            "Depth from [m]": [1, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 20], # PCPT data exceeds max depth
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        self.test_pandas_pcpt_creation()
+        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers)
+
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 20], # PCPT data exceeds max depth
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        self.test_pandas_pcpt_creation()
+        self.pandas_pcpt.map_properties(layer_profile=layers)
+
+        cone_props = pcpt_processing.DEFAULT_CONE_PROPERTIES
+
+        cone_props.loc[0, "Depth from [m]"] = 1
+        self.test_pandas_pcpt_creation()
+        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers, cone_props)
+
+        cone_props.loc[0, "Depth from [m]"] = 0
+        cone_props.loc[0, "Depth to [m]"] = 18
+        self.test_pandas_pcpt_creation()
+        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers, cone_props)
+
+        cone_props.loc[0, "Depth to [m]"] = 20
+        self.test_pandas_pcpt_creation()
+        self.pandas_pcpt.map_properties(layer_profile=layers)
+
+
     def test_pcpt_normalisation(self):
         """
         Test normalisation of the PCPT data

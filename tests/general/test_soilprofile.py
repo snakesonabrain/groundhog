@@ -187,6 +187,7 @@ class Test_SoilProfile(unittest.TestCase):
             values=[10, 11, 12, 13],
             linearvariation=True
         )
+        print(self.profile)
         self.assertAlmostEqual(self.profile.loc[2, "Su from [kPa]"], 9, 4)
         self.assertAlmostEqual(self.profile.loc[2, "Su to [kPa]"], 14, 4)
         # TODO: Check linear variation with min and max rule

@@ -46,6 +46,13 @@ Installation is easily done using pip:
 
    pip install groundhog
 
+Support groundhog
+------------------
+
+.. raw:: html
+
+   <a href="https://www.buymeacoffee.com/groundhog"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
+
 Tutorials
 ----------
 

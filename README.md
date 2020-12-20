@@ -5,6 +5,8 @@ Groundhog - A general-purpose geotechnical package
 
 ![alt text][logo]
 
+
+
 [logo]: groundhog_banner_wide.png "Logo Title Text 2"
 
 This Python package contains useful functionality for supporting automated geotechnical calculations.
@@ -37,11 +39,15 @@ pip install groundhog
 ```
 
 
-Copyright (c) 2017-2020, Bruno Stuyts
-All rights reserved.
+Support groundhog
+-------------------
 
-License
---------
+You can support the development of groundhog by buying me a coffee
+
+<a href="https://www.buymeacoffee.com/groundhog"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
+
+License and copyright
+-----------------------
 
 groundhog is provided under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Please check the license terms below and in the license file.
 
@@ -60,6 +66,9 @@ are permitted provided that the following conditions are met:
   this software without specific prior written permission.
   
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
+
+Copyright (c) 2017-2020, Bruno Stuyts
+All rights reserved.
 
 Disclaimer
 -------------

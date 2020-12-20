@@ -109,3 +109,51 @@ def modulusreduction_plasticity_ishibashi(
         'n [-]': _n,
         'dampingratio [pct]': _damping,
     }
+
+
+GMAX_SHEARWAVEVELOCTY = {
+    'Vs': {'type': 'float', 'min_value': 0.0, 'max_value': 600.0},
+    'gamma': {'type': 'float', 'min_value': 12.0, 'max_value': 22.0},
+    'g': {'type': 'float', 'min_value': 9.7, 'max_value': 10.2},
+}
+
+GMAX_SHEARWAVEVELOCTY_ERRORRETURN = {
+    'rho [kg/m3]': np.nan,
+    'Gmax [kPa]': np.nan,
+}
+
+
+@Validator(GMAX_SHEARWAVEVELOCTY, GMAX_SHEARWAVEVELOCTY_ERRORRETURN)
+def gmax_shearwavevelocty(
+        Vs, gamma,
+        g=9.81, **kwargs):
+    """
+    Calculates the small-strain shear modulus (shear strain < 1e-4%) from the shear wave velocity and the bulk unit weight if the soil based on elastic theory.
+
+    Often, the result of an in-situ or laboratory test will provide the shear wave velocity, which is then converted to the small-strain shear modulus using this function.
+
+    :param Vs: Shear wave velocity (:math:`V_s`) [:math:`m/s`] - Suggested range: 0.0 <= Vs <= 600.0
+    :param gamma: Bulk unit weight (:math:`\\gamma`) [:math:`kN/m3`] - Suggested range: 12.0 <= gamma <= 22.0
+    :param g: Acceleration due to gravity (:math:`g`) [:math:`m/s2`] - Suggested range: 9.7 <= g <= 10.2 (optional, default= 9.81)
+
+    .. math::
+        G_{max} = \\rho \\cdot V_s^2
+
+        \\rho = \\gamma / g
+
+    :returns: Dictionary with the following keys:
+
+        - 'rho [kg/m3]': Density of the material (:math:`\\rho`)  [:math:`kg/m3`]
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
+
+    Reference - Robertson, P.K. and Cabal, K.L. (2015). Guide to Cone Penetration Testing for Geotechnical Engineering. 6th edition. Gregg Drilling & Testing, Inc.
+
+    """
+
+    _rho = 1000 * gamma / g
+    _Gmax = 1e-3 * _rho * (Vs ** 2)
+
+    return {
+        'rho [kg/m3]': _rho,
+        'Gmax [kPa]': _Gmax,
+    }

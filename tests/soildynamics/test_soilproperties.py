@@ -51,3 +51,15 @@ class Test_SoilProperties(unittest.TestCase):
         self.assertAlmostEqual(
             result['dampingratio [pct]'], 1.61, 2
         )
+
+    def test_gmax_shearwavevelocty(self):
+        result = soilproperties.gmax_shearwavevelocty(
+            Vs=200,
+            gamma=19
+        )
+        self.assertAlmostEqual(
+            result['rho [kg/m3]'], 1937, 0
+        )
+        self.assertAlmostEqual(
+            result['Gmax [kPa]'], 77472, 0
+        )

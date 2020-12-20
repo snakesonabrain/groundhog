@@ -37,7 +37,9 @@ DEFAULT_CONE_PROPERTIES = SoilProfile({
     'area ratio [-]': [0.8, ],
     'Cone type': ['U', ],
     'Cone base area [cm2]': [10, ],
-    'Cone sleeve_area [cm2]': [150, ]
+    'Cone sleeve_area [cm2]': [150, ],
+    'Sleeve cross-sectional area top [cm2]': [np.nan,],
+    'Sleeve cross-sectional area bottom [cm2]': [np.nan,]
 })
 
 
@@ -771,6 +773,8 @@ class PCPTProcessing(object):
 
         Note that the absence of pore water pressure measurements will lead to NaN values. Reasoning can be used (e.g. presence of rapidly draining layers) to edit the pore pressure data before running this method.
 
+        The total sleeve friction is also calculated. If the cross-sectional area of the friction sleeve is equal at the top and bottom of the sleeve, a correction is not required. This is the default behaviour (cross-sectional areas equal to NaN) but the areas can be entered to calculate the total sleeve friction.
+
         .. math::
             q_c = q_c^* + d \\cdot a \\cdot \\gamma_w
 
@@ -790,7 +794,9 @@ class PCPTProcessing(object):
 
             q_{net} = q_t - \\sigma_{vo}
 
-        :return: Supplements the PCPT data (`.data`) with the normalised properties (column keys 'qt [MPa]', 'Delta u2 [MPa]', 'Rf [%]', 'Bq [-]', 'Qt [-]', 'Fr [%]', 'qnet [MPa]'
+            f_t = f_s - u_2 \\frac{A_{sb} - A_{st}}{A_s}
+
+        :return: Supplements the PCPT data (`.data`) with the normalised properties (column keys 'qt [MPa]', 'Delta u2 [MPa]', 'Rf [%]', 'Bq [-]', 'Qt [-]', 'Fr [%]', 'qnet [MPa]', 'ft [MPa]'
         """
         try:
             self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
@@ -803,6 +809,16 @@ class PCPTProcessing(object):
             self.data['Fr [%]'] = 100 * self.data['fs [MPa]'] / (
                     self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
             self.data['qnet [MPa]'] = self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]
+            for i, row in self.data.iterrows():
+                try:
+                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
+                        (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+                    )
+                    if np.math.isnan(self.data.loc[i, "ft [MPa]"]):
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+                except:
+                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+
         except Exception as err:
             raise ValueError("Error during calculation of normalised properties."
                              "Review the error message and try again (%s)" % (str(err)))

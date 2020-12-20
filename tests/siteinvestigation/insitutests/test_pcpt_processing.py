@@ -155,6 +155,68 @@ class Test_PCPTProcessing(unittest.TestCase):
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[600, "qnet [MPa]"], 17.2472, 4
         )
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[600, "ft [MPa]"], self.pandas_pcpt.data.loc[600, "fs [MPa]"], 4
+        )
+
+    def test_pcpt_normalisation_withsleeve(self):
+        """
+        Test normalisation of the PCPT data with correction for sleeve
+        :return:
+        """
+
+        # Create layering
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 20],
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        cone_props = SoilProfile({
+            'Depth from [m]': [0, ],
+            'Depth to [m]': [20, ],
+            'area ratio [-]': [0.8, ],
+            'Cone type': ['U', ],
+            'Cone base area [cm2]': [10, ],
+            'Cone sleeve_area [cm2]': [150, ],
+            'Sleeve cross-sectional area top [cm2]': [0.8,],
+            'Sleeve cross-sectional area bottom [cm2]': [1,]
+        })
+        self.test_pandas_pcpt_creation()
+        self.pandas_pcpt.map_properties(layer_profile=layers, cone_profile=cone_props)
+        self.pandas_pcpt.normalise_pcpt()
+
+        self.assertAlmostEqual(
+           self.pandas_pcpt.data.loc[2, 'ft [MPa]'], 0.003 - 0.004 * ((1 - 0.8) / 150), 5
+        )
+
+    def test_pcpt_normalisation_nosleevedata(self):
+        """
+        Test normalisation of the PCPT data with no sleeve dimensions available
+        :return:
+        """
+
+        # Create layering
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 20],
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        cone_props = SoilProfile({
+            'Depth from [m]': [0, ],
+            'Depth to [m]': [20, ],
+            'area ratio [-]': [0.8, ],
+            'Cone type': ['U', ],
+            'Cone base area [cm2]': [10, ],
+        })
+        self.test_pandas_pcpt_creation()
+        self.pandas_pcpt.map_properties(layer_profile=layers, cone_profile=cone_props)
+        self.pandas_pcpt.normalise_pcpt()
+
+        self.assertAlmostEqual(
+           self.pandas_pcpt.data.loc[2, 'ft [MPa]'], self.pandas_pcpt.data.loc[2, 'fs [MPa]'], 5
+        )
 
     def test_pcpt_correlations(self):
         """

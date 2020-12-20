@@ -18,6 +18,7 @@ PCPT_KEY_MAPPING = {
     'fs [MPa]': 'fs',
     'u2 [MPa]': 'u2',
     'qt [MPa]': 'qt',
+    'ft [MPa]': 'ft',
     'qnet [MPa]': 'qnet',
     'Vertical total stress [kPa]': 'sigma_vo',
     'Vertical effective stress [kPa]': 'sigma_vo_eff',
@@ -28,7 +29,9 @@ PCPT_KEY_MAPPING = {
     'Bq [-]': 'Bq',
     'Fr [%]': 'Fr',
     'Rf [%]': 'Rf',
-    'K0 [-]': 'K0'
+    'K0 [-]': 'K0',
+    'Vs [m/s]': 'Vs',
+    'gamma [kN/m3]': 'gamma'
 }
 
 
@@ -948,6 +951,124 @@ def sensitivity_frictionratio_lunne(
         'St HE [-]': _St_HE,
     }
 
+
+UNITWEIGHT_MAYNE = {
+    'ft': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 500.0},
+    'unitweight_water': {'type': 'float', 'min_value': 9.0, 'max_value': 11.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+UNITWEIGHT_MAYNE_ERRORRETURN = {
+    'gamma [kN/m3]': np.nan,
+}
+
+
+@Validator(UNITWEIGHT_MAYNE, UNITWEIGHT_MAYNE_ERRORRETURN)
+def unitweight_mayne(
+        ft, sigma_vo_eff,
+        unitweight_water=10.25, atmospheric_pressure=100.0, coefficient_1=1.95, exponent_1=0.06, exponent_2=0.06,
+        **kwargs):
+    """
+    Estimates the total unit weight for sand, clay and silt from CPT measurements. A correlation with sleeve friction and vertical effective stress showed the best fit across a range of soil types. The correlation does not apply for cemented soils. An error band of +-2kN/m3 seems to encompass the data rather well.
+
+    For the sake of accuracy, the corrected total sleeve friction is used instead of the uncorrected sleeve friction. PCPT normalisation is required before applying the correlation. If sleeve dimensions are not available, the uncorrected sleeve friction will be used.
+
+    :param ft: Total sleeve friction (:math:`f_t`) [:math:`MPa`] - Suggested range: 0.0 <= ft <= 10.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 500.0
+    :param unitweight_water: Unit weight of water (:math:`\\gamma_w`) [:math:`kN/m3`] - Suggested range: 9.0 <= unitweight_water <= 11.0 (optional, default= 10.25)
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param coefficient_1: First coefficient in the calibrated equation (:math:``) [:math:`-`] (optional, default= 1.95)
+    :param exponent_1: First exponent in the calibrated equation (:math:``) [:math:`-`] (optional, default= 0.06)
+    :param exponent_2: Second exponent in the calibrated equation (:math:``) [:math:`-`] (optional, default= 0.06)
+
+    .. math::
+        \\gamma = 1.95 \\cdot \\gamma_w \\cdot \\left( \\frac{\\sigma_{vo}^{\\prime}}{P_a} \\right)^{0.06} \\cdot \\left( \\frac{f_t}{P_a} \\right)^{0.06}
+
+    :returns: Dictionary with the following keys:
+
+        - 'gamma [kN/m3]': Total unit weight (:math:`\\gamma`)  [:math:`kN/m3`]
+
+    .. figure:: images/unitweight_mayne_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Calibration with soil data used
+
+    Reference - P.W. Mayne ; J. Peuchen ; D. Bouwmeester (2010). Soil unit weight estimation from CPTs - 2nd International Symposium on Cone Penetration Testing, Huntington Beach, CA, USA. Volume 2&3: Technical Papers, Session 2: Interpretation, Paper No. 5
+
+    """
+
+    _gamma = coefficient_1 * unitweight_water * \
+             ((1000 * ft / atmospheric_pressure) ** exponent_1) * \
+             ((sigma_vo_eff / atmospheric_pressure) ** exponent_2)
+
+    return {
+        'gamma [kN/m3]': _gamma,
+    }
+
+
+VS_IC_ROBERTSONCABAL = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 4.0},
+    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 800.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_IC_ROBERTSONCABAL_ERRORRETURN = {
+    'alpha_vs [-]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+
+@Validator(VS_IC_ROBERTSONCABAL, VS_IC_ROBERTSONCABAL_ERRORRETURN)
+def vs_ic_robertsoncabal(
+        qt, ic, sigma_vo,
+        atmospheric_pressure=100.0, exponent=0.5, calibration_coefficient_1=0.55, calibration_coefficient_2=1.68,
+        **kwargs):
+    """
+    Calculates shear wave velocity based on a correlation with total cone resistance and soil behaviour type index. Shear wave velocity is sensitive to age and cementation, where older deposits of the same soil have higher shear wave velocity (i.e. higher stiffness) than younger deposits. The correlation is based on measured shear wave velocity data for uncemented Holocene to Pleistocene age soils.
+
+    Unfortunately, no plots on the background data to the calibrated equation are available.
+
+    :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param ic: Soil behaviour type index according to Robertson and Wride (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 4.0
+    :param sigma_vo: Total vertical stress (:math:`sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 800.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param exponent: Exponent in equation for shear wave velocity (:math:``) [:math:`-`] (optional, default= 0.5)
+    :param calibration_coefficient_1: First calibration coefficient in equation for alpha_s (:math:``) [:math:`-`] (optional, default= 0.55)
+    :param calibration_coefficient_2: Second calibration coefficient in equation for alpha_s (:math:``) [:math:`-`] (optional, default= 1.68)
+
+    .. math::
+        V_s = \\left[ \\alpha_{vs} (q_t - \\sigma_{vo}) / P_a \\right]^{0.5}
+
+        \\alpha_{vs} = 10^{0.55 \\cdot I_c + 1.68}
+
+    :returns: Dictionary with the following keys:
+
+        - 'alpha_vs [-]': Coefficient to the shear wave velocity calculation, capturing the influence of the soil behaviour (:math:`\\alpha_{vs}`)  [:math:`-`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    Reference - Robertson, P.K. and Cabal, K.L. (2015). Guide to Cone Penetration Testing for Geotechnical Engineering. 6th edition. Gregg Drilling & Testing, Inc.
+
+    """
+
+    _alpha_vs = 10 ** (calibration_coefficient_1 * ic + calibration_coefficient_2)
+    _Vs = (_alpha_vs * ((1000 * qt - sigma_vo) / atmospheric_pressure)) ** exponent
+
+    return {
+        'alpha_vs [-]': _alpha_vs,
+        'Vs [m/s]': _Vs,
+    }
+
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Gmax Rix and Stokoe (1991)': gmax_sand_rixstokoe,
@@ -959,5 +1080,7 @@ CORRELATIONS = {
     'Su Rad and Lunne (1988)': undrainedshearstrength_clay_radlunne,
     'Friction angle Kleven (1986)': frictionangle_overburden_kleven,
     'OCR Lunne (1989)': ocr_cpt_lunne,
-    'Sensitivity Rad and Lunne (1986)': sensitivity_frictionratio_lunne
+    'Sensitivity Rad and Lunne (1986)': sensitivity_frictionratio_lunne,
+    'Unit weight Mayne et al (2010)': unitweight_mayne,
+    'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal
 }

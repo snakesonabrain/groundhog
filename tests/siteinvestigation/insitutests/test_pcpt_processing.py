@@ -246,3 +246,43 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[605, "Gmax sand [kPa]"], 107283, 0
         )
 
+class Test_GEFReading(unittest.TestCase):
+
+    def test_longfile_reading(self):
+        """
+        Test reading the long file from the CUR guide
+        """
+        filename = os.path.join(TESTS_DATA_DIR, 'gef_file_long.gef')
+        self.gef_cpt = pcpt_processing.PCPTProcessing(title="GEF long")
+
+        self.gef_cpt.load_gef(path=filename, inverse_depths=True)
+        self.assertEqual(self.gef_cpt.data.loc[1, "qc [MPa]"], 0.382)
+        self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 57.64)
+        self.assertEqual(self.gef_cpt.easting, 12.345)
+        self.assertEqual(self.gef_cpt.elevation, 40.03)
+        self.assertEqual(self.gef_cpt.title, 'C2-366')
+
+
+    def test_shortfile_reading(self):
+        """
+        Test reading the short file from the CUR guide
+        """
+        filename = os.path.join(TESTS_DATA_DIR, 'gef_file_short.gef')
+        self.gef_cpt = pcpt_processing.PCPTProcessing(title="GEF short")
+
+        self.gef_cpt.load_gef(path=filename, inverse_depths=True)
+        self.assertEqual(self.gef_cpt.data.loc[1, "qc [MPa]"], 0.205)
+        self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 25.08)
+        self.assertEqual(self.gef_cpt.title, 'C2-265')
+
+    def test_realexample_reading(self):
+        """
+        Test reading a real file from dov.vlaanderen.be
+        """
+        filename = os.path.join(TESTS_DATA_DIR, 'gef_real_example.gef')
+        self.gef_cpt = pcpt_processing.PCPTProcessing(title="GEF real")
+
+        self.gef_cpt.load_gef(path=filename)
+        self.assertEqual(self.gef_cpt.data.loc[2, "qc [MPa]"], 1.1)
+        self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 7.4)
+        self.assertEqual(self.gef_cpt.title, 'GEO-52/1143-S3')

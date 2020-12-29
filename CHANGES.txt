@@ -6,6 +6,8 @@ v0.4.0, Date TBC -- 2021 New Year's release
     - Added correlation of Mayne et al (2010) for unit weight from sleeve friction
     - Added correlation of Robertson and Cabal (2015) for shear wave velocity from cone resistance and soil behaviour type index
     - Added formula to convert shear wave velocity and density to small-strain shear modulus
+    - GEF file import for PCPT processing
+    - TODO: Cyclic interaction diagrams from Andersen (2015)
 
 v0.3.0, 14 November 2020 -- End of 2020 update
     - Shallow foundation envelope calculations

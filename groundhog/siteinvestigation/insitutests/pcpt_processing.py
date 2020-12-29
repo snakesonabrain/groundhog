@@ -42,6 +42,28 @@ DEFAULT_CONE_PROPERTIES = SoilProfile({
     'Sleeve cross-sectional area bottom [cm2]': [np.nan,]
 })
 
+GEF_COLINFO = {
+    '1': 'z [m]',
+    '2': 'qc [MPa]',
+    '3': 'fs [MPa]',
+    '4': 'Rf [%]',
+    '5': 'u1 [MPa]',
+    '6': 'u2 [MPa]',
+    '7': 'u3 [MPa]',
+    '8': 'incl [deg]',
+    '9': 'incl N-S [deg]',
+    '10': 'incl E-W [deg]',
+    '11': 'z corrected [m]',
+    '12': 'time [s]',
+    '13': 'qt [MPa]',
+    '14': 'qn [MPa]',
+    '15': 'Bq [-]',
+    '16': 'Nm [-]',
+    '17': 'gamma [kN/m3]',
+    '18': 'u0 [MPa]',
+    '19': 'sigma_vo [MPa]',
+    '20': 'sigma_vo_eff [MPa]'
+}
 
 class PCPTProcessing(object):
     """
@@ -51,9 +73,9 @@ class PCPTProcessing(object):
 
     def __init__(self, title, waterunitweight=10.25):
         """
-        Initialises a PCPTProcessing object based on a title. Optionally, a geographical position can be defined.
+        Initialises a PCPTProcessing object based on a title. Optionally, a geographical position can be defined. A dictionary for dumping unstructured data (``additionaldata``) is also available.
 
-        An empty dataframe (`.data`) is created for storing the PCPT data
+        An empty dataframe (``.data`) is created for storing the PCPT data`
 
         :param title: Title for the PCPT test
         :param waterunitweight: Unit weight of water used for effective stress calculations (default=10.25kN/m3 for seawater)
@@ -63,6 +85,7 @@ class PCPTProcessing(object):
         self.data = pd.DataFrame()
         self.downhole_corrected = False
         self.waterunitweight=waterunitweight
+        self.additionaldata = dict()
 
     # region Utility functions
 
@@ -99,7 +122,10 @@ class PCPTProcessing(object):
         self.data.reset_index(drop=True, inplace=True)
 
     def dropna_rows(self):
-        self.data.dropna(subset=('z [m]', 'qc [MPa]', 'fs [MPa]', 'u2 [MPa]'), how='all', inplace=True)
+        try:
+            self.data.dropna(subset=('z [m]', 'qc [MPa]', 'fs [MPa]', 'u2 [MPa]'), how='all', inplace=True)
+        except:
+            self.data.dropna(how='all', inplace=True)
 
     # endregion
 
@@ -282,17 +308,19 @@ class PCPTProcessing(object):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-    def load_gef(self, path, headers, skiprows=None,
+    def load_gef(self, path, inverse_depths=False, override_title=True,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
-        Reads PCPT data from a Uniplot .asc file
-        The widths of the columns for the .asc file need to be specified.
+        Reads PCPT data from a Geotechnical Exchange Format (.gef) file.
+        The file is parsed using regular expressions to provide the necessary data.
+        If location data is provided, this data is also
+
+        https://publicwiki.deltares.nl/download/attachments/102204314/GEFCR100.pdf?version=1&modificationDate=1411129283000&api=v2
 
         :param path: Path to the .asc file
-        :param column_widths: Column widths to use for the import (compulsory)
-        :param headers: Column headers to be used (compulsory)
-        :param skiprows: Number of rows to skip (optional, default=None for auto-detection, depends on the occurence of 'Data table' in the file)
+        :param inverse_depths: Boolean indicating whether depths need to be inverted. A positive downward z-axis is expected.
+        :param override_title: Boolean indicating if the title specified needs to be replaced by the test id (default = True).
         :param z_key: Column key for depth. Optional, default=None when 'z [m]' is the column key.
         :param qc_key: Column key for cone tip resistance. Optional, default=None when 'qc [MPa]' is the column key.
         :param fs_key: Column key for sleeve friction. Optional, default=None when 'fs [MPa]' is the column key.
@@ -302,34 +330,166 @@ class PCPTProcessing(object):
         :param fs_multiplier: Multiplier applied on sleeve friction to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param u2_multiplier: Multiplier applied on pore pressure at shoulder to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param add_zero_row: Boolean determining whether a datapoint needs to be added at zero depth.
-        :param kwargs: Optional keyword arguments for reading the datafile
+        :param kwargs: Optional keyword arguments for reading the datafile (using ``read_csv`` from Pandas)
         :return:
         """
 
-        # Automatic detection of the number of rows to skip
-        if skiprows is None:
-            with open(path, 'rb') as f:
-                raw_file = pd.DataFrame(f.readlines(), columns=["GEF lines"])
-            # Find the line where the data starts
-            start_line = raw_file[raw_file["GEF lines"].str.contains(b'#EOH=')]
-            skiprows = start_line.index[0] + 1
-        else:
-            skiprows = skiprows
+        # Regular expression setup
+        colno_pattern = re.compile(r'#COLUMN\s*=\s*(?P<colno>\d+)')
+        colinfo_pattern = re.compile(
+            r'#COLUMNINFO\s*=\s*(?P<colno>\d+)\s*,\s*(?P<units>.+)\s*,\s*(?P<title>.+)\s*,\s*(?P<quantity>\d+)\s*')
+        separator_pattern = re.compile(r'#COLUMNSEPARATOR\s*=\s*(?P<separator>.)')
+        test_id_pattern = re.compile(r'#TESTID\s*=\s*(?P<test_id>.*)')
+        xy_id_pattern = re.compile(
+            r'#XYID\s*=\s*(?P<coordsys>\d*)\s*,\s*(?P<X>\d*.?\d*)\s*,' +
+            '\s*(?P<Y>\d*.?\d*)\s*,\s*(?P<dX>\d*.?\d*)\s*,\s*(?P<dY>\d*.?\d*)\s*')
+        z_id_pattern = re.compile(r'#ZID\s*=\s*(?P<datum>\d*)\s*,\s*(?P<Z>\d*.?\d*)\s*,\s*(?P<dZ>\d*.?\d*)\s*')
+        measurementtext_pattern = re.compile(r'#MEASUREMENTTEXT\s*=\s*(?P<number>\d*)\s*,\s*(?P<text>.*)')
+        measurementvalue_pattern = re.compile(
+            r'#MEASUREMENTVAR\s*=\s*(?P<number>\d*)\s*,\s*(?P<value>\d*.\d*)\s*,\s*(?P<unit>.*)\s*,\s*(?P<text>.*)\s*')
+        voidvalue_pattern = re.compile(r'#COLUMNVOID\s*=\s*(?P<colno>\d+)\s*,\s*(?P<voidvalue>-*\d*.\d*)')
 
-        # Read the data
+        # Read the raw data
+        with open(path) as f:
+            gef_raw = pd.DataFrame(f.readlines(), columns=["GEF lines"])
+
+        # Process the header
+        colinfo_dict = dict()
+        measurementtext_dict = dict()
+        measurementvalue_dict = dict()
+        voidvalue_dict = dict()
+
+        separator = ' '
+        test_id = None
+        easting = None
+        northing = None
+        srid = None
+        dx = None
+        dy = None
+        z = None
+        dz = None
+        datum = None
+
+
+        for i, row in gef_raw.iterrows():
+            try:
+                match = re.search(colno_pattern, row['GEF lines'])
+                colno = match.group('colno')
+            except:
+                pass
+
+            try:
+                match = re.search(colinfo_pattern, row['GEF lines'])
+                colinfo_dict[match.group('colno')] = dict(units=match.group('units'), title=match.group('title'),
+                                                          quantity=match.group('quantity'))
+            except:
+                pass
+
+            try:
+                match = re.search(voidvalue_pattern, row['GEF lines'])
+                voidvalue_dict[match.group('colno')] = match.group('voidvalue')
+            except:
+                pass
+
+            try:
+                match = re.search(separator_pattern, row['GEF lines'])
+                separator = match.group('separator')
+            except:
+                pass
+
+            try:
+                match = re.search(test_id_pattern, row['GEF lines'])
+                test_id = match.group('test_id')
+            except:
+                pass
+
+            try:
+                match = re.search(xy_id_pattern, row['GEF lines'])
+                easting = float(match.group('X'))
+                northing = float(match.group('Y'))
+                srid = match.group('coordsys')
+                dx = float(match.group('dX'))
+                dy = float(match.group('dY'))
+            except:
+                pass
+
+            try:
+                match = re.search(z_id_pattern, row['GEF lines'])
+                z = float(match.group('Z'))
+                dz = float(match.group('dZ'))
+                datum = match.group('datum')
+            except:
+                pass
+
+            try:
+                match = re.search(measurementtext_pattern, row['GEF lines'])
+                measurementtext_dict[match.group('number')] = dict(text=match.group('text'))
+            except:
+                pass
+
+            try:
+                match = re.search(measurementvalue_pattern, row['GEF lines'])
+                measurementvalue_dict[match.group('number')] = dict(
+                    value=float(match.group('value')),
+                    unit=match.group('unit'),
+                    text=match.group('text'))
+            except:
+                pass
+
+        # Detect the start of the file
+        indices = gef_raw[gef_raw["GEF lines"].str.startswith('#EOH')].index
+
+        # Define column keys
+        keys = []
+        for key, value in colinfo_dict.items():
+            try:
+                keys.append(GEF_COLINFO[value['quantity']])
+            except:
+                keys.append('%s [%s]' % (value['title'], value['units']))
+
+        # Read data
         self.data = pd.read_csv(
-            path,
-            names=headers,
-            skiprows=skiprows,
-            delimiter=' ',
-            **kwargs)
+            path, sep=separator, skiprows=indices[0]+1, names=keys, index_col=False,
+            na_values=voidvalue_dict.values(), **kwargs)
+
+        # Dump additional data
+        self.additionaldata = {
+            "Measurement text": measurementtext_dict,
+            "Measurement var": measurementvalue_dict
+        }
+
+        # Inverse depth column
+        if inverse_depths:
+            self.data['z [m]'] = -self.data['z [m]']
+
+        # Coordinates
+        if (not easting is None) and (not northing is None) and (not datum is None):
+            self.set_position(
+                easting=easting,
+                northing=northing,
+                srid=srid,
+                elevation=z,
+                datum=datum
+            )
+
+        # Set title
+        if override_title and test_id is not None:
+            self.title = test_id.strip()
 
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
         if push_key is None:
             self.data.loc[:, "Push"] = 1
-        self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
-        self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
+        try:
+            self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
+        except Exception as err:
+            warnings.warn(
+                "Conversion of column names unsuccessful. Review imported data (Error message %s)" % str(err))
+        try:
+            self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
+        except Exception as err:
+            warnings.warn(
+                "Application of column multipliers unsuccessful. Review imported data (Error message %s)" % str(err))
 
         if self.data["z [m]"].min() != 0 and add_zero_row:
             # Append a row with zero data for vertical effective stress calculation

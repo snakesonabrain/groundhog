@@ -1,0 +1,124 @@
+#GEFID = 1,0,0
+#COLUMN = 11
+#COLUMNINFO = 1, m, penetration length, 1
+#COLUMNINFO = 2, MPa, Cone value, 2
+#COLUMNINFO = 3, MPa, Friction, 3
+#COLUMNINFO = 4, MPa, Pore pressure u2, 6
+#COLUMNINFO = 5, degrees, Inclination NS, 9
+#COLUMNINFO = 6, degrees, Inclination EW, 10
+#COLUMNINFO = 7, m, corrected depth, 11
+#COLUMNINFO = 8, MPa, corrected cone value, 13
+#COLUMNINFO = 9, %, friction number, 4
+#COLUMNINFO = 10, s, time, 12
+#COLUMNINFO = 11, MPa, excess pore pressure, 15
+#COLUMNMINMAX = 1, -57.68, -1.52
+#COLUMNMINMAX = 2, 0.33, 61.12
+#COLUMNMINMAX = 3, 0.000, 1.324
+#COLUMNMINMAX = 4, -0.064, 2.060
+#COLUMNMINMAX = 5, 0.02, 9.25
+#COLUMNMINMAX = 6, .04, 8.41
+#COLUMNMINMAX = 7, -57.52, -1.52
+#COLUMNMINMAX = 8, -0.522, 60.892
+#COLUMNMINMAX = 9, -0.164, 119.189
+#COLUMNMINMAX = 10, 1, 3995
+#COLUMNMINMAX = 11, -0.557, 1.511
+#COLUMNSEPARATOR = :
+#COLUMNTEXT = 1, on
+#COLUMNVOID = 1, -99999
+#COLUMNVOID = 2, -99999
+#COLUMNVOID = 3, -99999
+#COLUMNVOID = 4, -99999
+#COLUMNVOID = 5, -99999
+#COLUMNVOID = 6, -99999
+#COLUMNVOID = 7, -99999
+#COLUMNVOID = 8, -99999
+#COLUMNVOID = 9, -99999
+#COLUMNVOID = 10, -99999
+#COLUMNVOID = 11, -99999
+#COMPANYID = CPT bv, Sondeerburg, 31
+#DATAFORMAT = ASCII
+#FILEDATE = 1998, 02, 29
+#FILEOWNER = W.A. van Buuren
+#LASTSCAN = 2808
+#MEASUREMENTTEXT = 1, NS, client
+#MEASUREMENTTEXT = 2, HSL-line, project name
+#MEASUREMENTTEXT = 3, Franeker, name of location
+#MEASUREMENTTEXT = 4, C5W1-007, cone type and serial number
+#MEASUREMENTTEXT = 5, Ballast wagon 18; 25 tons: no anchoring
+#MEASUREMENTTEXT = 6, NEN 5140 class 1, applied standard
+#MEASUREMENTTEXT = 7, Measured to the N corner of the lighthouses, coordinate
+system
+#MEASUREMENTTEXT = 8, Measured to the upper side of electric fencing pole,
+Reference level
+#MEASUREMENTTEXT = 9, ground level, fixed horizontal .level
+#MEASUREMENTTEXT = 10, lighthouses, N-direction inclinometer
+#MEASUREMENTTEXT = 11, Torrential rain, Unusual circumstances
+#MEASUREMENTTEXT = 20, Zero drift of the cone elements remains within the norm
+therefore no correction, Correction method
+#MEASUREMENTTEXT = 21, No special processing used, method of processing
+interruptions
+#MEASUREMENTTEXT = 22, At 12.25 m a thin gravel layer, remarks
+#MEASUREMENTTEXT = 30, The corrected cone value is corrected according to “Soil
+Characterisation by In Situ Tests” 1998-01-05 sect 2.16.
+#MEASUREMENTTEXT = 31, Excess pore pressure dU = U – U0 where U0 is the
+groundwater level at that place
+#MEASUREMENTVAR = 1, 1000, mm2
+, Nom. surface are cone tip
+#MEASUREMENTVAR = 2, 1500, mm2
+, Nom. surface area friction element
+#MEASUREMENTVAR = 3, 0.62, -, Net surface area quotient of the cone tip
+#MEASUREMENTVAR = 4, 1.0, -, Net surface area quotient of the friction casing
+#MEASUREMENTVAR = 5, 100, distance between cone and centre of friction casing
+#MEASUREMENTVAR = 6, 1, -, Friction present
+#MEASUREMENTVAR = 7, 0, -, PPT u1 present
+#MEASUREMENTVAR = 8, 1, -, PPT u2 present
+#MEASUREMENTVAR = 9, 0, -, PPT u3 present
+#MEASUREMENTVAR = 10, 1, -, inclination measurement present
+#MEASUREMENTVAR = 11, 1, -, use of back-flow compensator
+#MEASUREMENTVAR = 12, 0, electronic cone penetration test
+#MEASUREMENTVAR = 13, 1.50, m, pre-excavated depth
+#MEASUREMENTVAR = 14, 0.10, m, groundwater level
+#MEASUREMENTVAR = 16, 57.68, m, End depth of probe
+#MEASUREMENTVAR = 17, 6, -, Stop criteria: obstacle
+#MEASUREMENTVAR = 20, 0.000, MPa, zero measurement before penetration test
+#MEASUREMENTVAR = 21, -0.001, MPa, zero measurement after penetration test,
+#MEASUREMENTVAR = 22, 0.0000, MPa, zero measurement friction before penetration
+test
+#MEASUREMENTVAR = 23, 0.0002, MPa, zero measurement friction after penetration
+test
+#MEASUREMENTVAR = 26, 0.0000, MPa, zero measurement PPT u2 before penetr. test
+#MEASUREMENTVAR = 27, 0.0003, MPa, zero measurement PPT u2 after penetr. test
+#MEASUREMENTVAR = 32, 0.01, gr, zero measurement inclination NS before penetr.
+test
+#MEASUREMENTVAR = 33, -.02, gr, zero measurement inclination NS after penetr. test
+#MEASUREMENTVAR = 34, 0.01, gr, zero measurement inclination EW before penetr.
+test
+#MEASUREMENTVAR = 35, 0.03, gr, zero measurement inclination EW after penetr. test
+#PROCEDURECODE = GEF-CPT-Report, 1,0,0
+#PROJECTID = CT, 380731, 02
+#RECORDSEPARATOR = !
+#REPORTDATAFORMAT = F7.2 F7.3 F8.4 F8.4 F5.1 F5.1 F9.2 F9.3 F6.2 I6 F7.2
+#SPECIMENVAR = 1, 0.00, m, 15 = pure peat
+#SPECIMENVAR = 2, 0.40, m, 10 = sand clayish
+#SPECIMENVAR = 3, 0.80, m, 20 = gravel silty
+#SPECIMENVAR = 4, 1.30, m, 15 = pure peat
+#STARTDATE = 1998, 02, 01
+#STARTTIME = 10, 03, 59
+#STRUCTURETEXT = COLUMNINFO, column number in data block, unit, quantity,
+quantity-number
+#STRUCTURETYPE = COLUMNINFO, integer, string, string, integer
+#TESTID = C2-366
+#XYID = 0, 12.345, 6.7890, 0, 0
+#ZID = 0, 40.03, 0
+#EOH =
+-1.52:0.382:0.0127:-0.0021:0.2:0.4:-1.52:0.384:3.32:1:-0.02:!
+-1.54:0.382:0.0137:0.0045:0.2:0.4:-1.54:0.379:3.59:2:-0.01:!
+-1.56:0.375:0.0151:0.0126:0.3:0.3:-1.56:0.366:4.03:3:0.00:!
+-1.58:0.375:0.0164:0.0191:0.2:0.4:-1.58:0.361:4.37:4:0.00:example commentary text 1!
+-1.60:0.414:0.0169:0.0051:0.3:0.4:-1.59:0.410:4.08:5:-0.01:!
+-57.54:21.648:0.3706:0.0407:8.6:5.2:-57.39:21.619:1.71:3987:-0.53:!
+-57.56:18.683:0.369:0.1252:8.6:5.1:-57.41:18.593:1.98:3988:-0.45:!
+-57.58:16.735:0.3643:0.2507:8.6:5.2:-57.43:16.554:2.18:3989:-0.33:!
+-57.60:15.499:0.3722:0.4095:8.5:5.2:-57.45:15.204:2.40:3990:-0.17:example commentary text 2!
+-57.62:16.239:0.386:0.5281:8.5:5.2:-57.47:15.859:2.38:4438:-0.05:!
+-57.64:18.495:0.3914:0.5549:8.5:5.1:-57.48:18.095:2.12:4440:-0.02:!

@@ -659,3 +659,210 @@ def plotcycliccontours_triaxialclay_andersen():
 
     return fig
 
+
+# Shear strain DSS
+
+
+STRAINACCUMULATION_DSSCLAY_ANDERSEN = {
+    'cyclic_shear_stress': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'undrained_shear_strength': {'type': 'float', 'min_value': 1.0, 'max_value': 100.0},
+    'cycle_no': {'type': 'int', 'min_value': 1.0, 'max_value': 1500.0},
+}
+
+STRAINACCUMULATION_DSSCLAY_ANDERSEN_ERRORRETURN = {
+    'cyclic strain [%]': np.nan,
+    'shear strains interpolation [%]': None,
+    'shearstress ratios interpolation [-]': None,
+}
+
+
+@Validator(STRAINACCUMULATION_DSSCLAY_ANDERSEN, STRAINACCUMULATION_DSSCLAY_ANDERSEN_ERRORRETURN)
+def strainaccumulation_dssclay_andersen(
+        cyclic_shear_stress, undrained_shear_strength, cycle_no,
+        **kwargs):
+    """
+    Calculates the strain accumulation for a normally consolidated clay sample under symmetrical cyclic loading (no average shear stress) in a DSS test. The contours are based on cyclic DSS tests on Drammen clay.
+
+    Strain contours for cyclic shear strains of 0.5, 1, 3 and 15% are defined and spline interpolation is used to obtain the accumulated strain for a sample tested at a certain ratio of cyclic shear stress to DSS shear strength with a given number of cycles.
+
+    :param cyclic_shear_stress: Magnitude of the applied cyclic shear stress (:math:`\\tau_{cy}`) [:math:`kPa`] - Suggested range: 0.0 <= cyclic_shear_stress <= 100.0
+    :param undrained_shear_strength: Undrained shear strength of the normally consolidated clay measured with a DSS test (:math:`S_u^{DSS}`) [:math:`kPa`] - Suggested range: 1.0 <= undrained_shear_strength <= 100.0
+    :param cycle_no: Number of applied cycles (:math:`N`) [:math:`-`] - Suggested range: 1.0 <= cycle_no <= 1500.0
+
+    :returns: Dictionary with the following keys:
+
+        - 'cyclic strain [%]': Accumulated cyclic shear strain (:math:`\\gamma_{cy}`)  [:math:`%`]
+        - 'shear strains interpolation [%]': List of shear strains used for interpolation [:math:`%`]
+        - 'shearstress ratios interpolation [-]': List of ratios of cyclic shear stress to undrained DSS shear strength used for interpolation [:math:`-`]
+
+    .. figure:: images/strainaccumulation_dssclay_andersen_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Strain contours for symmetrical cyclic DSS tests
+
+    Reference - Andersen, K.H. (2015). Cyclic soil parameters for offshore foundation design. The 3rd McClelland Lecture. Conference: Frontiers in Offshore Geotechnics III.
+
+    """
+
+    gamma_cyc__0_5_N = np.array([1.0e+00, 1.34691510e+00, 1.95374983e+00, 3.11015790e+00,
+                                 5.08421772e+00, 1.00090813e+01, 1.70260074e+01, 3.05427700e+01,
+                                 6.01282407e+01, 9.31992345e+01, 2.09524007e+02, 3.70876480e+02,
+                                 7.20425342e+02, 1.38095466e+03, 1.59819914e+03])
+    gamma_cyc__0_5_tau_cyc_norm = np.array([0.62833926, 0.62845238, 0.62592255, 0.62342871, 0.61827135,
+                                            0.60249075, 0.5893274, 0.57618462, 0.56040402, 0.54720467,
+                                            0.52078027, 0.49961093, 0.47312996, 0.44664386, 0.44402661])
+
+    gamma_cyc__1_N = np.array([1.0e+00, 1.38504825e+00, 1.98250413e+00, 2.76334481e+00,
+                               3.90287080e+00, 6.04947969e+00, 1.11432274e+01, 1.84569631e+01,
+                               2.97687575e+01, 5.19943446e+01, 8.27536813e+01, 1.37055175e+02,
+                               2.39381640e+02, 3.66138292e+02, 5.38084620e+02, 7.90836777e+02,
+                               1.16228559e+03, 1.55662838e+03])
+    gamma_cyc__1_tau_cyc_norm = np.array([0.78342, 0.7808696, 0.77566082, 0.77311557, 0.75988023,
+                                          0.74668088, 0.72285316, 0.7016581, 0.67777896, 0.64858305,
+                                          0.62469877, 0.59280849, 0.56361259, 0.54773429, 0.52114535,
+                                          0.50257782, 0.48133649, 0.46808058])
+
+    gamma_cyc__3_N = np.array([1.0e+00, 1.50170392e+00, 2.48733090e+00, 4.06559252e+00,
+                               6.30095355e+00, 1.01624041e+01, 1.82267733e+01, 2.78755196e+01,
+                               4.20694563e+01, 6.02051754e+01, 8.61590202e+01, 1.46533554e+02,
+                               1.93646242e+02, 2.92255899e+02, 3.96628631e+02, 5.10396006e+02,
+                               8.12283497e+02, 1.10237259e+03, 1.49606058e+03, 1.64173510e+03])
+    gamma_cyc__3_tau_cyc_norm = np.array([0.92780553, 0.91191695, 0.89072189, 0.8721955, 0.84562713,
+                                          0.81907418, 0.78454095, 0.75796743, 0.73138877, 0.70478954,
+                                          0.67819031, 0.64363651, 0.62235405, 0.59844919, 0.57985082,
+                                          0.55588426, 0.52397855, 0.50538018, 0.4867818, 0.47879638])
+
+    gamma_cyc__15_N = np.array([1.0e+00, 1.33557684e+00, 1.83639606e+00, 2.45881198e+00,
+                                3.66106504e+00, 4.83769294e+00, 6.83084249e+00, 1.05848501e+01,
+                                1.59726591e+01, 2.11061042e+01, 3.22752665e+01, 4.68042668e+01,
+                                7.54768773e+01, 1.26666111e+02, 1.74184428e+02, 2.45989906e+02,
+                                3.38280109e+02, 5.24237446e+02, 8.23301963e+02, 1.24246027e+03,
+                                1.55703390e+03])
+    gamma_cyc__15_tau_cyc_norm = np.array([1.21122896, 1.17390365, 1.13124616, 1.08857839, 1.03793034,
+                                           1.00595265, 0.96330544, 0.91802042, 0.87807273, 0.84609504,
+                                           0.8061525, 0.7742108, 0.73161501, 0.69170846, 0.66242,
+                                           0.63848944, 0.61187478, 0.57728499, 0.54537414, 0.51344787,
+                                           0.49749245])
+
+    _shear_strains_interpolation = np.array([0.5, 1, 3, 15])
+    _shearstress_ratios_interpolation = np.array([
+        np.interp(np.log10(cycle_no), np.log10(gamma_cyc__0_5_N), gamma_cyc__0_5_tau_cyc_norm),
+        np.interp(np.log10(cycle_no), np.log10(gamma_cyc__1_N), gamma_cyc__1_tau_cyc_norm),
+        np.interp(np.log10(cycle_no), np.log10(gamma_cyc__3_N), gamma_cyc__3_tau_cyc_norm),
+        np.interp(np.log10(cycle_no), np.log10(gamma_cyc__15_N), gamma_cyc__15_tau_cyc_norm)
+    ])
+
+    fit_coeff = np.polyfit(
+        x=_shearstress_ratios_interpolation,
+        y=np.log(_shear_strains_interpolation),
+        deg=1)
+
+    _strain_ratio_0 = np.exp(fit_coeff[1]) * np.exp(fit_coeff[0] * 0)
+    _strain_ratio_1_5 = np.exp(fit_coeff[1]) * np.exp(fit_coeff[0] * 1.5)
+
+    _shearstress_ratios_interpolation = np.append(np.append(1e-7, _shearstress_ratios_interpolation), 1.5)
+    _shear_strains_interpolation = np.append(
+        np.append(_strain_ratio_0, _shear_strains_interpolation), _strain_ratio_1_5)
+
+    _cyclic_strain = 10 ** (np.interp(
+        cyclic_shear_stress / undrained_shear_strength,
+        _shearstress_ratios_interpolation,
+        np.log10(_shear_strains_interpolation)))
+
+    if _cyclic_strain < 0.5:
+        warnings.warn(
+            "Cyclic strain is below the lowest contour, value is extrapolated and should be treated with caution")
+
+    if _cyclic_strain > 15:
+        warnings.warn(
+            "Cyclic strain is above the cyclic failure contour, " +
+            "value is extrapolated and should be treated with caution")
+
+    return {
+        'cyclic strain [%]': _cyclic_strain,
+        'shear strains interpolation [%]': _shear_strains_interpolation,
+        'shearstress ratios interpolation [-]': _shearstress_ratios_interpolation,
+    }
+
+def plotstrainaccumulation_dssclay_andersen():
+    """
+    Returns a Plotly figure with the strain accumulation contours for DSS tests on normally consolidated Drammen clay
+    :return: Plotly figure object which can be further customised and to which test data can be added.
+    """
+
+    fig = subplots.make_subplots(rows=1, cols=1, print_grid=False, shared_yaxes=True)
+
+    gamma_cyc__0_5_N = np.array([1.0e+00, 1.34691510e+00, 1.95374983e+00, 3.11015790e+00,
+                                 5.08421772e+00, 1.00090813e+01, 1.70260074e+01, 3.05427700e+01,
+                                 6.01282407e+01, 9.31992345e+01, 2.09524007e+02, 3.70876480e+02,
+                                 7.20425342e+02, 1.38095466e+03, 1.59819914e+03])
+    gamma_cyc__0_5_tau_cyc_norm = np.array([0.62833926, 0.62845238, 0.62592255, 0.62342871, 0.61827135,
+                                            0.60249075, 0.5893274, 0.57618462, 0.56040402, 0.54720467,
+                                            0.52078027, 0.49961093, 0.47312996, 0.44664386, 0.44402661])
+
+    gamma_cyc__1_N = np.array([1.0e+00, 1.38504825e+00, 1.98250413e+00, 2.76334481e+00,
+                               3.90287080e+00, 6.04947969e+00, 1.11432274e+01, 1.84569631e+01,
+                               2.97687575e+01, 5.19943446e+01, 8.27536813e+01, 1.37055175e+02,
+                               2.39381640e+02, 3.66138292e+02, 5.38084620e+02, 7.90836777e+02,
+                               1.16228559e+03, 1.55662838e+03])
+    gamma_cyc__1_tau_cyc_norm = np.array([0.78342, 0.7808696, 0.77566082, 0.77311557, 0.75988023,
+                                          0.74668088, 0.72285316, 0.7016581, 0.67777896, 0.64858305,
+                                          0.62469877, 0.59280849, 0.56361259, 0.54773429, 0.52114535,
+                                          0.50257782, 0.48133649, 0.46808058])
+
+    gamma_cyc__3_N = np.array([1.0e+00, 1.50170392e+00, 2.48733090e+00, 4.06559252e+00,
+                               6.30095355e+00, 1.01624041e+01, 1.82267733e+01, 2.78755196e+01,
+                               4.20694563e+01, 6.02051754e+01, 8.61590202e+01, 1.46533554e+02,
+                               1.93646242e+02, 2.92255899e+02, 3.96628631e+02, 5.10396006e+02,
+                               8.12283497e+02, 1.10237259e+03, 1.49606058e+03, 1.64173510e+03])
+    gamma_cyc__3_tau_cyc_norm = np.array([0.92780553, 0.91191695, 0.89072189, 0.8721955, 0.84562713,
+                                          0.81907418, 0.78454095, 0.75796743, 0.73138877, 0.70478954,
+                                          0.67819031, 0.64363651, 0.62235405, 0.59844919, 0.57985082,
+                                          0.55588426, 0.52397855, 0.50538018, 0.4867818, 0.47879638])
+
+    gamma_cyc__15_N = np.array([1.0e+00, 1.33557684e+00, 1.83639606e+00, 2.45881198e+00,
+                                3.66106504e+00, 4.83769294e+00, 6.83084249e+00, 1.05848501e+01,
+                                1.59726591e+01, 2.11061042e+01, 3.22752665e+01, 4.68042668e+01,
+                                7.54768773e+01, 1.26666111e+02, 1.74184428e+02, 2.45989906e+02,
+                                3.38280109e+02, 5.24237446e+02, 8.23301963e+02, 1.24246027e+03,
+                                1.55703390e+03])
+    gamma_cyc__15_tau_cyc_norm = np.array([1.21122896, 1.17390365, 1.13124616, 1.08857839, 1.03793034,
+                                           1.00595265, 0.96330544, 0.91802042, 0.87807273, 0.84609504,
+                                           0.8061525, 0.7742108, 0.73161501, 0.69170846, 0.66242,
+                                           0.63848944, 0.61187478, 0.57728499, 0.54537414, 0.51344787,
+                                           0.49749245])
+
+
+    trace__0_5 = go.Scatter(
+        x=gamma_cyc__0_5_N,
+        y=gamma_cyc__0_5_tau_cyc_norm,
+        showlegend=True, mode='lines', name=r'$ \gamma_{cy} = 0.5 \text{%} $')
+    fig.append_trace(trace__0_5, 1, 1)
+
+    trace__1 = go.Scatter(
+        x=gamma_cyc__1_N,
+        y=gamma_cyc__1_tau_cyc_norm,
+        showlegend=True, mode='lines', name=r'$ \gamma_{cy} = 1 \text{%} $')
+    fig.append_trace(trace__1, 1, 1)
+
+    trace__3 = go.Scatter(
+        x=gamma_cyc__3_N,
+        y=gamma_cyc__3_tau_cyc_norm,
+        showlegend=True, mode='lines', name=r'$ \gamma_{cy} = 3 \text{%} $')
+    fig.append_trace(trace__3, 1, 1)
+
+    trace__15 = go.Scatter(
+        x=gamma_cyc__15_N,
+        y=gamma_cyc__15_tau_cyc_norm,
+        showlegend=True, mode='lines', name=r'$ \gamma_{cy} = 15 \text{%} $')
+    fig.append_trace(trace__15, 1, 1)
+
+    fig['layout']['xaxis1'].update(title=r'$ N $', range=(0, 4), dtick=1, type='log')
+    fig['layout']['yaxis1'].update(title=r'$ \tau_{cyc} / S_u^{DSS} $', range=(0, 1.5), dtick=0.25)
+    fig['layout'].update(height=500, width=500,
+                         title=r'$ \text{Strain accumulation diagram for cyclic DSS tests om Drammen clay} $',
+                         hovermode='closest')
+
+    return fig

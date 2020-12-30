@@ -39,3 +39,17 @@ class Test_cyclic_functions(unittest.TestCase):
             cyclic_shear_stress=1.215
         )
         self.assertAlmostEqual(result['Nf [-]'], 1124, 0)
+
+    def test_strainaccumulation_dssclay_andersen(self):
+        result = cyclicbehaviour.strainaccumulation_dssclay_andersen(
+            undrained_shear_strength=10,
+            cyclic_shear_stress=7.5,
+            cycle_no=10
+        )
+        self.assertAlmostEqual(result['cyclic strain [%]'], 1.31, 2)
+        result = cyclicbehaviour.strainaccumulation_dssclay_andersen(
+            undrained_shear_strength=10,
+            cyclic_shear_stress=6,
+            cycle_no=100
+        )
+        self.assertAlmostEqual(result['cyclic strain [%]'], 0.88, 2)

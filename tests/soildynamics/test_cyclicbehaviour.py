@@ -53,3 +53,17 @@ class Test_cyclic_functions(unittest.TestCase):
             cycle_no=100
         )
         self.assertAlmostEqual(result['cyclic strain [%]'], 0.88, 2)
+
+    def test_strainaccumulation_triaxialclay_andersen(self):
+        result = cyclicbehaviour.strainaccumulation_triaxialclay_andersen(
+            undrained_shear_strength=10,
+            cyclic_shear_stress=3,
+            cycle_no=10,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['cyclic strain [%]'], 0.45, 3
+        )
+        self.assertAlmostEqual(
+            result['average strain [%]'], -1.562, 3
+        )

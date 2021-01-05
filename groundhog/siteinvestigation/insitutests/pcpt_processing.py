@@ -30,6 +30,7 @@ from groundhog.general.parameter_mapping import map_depth_properties, merge_two_
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
 from groundhog.general.parameter_mapping import offsets
+from groundhog.general.agsconversion import AGSConverter
 
 DEFAULT_CONE_PROPERTIES = SoilProfile({
     'Depth from [m]': [0, ],
@@ -235,6 +236,61 @@ class PCPTProcessing(object):
         except Exception as err:
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
+
+    def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
+                 ags_group="SCPT", verbose_keys=True, use_shorthands=True, **kwargs):
+        """
+        Loads PCPT data from an AGS file. Specific column keys have to be provided for z, qc, fs and u2.
+        If column keys are not specified, the following keys are used:
+
+            - 'z [m]' for depth below mudline
+            - 'qc [MPa]' for cone tip resistance
+            - 'fs [MPa]' for sleeve friction
+            - 'u2 [MPa]' for pore pressure at cone shoulder
+
+        Note that cone tip resistance, sleeve friction and pore pressure at the shoulder all need to be converted to MPa.
+        Multipliers can be specified if a conversion from kPa to MPa is required. Optional keyword arguments for the
+        `read_ags` function in Pandas can be specified as `**kwargs`.
+
+        :param path: Path to the ags file
+        :param z_key: Column key for depth. Optional, default=None when 'z [m]' is the column key.
+        :param qc_key: Column key for cone tip resistance. Optional, default=None when 'qc [MPa]' is the column key.
+        :param fs_key: Column key for sleeve friction. Optional, default=None when 'fs [MPa]' is the column key.
+        :param u2_key: Column key for pore pressure at shoulder. Optional, default=None when 'u2 [MPa]' is the column key.
+        :param push_key: Column key for the current push (for downhole PCPT). Optional, default=None for a continuous push.
+        :param qc_multiplier: Multiplier applied on cone tip resistance to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
+        :param fs_multiplier: Multiplier applied on sleeve friction to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
+        :param u2_multiplier: Multiplier applied on pore pressure at shoulder to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
+        :param add_zero_row: Boolean determining whether a datapoint needs to be added at zero depth.
+        :param ags_group: Name of the AGS group with the CPT data (default= ``"SCPT"``)
+        :param verbose_keys: Boolean for using verbose keys in the AGS converter (default=True)
+        :param use_shorthands: Boolean for using shorthands in the AGS converter (default=True)
+        :param kwargs: Optional keyword arguments for the read_excel function in Pandas (e.g. sheet_name, header, ...)
+        :return: Sets the columns 'z [m]', 'qc [MPa]', 'fs [MPa]' and 'u2 [MPa]' of the `.data` attribute
+        """
+
+        try:
+            converter = AGSConverter(path=path)
+            converter.create_dataframes(selectedgroups=[ags_group], verbose_keys=verbose_keys,
+                                        use_shorthands=use_shorthands)
+        except Exception as err:
+            raise ValueError("Error during reading of AGS file. Review the error message and try again. - %s" % (
+                str(err)))
+
+        self.load_pandas(
+            df=converter.data[ags_group],
+            z_key=z_key,
+            qc_key=qc_key,
+            fs_key=fs_key,
+            u2_key=u2_key,
+            push_key=push_key,
+            qc_multiplier=qc_multiplier,
+            fs_multiplier=fs_multiplier,
+            u2_multiplier=u2_multiplier,
+            add_zero_row=add_zero_row,
+            **kwargs)
+
 
     def load_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,

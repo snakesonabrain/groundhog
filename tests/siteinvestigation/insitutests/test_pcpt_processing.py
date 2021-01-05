@@ -286,3 +286,20 @@ class Test_GEFReading(unittest.TestCase):
         self.assertEqual(self.gef_cpt.data.loc[2, "qc [MPa]"], 1.1)
         self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 7.4)
         self.assertEqual(self.gef_cpt.title, 'GEO-52/1143-S3')
+
+class Test_AGSFile_reading(unittest.TestCase):
+
+    def test_loadags(self):
+        ags_pcpt = pcpt_processing.PCPTProcessing(title="AGS PCPT")
+        ags_pcpt.load_ags(
+            os.path.join(TESTS_DATA_DIR, 'N6016_BH_WFS1-2A_AGS4_150909.ags'),
+            z_key="Depth [m]",
+            qc_key="qc [MN/m2]",
+            fs_key="fs [kN/m2]",
+            u2_key="u2 [kN/m2]",
+            push_key="Test reference or push number",
+            fs_multiplier=0.001, u2_multiplier=0.001
+        )
+        self.assertEqual(ags_pcpt.data['z [m]'].iloc[0], 0)
+        self.assertEqual(ags_pcpt.data['z [m]'].iloc[1], 10)
+        self.assertEqual(ags_pcpt.data['qc [MPa]'].iloc[1], 2.955)

@@ -67,3 +67,24 @@ class Test_cyclic_functions(unittest.TestCase):
         self.assertAlmostEqual(
             result['average strain [%]'], -1.562, 3
         )
+
+    def test_porepressureaccumulation_dssclay_andersen(self):
+        result = cyclicbehaviour.porepressureaccumulation_dssclay_andersen(
+            undrained_shear_strength=10,
+            cyclic_shear_stress=5,
+            cycle_no=10,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['Excess pore pressure ratio [-]'], 0.082, 3)
+
+    def test_porepressureaccumulation_triaxialclay_andersen(self):
+        result = cyclicbehaviour.porepressureaccumulation_triaxialclay_andersen(
+            undrained_shear_strength=10,
+            cyclic_shear_stress=3,
+            cycle_no=10,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['Excess pore pressure ratio [-]'], 0.166, 3)
+

@@ -8,7 +8,7 @@ v0.4.0, Date TBC -- 2021 New Year's release
     - Added formula to convert shear wave velocity and density to small-strain shear modulus
     - GEF file import for PCPT processing
     - Added load_ags method for importing AGS data with a single line of code
-    - TODO: Cyclic interaction diagrams from Andersen (2015)
+    - Cyclic interaction diagrams and associated functions from Andersen (2015)
 
 v0.3.0, 14 November 2020 -- End of 2020 update
     - Shallow foundation envelope calculations

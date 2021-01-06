@@ -88,3 +88,45 @@ class Test_cyclic_functions(unittest.TestCase):
         self.assertAlmostEqual(
             result['Excess pore pressure ratio [-]'], 0.166, 3)
 
+    def test_strainaccumulation_dsssand_andersen(self):
+        result = cyclicbehaviour.strainaccumulation_dsssand_andersen(
+            shearstress_ratio=0.18,
+            cycle_no=10,
+            failure_stress_ratio=0.19,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['cyclic strain [%]'], 1.916, 3)
+        result = cyclicbehaviour.strainaccumulation_dsssand_andersen(
+            shearstress_ratio=0.2,
+            cycle_no=10,
+            failure_stress_ratio=0.25,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['cyclic strain [%]'], 0.687, 3)
+        result = cyclicbehaviour.strainaccumulation_dsssand_andersen(
+            shearstress_ratio=0.4,
+            cycle_no=10,
+            failure_stress_ratio=0.6,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['cyclic strain [%]'], 4.954, 3)
+        result = cyclicbehaviour.strainaccumulation_dsssand_andersen(
+            shearstress_ratio=0.5,
+            cycle_no=10,
+            failure_stress_ratio=1,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['cyclic strain [%]'], 3.328, 3)
+        result = cyclicbehaviour.strainaccumulation_dsssand_andersen(
+            shearstress_ratio=1,
+            cycle_no=10,
+            failure_stress_ratio=1.8,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            result['cyclic strain [%]'], 7.462, 3)
+

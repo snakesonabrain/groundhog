@@ -2918,7 +2918,14 @@ def strainaccumulation_dsssand_andersen(
 
     Strain contours for 0.1, 0.25, 0.5, 1, 2.5, 5, 7.5, 10 and 15% cyclic shear strain are defined and logarithmic interpolation is used between the different contours to obtain the accumulated strain for a sample tested at a certain ratio of cyclic shear stress to vertical effective stress with a given number of cycles.
 
-    :param shearstress_ratio: Ratio cyclic shear stress to vertical effective stress (:math:`\\tau_{cy} / \\sigma_{ref}^{\\prime}`) [:math:`-`] - Suggested range: 0.0 <= shearstress_ratio <= 2.0
+    To calculate the cyclic stress ratio, the vertical effective stress needs to be normalised as follows:
+
+    .. math::
+        \\sigma_{ref}^{\\prime} = p_a \cdot ( \\sigma_{vc}^{\\prime} / p_a ) ^ n
+
+    A shear stress exponent of 0.9 is suggested by Andersen (2015).
+
+    :param shearstress_ratio: Ratio cyclic shear stress to reference effective stress (:math:`\\tau_{cy} / \\sigma_{ref}^{\\prime}`) [:math:`-`] - Suggested range: 0.0 <= shearstress_ratio <= 2.0
     :param cycle_no: Number of applied cycles (:math:`N`) [:math:`-`] - Suggested range: 1.0 <= cycle_no <= 1000.0
     :param failure_stress_ratio: Ratio of cyclic shear stress to vertical effective stress for failure at N=10 (:math:`( \\tau_{cy} / \\sigma_{ref}^{\\prime})_{N=10}`) [:math:`-`] - Allowable value: [0.19, 0.25, 0.6, 1.0, 1.8]
 
@@ -3905,3 +3912,244 @@ def plotstrainaccumulation_dsssand_andersen(failure_stress_ratio):
         hovermode='closest')
 
     return fig
+
+
+CYCLICSTRENGTH_DSSSAND_RELATIVEDENSITY = {
+    'relative_density': {'type': 'float', 'min_value': 40.0, 'max_value': 110.0},
+    'vertical_effective_stress': {'type': 'float', 'min_value': 100.0, 'max_value': 250.0},
+    'fines_content': {'type': 'float', 'min_value': 5.0, 'max_value': 35.0},
+    'stress_exponent': {'type': 'float', 'min_value': 0.2, 'max_value': 1.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+CYCLICSTRENGTH_DSSSAND_RELATIVEDENSITY_ERRORRETURN = {
+    'cyclic strength ratio [-]': np.nan,
+    'reference effective stress [kPa]': np.nan,
+    'cyclic shear strength [kPa]': np.nan,
+}
+
+
+@Validator(CYCLICSTRENGTH_DSSSAND_RELATIVEDENSITY, CYCLICSTRENGTH_DSSSAND_RELATIVEDENSITY_ERRORRETURN)
+def cyclicstrength_dsssand_relativedensity(
+        relative_density, vertical_effective_stress,
+        fines_content=5.0, stress_exponent=0.9, atmospheric_pressure=100.0, **kwargs):
+    """
+    Calculates the DSS cyclic strength of sand, defined as the ratio of cyclic shear stress to reference normal stress for failure at 10 cycles. Cyclic failure is defined as reaching an accumulated cyclic shear strain of 15%. For certain very dense samples, this strain was not reached. The underlying dataset contains symmetrical DSS tests on normally consolidated sand.
+
+    The curves are most representative for vertical effective stresses between 100 and 250kPa. The vertical effective stress was normalised using an exponent of 0.9 for the test data. Most of the underlying cyclic DSS test data is from normally consolidated pre-sheared samples.
+
+    The function calculates the shear stress ratio at failure for <5% fines by default but fines content of 20% or 35% can also be entered. The trend for 35% fines content needs to be treated with caution as relative density determination for samples with high fines content is not straightforward.
+
+    :param relative_density: Relative density of the sand (:math:`D_r`) [:math:`pct`] - Suggested range: 40.0 <= relative_density <= 110.0
+    :param vertical_effective_stress: Vertical effective stress at the depth considered (:math:`\\sigma_{vc}^{\\prime}`) [:math:`kPa`] - Suggested range: 100.0 <= vertical_effective_stress <= 250.0
+    :param fines_content: Fines content of the soil (:math:`FC`) [:math:`pct`] - Suggested range: 5.0 <= fines_content <= 35.0 (optional, default= 5.0)
+    :param stress_exponent: Stress exponent used for stress normalisation (:math:`n`) [:math:`-`] - Suggested range: 0.2 <= stress_exponent <= 1.0 (optional, default= 0.9)
+    :param atmospheric_pressure: Atmospheric pressure (:math:`p_a`) [:math:`kPa`] (optional, default= 100.0)
+
+    .. math::
+        \\sigma_{ref}^{\\prime} = p_a \\cdot ( \\sigma_{ref}^{\\prime} / p_a )^n
+
+    :returns: Dictionary with the following keys:
+
+        - 'cyclic strength ratio [-]': Cyclic strength ratio for N=10 cycles (:math:`\\tau_f / \\sigma_{ref}^{\\prime}`)  [:math:`-`]
+        - 'reference effective stress [kPa]': Reference effective normal stress (:math:`\\sigma_{ref}^{\\prime}`)  [:math:`kPa`]
+        - 'cyclic shear strength [kPa]': Cyclic shear stress for failure at 10 cycles (:math:`\\tau_f`)  [:math:`kPa`]
+
+    .. figure:: images/cyclicstrength_dsssand_relativedensity_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Underlying data and trend for cyclic strength calculation
+
+    Reference - Andersen, K.H. (2015). Cyclic soil parameters for offshore foundation design. The 3rd McClelland Lecture. Conference: Frontiers in Offshore Geotechnics III.
+
+    """
+
+    # Cyclic strength vs relative density
+
+    Dr__5 = np.array(
+        [44.967320261437905, 53.72549019607843, 61.437908496732035, 67.84313725490198, 74.24836601307192,
+         79.47712418300654,
+         84.18300653594773, 87.97385620915036, 90.45751633986929, 93.8562091503268, 97.12418300653594, 99.3464052287582,
+         103.00653594771244, 104.96732026143793])
+
+    tau_ratio__5 = np.array(
+        [0.15581344311333611, 0.17006548727918666, 0.18968305162839175, 0.21001731771866167, 0.2376378690328793,
+         0.2727900361183685, 0.35672100943179674, 0.4630793815027179, 0.575536895353397, 0.7310610262689123,
+         0.955891499378532, 1.1540894925374654, 1.5534075193551768, 1.8219206274460034])
+
+    Dr__20 = np.array(
+        [49.934640522875824, 55.81699346405229, 60.915032679738566, 65.62091503267975, 70.58823529411767,
+         75.8169934640523,
+         80.13071895424837, 84.05228758169936, 86.79738562091505, 89.28104575163401, 92.02614379084969,
+         94.3790849673203,
+         97.90849673202615, 100.65359477124186, 102.61437908496734])
+
+    tau_ratio__20 = np.array(
+        [0.1329164519182754, 0.1409032310514415, 0.1493614428953823, 0.1571806436159647, 0.1690447971773845,
+         0.18851071747809425, 0.2102042581799257, 0.2430288942783537, 0.28299709056179345, 0.33921607551474353,
+         0.41254222786197, 0.4980849366160062, 0.6752892982483564, 0.8515401346572928, 1.0280820771956511])
+
+    Dr__35 = np.array(
+        [49.803921568627466, 54.50980392156863, 59.86928104575163, 68.36601307189544, 73.98692810457517,
+         79.73856209150327,
+         86.01307189542486, 89.67320261437911, 90.71895424836605])
+
+    tau_ratio__35 = np.array(
+        [0.11334235682977126, 0.11587084792110924, 0.11760669086084732, 0.12560331735945068, 0.13314813905997838,
+         0.14635126244097282, 0.16680058070393153, 0.18598694809510716, 0.19146701634112345])
+
+    if fines_content == 5:
+        _cyclic_strength_ratio = 10 ** (
+            np.interp(relative_density, Dr__5, np.log10(tau_ratio__5))
+        )
+    elif fines_content == 20:
+        _cyclic_strength_ratio = 10 ** (
+            np.interp(relative_density, Dr__20, np.log10(tau_ratio__20))
+        )
+    elif fines_content == 35:
+        _cyclic_strength_ratio = 10 ** (
+            np.interp(relative_density, Dr__35, np.log10(tau_ratio__35))
+        )
+    else:
+        raise ValueError("Fines content needs to be 5%, 20% or 35%.")
+
+    _reference_effective_stress = atmospheric_pressure * (
+            (vertical_effective_stress / atmospheric_pressure) ** stress_exponent
+    )
+    _cyclic_shear_strength = _cyclic_strength_ratio * _reference_effective_stress
+
+    return {
+        'cyclic strength ratio [-]': _cyclic_strength_ratio,
+        'reference effective stress [kPa]': _reference_effective_stress,
+        'cyclic shear strength [kPa]': _cyclic_shear_strength,
+    }
+
+
+CYCLICSTRENGTH_DSSSAND_WATERCONTENT = {
+    'water_content': {'type': 'float', 'min_value': 15.0, 'max_value': 40.0},
+    'vertical_effective_stress': {'type': 'float', 'min_value': 100.0, 'max_value': 250.0},
+    'fines_content': {'type': 'float', 'min_value': 5.0, 'max_value': 35.0},
+    'stress_exponent': {'type': 'float', 'min_value': 0.2, 'max_value': 1.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+CYCLICSTRENGTH_DSSSAND_WATERCONTENT_ERRORRETURN = {
+    'cyclic strength ratio [-]': np.nan,
+    'reference effective stress [kPa]': np.nan,
+    'cyclic shear strength [kPa]': np.nan,
+}
+
+
+@Validator(CYCLICSTRENGTH_DSSSAND_WATERCONTENT, CYCLICSTRENGTH_DSSSAND_WATERCONTENT_ERRORRETURN)
+def cyclicstrength_dsssand_watercontent(
+        water_content, vertical_effective_stress,
+        fines_content=5.0, stress_exponent=0.9, atmospheric_pressure=100.0, **kwargs):
+    """
+    Calculates the DSS cyclic strength of sand, defined as the ratio of cyclic shear stress to reference normal stress for failure at 10 cycles. Cyclic failure is defined as reaching an accumulated cyclic shear strain of 15%. For certain very dense samples, this strain was not reached. The underlying dataset contains symmetrical DSS tests on normally consolidated sand.
+
+    The curves are most representative for vertical effective stresses between 100 and 250kPa. The vertical effective stress was normalised using an exponent of 0.9 for the test data. Most of the underlying cyclic DSS test data is from normally consolidated pre-sheared samples.
+
+    The function calculates the shear stress ratio at failure for <5% fines by default but fines content of 20% or 35% can also be entered. The trend for 35% fines content is slightly more reliable when formulated in terms of water content rather than relative density.
+
+    :param water_content: Water content of the sand after testing (:math:`w_{after}`) [:math:`pct`] - Suggested range: 15.0 <= water_content <= 40.0
+    :param vertical_effective_stress: Vertical effective stress at the depth considered (:math:`\\sigma_{vc}^{\\prime}`) [:math:`kPa`] - Suggested range: 100.0 <= vertical_effective_stress <= 250.0
+    :param fines_content: Fines content of the soil (:math:`FC`) [:math:`pct`] - Suggested range: 5.0 <= fines_content <= 35.0 (optional, default= 5.0)
+    :param stress_exponent: Stress exponent used for stress normalisation (:math:`n`) [:math:`-`] - Suggested range: 0.2 <= stress_exponent <= 1.0 (optional, default= 0.9)
+    :param atmospheric_pressure: Atmospheric pressure (:math:`p_a`) [:math:`kPa`] (optional, default= 100.0)
+
+    .. math::
+        \\sigma_{ref}^{\\prime} = p_a \\cdot ( \\sigma_{ref}^{\\prime} / p_a )^n
+
+    :returns: Dictionary with the following keys:
+
+        - 'cyclic strength ratio [-]': Cyclic strength ratio for N=10 cycles (:math:`\\tau_f / \\sigma_{ref}^{\\prime}`)  [:math:`-`]
+        - 'reference effective stress [kPa]': Reference effective normal stress (:math:`\\sigma_{ref}^{\\prime}`)  [:math:`kPa`]
+        - 'cyclic shear strength [kPa]': Cyclic shear stress for failure at 10 cycles (:math:`\\tau_f`)  [:math:`kPa`]
+
+    .. figure:: images/cyclicstrength_dsssand_watercontent_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Underlying data and trends for cyclic strength calculation
+
+    Reference - Andersen, K.H. (2015). Cyclic soil parameters for offshore foundation design. The 3rd McClelland Lecture. Conference: Frontiers in Offshore Geotechnics III.
+
+    """
+
+    # Cyclic strength vs water content
+
+    w__5 = np.array(
+        [18.992133726647, 19.376229105211404, 19.952372173058013, 20.52851524090462, 21.264698049819728,
+         22.192928548017047,
+         22.993127253359557, 23.82533390691577, 24.689548508685675, 25.553763110455588, 26.225930022943302,
+         27.12215257292691, 27.986367174696824, 28.850581776466733, 29.842828171091448, 30.931098410357254,
+         32.05137659783678, 33.13964683710259, 34.32394092100951, 35.380203212061616, 36.08437807276303])
+
+    tau_ratio__5 = np.array(
+        [1.7383243948474292, 1.3978837870801986, 1.0850783042375325, 0.8725721008703046, 0.6893923352133043,
+         0.5609490762023588, 0.4784619415227204, 0.41051566215537016, 0.3542994155012633, 0.31123344221272553,
+         0.28491195899294514, 0.2608165234432463, 0.24016952344364234, 0.2224636521958442, 0.2060631000915769,
+         0.1919993540062132, 0.17995241426176334, 0.17268279717540358, 0.16473356625277402, 0.15901272111525705,
+         0.15530962900717166])
+
+    w__20 = np.array(
+        [16.943625040970176, 17.583784005244187, 18.127919124877092, 18.768078089151093, 19.376229105211404,
+         19.952372173058013, 20.52851524090462, 21.264698049819728, 21.968872910521146, 22.83308751229105,
+         23.857341855129466, 24.753564405113078, 25.841834644378892, 27.12215257292691, 28.24243076040642,
+         29.55475663716814, 31.123146099639463, 32.65952761389708, 34.38795681743691, 35.380203212061616,
+         36.08437807276303])
+
+    tau_ratio__20 = np.array(
+        [0.9039648713693308, 0.7665087963761721, 0.6615426488402057, 0.5642633058726779, 0.4927643237726035,
+         0.4354250889772613, 0.38703123256102173, 0.337989696666263, 0.30219995613282113, 0.2717964026567041,
+         0.2473487701735521, 0.22776791697355656, 0.20728057324422905, 0.1908716358840055, 0.1778447027709073,
+         0.1666858922153185, 0.15530962900717166, 0.1464248083194707, 0.13968433021063545, 0.13563002151049214,
+         0.13404144068474758])
+
+    w__35 = np.array(
+        [19.98438012127171, 20.75257087840053, 21.32871394624713, 22.096904703375944, 22.641039823008853,
+         23.34521468371026,
+         23.921357751556865, 24.625532612258283, 25.23368362831859, 25.905850540806288, 26.514001556866603,
+         27.21817641756801, 27.79431948541461, 28.498494346116022, 29.138653310390037, 29.810820222877744,
+         30.48298713536545, 31.123146099639463, 31.76330506391347, 32.46747992461488, 33.13964683710259,
+         33.747797853162886,
+         34.419964765650604, 34.96409988528352, 35.700282694198634, 36.50048139954114, 36.98060062274664])
+
+    tau_ratio__35 = np.array(
+        [0.20126429761612175, 0.19313373497362207, 0.1853316262579568, 0.17995241426176334, 0.17268279717540358,
+         0.16767071481872425, 0.16280410711245055, 0.15715026797250906, 0.1525890140529748, 0.14816014958200405,
+         0.14385983198332253, 0.14050962072505588, 0.13723742926787116, 0.13404144068474758, 0.13091988036130467,
+         0.1293864675568639, 0.12637331236058502, 0.12415958533272822, 0.12126815389652547, 0.11914385577626233,
+         0.1177483708925795, 0.11568573008446925, 0.11433074885997498, 0.1136592213015499, 0.11299163799492255,
+         0.11166821160606556, 0.11101232259771704])
+
+    if fines_content == 5:
+        _cyclic_strength_ratio = 10 ** (
+            np.interp(water_content, w__5, np.log10(tau_ratio__5))
+        )
+    elif fines_content == 20:
+        _cyclic_strength_ratio = 10 ** (
+            np.interp(water_content, w__20, np.log10(tau_ratio__20))
+        )
+    elif fines_content == 35:
+        _cyclic_strength_ratio = 10 ** (
+            np.interp(water_content, w__35, np.log10(tau_ratio__35))
+        )
+    else:
+        raise ValueError("Fines content needs to be 5%, 20% or 35%.")
+
+    _reference_effective_stress = atmospheric_pressure * (
+            (vertical_effective_stress / atmospheric_pressure) ** stress_exponent
+    )
+    _cyclic_shear_strength = _cyclic_strength_ratio * _reference_effective_stress
+
+    return {
+        'cyclic strength ratio [-]': _cyclic_strength_ratio,
+        'reference effective stress [kPa]': _reference_effective_stress,
+        'cyclic shear strength [kPa]': _cyclic_shear_strength,
+    }
+
+

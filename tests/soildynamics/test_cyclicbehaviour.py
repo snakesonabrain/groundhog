@@ -130,3 +130,18 @@ class Test_cyclic_functions(unittest.TestCase):
         self.assertAlmostEqual(
             result['cyclic strain [%]'], 7.462, 3)
 
+    def test_cyclicstrength_dsssand_relativedensity(self):
+        result = cyclicbehaviour.cyclicstrength_dsssand_relativedensity(
+            relative_density=60, vertical_effective_stress=100,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(result['reference effective stress [kPa]'], 100, 3)
+        self.assertAlmostEqual(result['cyclic strength ratio [-]'], 0.19, 2)
+
+    def test_cyclicstrength_dsssand_watercontent(self):
+        result = cyclicbehaviour.cyclicstrength_dsssand_watercontent(
+            water_content=30, vertical_effective_stress=100,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(result['reference effective stress [kPa]'], 100, 3)
+        self.assertAlmostEqual(result['cyclic strength ratio [-]'], 0.20, 2)

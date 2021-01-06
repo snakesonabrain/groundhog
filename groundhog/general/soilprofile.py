@@ -841,7 +841,7 @@ def profile_from_dataframe(df, title='', depth_key='Depth', unit='m', column_map
     :param column_mapping: Dictionary for renaming columns. The keys in this dictionary are the old column names and the values are the new column names.
     :return: ``SoilProfile`` object created as a deep copy of the dataframe
     """
-    sp = deepcopy(df)
+    sp = deepcopy(df.reset_index(drop=True))
     sp.__class__ = SoilProfile
     sp.title = title
     sp.set_depthcolumn_name(name=depth_key, unit=unit)

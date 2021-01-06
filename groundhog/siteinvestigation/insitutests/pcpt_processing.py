@@ -30,6 +30,7 @@ from groundhog.general.parameter_mapping import map_depth_properties, merge_two_
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
 from groundhog.general.parameter_mapping import offsets
+from groundhog.general.agsconversion import AGSConverter
 
 DEFAULT_CONE_PROPERTIES = SoilProfile({
     'Depth from [m]': [0, ],
@@ -37,9 +38,33 @@ DEFAULT_CONE_PROPERTIES = SoilProfile({
     'area ratio [-]': [0.8, ],
     'Cone type': ['U', ],
     'Cone base area [cm2]': [10, ],
-    'Cone sleeve_area [cm2]': [150, ]
+    'Cone sleeve_area [cm2]': [150, ],
+    'Sleeve cross-sectional area top [cm2]': [np.nan,],
+    'Sleeve cross-sectional area bottom [cm2]': [np.nan,]
 })
 
+GEF_COLINFO = {
+    '1': 'z [m]',
+    '2': 'qc [MPa]',
+    '3': 'fs [MPa]',
+    '4': 'Rf [%]',
+    '5': 'u1 [MPa]',
+    '6': 'u2 [MPa]',
+    '7': 'u3 [MPa]',
+    '8': 'incl [deg]',
+    '9': 'incl N-S [deg]',
+    '10': 'incl E-W [deg]',
+    '11': 'z corrected [m]',
+    '12': 'time [s]',
+    '13': 'qt [MPa]',
+    '14': 'qn [MPa]',
+    '15': 'Bq [-]',
+    '16': 'Nm [-]',
+    '17': 'gamma [kN/m3]',
+    '18': 'u0 [MPa]',
+    '19': 'sigma_vo [MPa]',
+    '20': 'sigma_vo_eff [MPa]'
+}
 
 class PCPTProcessing(object):
     """
@@ -49,9 +74,9 @@ class PCPTProcessing(object):
 
     def __init__(self, title, waterunitweight=10.25):
         """
-        Initialises a PCPTProcessing object based on a title. Optionally, a geographical position can be defined.
+        Initialises a PCPTProcessing object based on a title. Optionally, a geographical position can be defined. A dictionary for dumping unstructured data (``additionaldata``) is also available.
 
-        An empty dataframe (`.data`) is created for storing the PCPT data
+        An empty dataframe (``.data`) is created for storing the PCPT data`
 
         :param title: Title for the PCPT test
         :param waterunitweight: Unit weight of water used for effective stress calculations (default=10.25kN/m3 for seawater)
@@ -61,6 +86,7 @@ class PCPTProcessing(object):
         self.data = pd.DataFrame()
         self.downhole_corrected = False
         self.waterunitweight=waterunitweight
+        self.additionaldata = dict()
 
     # region Utility functions
 
@@ -97,7 +123,10 @@ class PCPTProcessing(object):
         self.data.reset_index(drop=True, inplace=True)
 
     def dropna_rows(self):
-        self.data.dropna(subset=('z [m]', 'qc [MPa]', 'fs [MPa]', 'u2 [MPa]'), how='all', inplace=True)
+        try:
+            self.data.dropna(subset=('z [m]', 'qc [MPa]', 'fs [MPa]', 'u2 [MPa]'), how='all', inplace=True)
+        except:
+            self.data.dropna(how='all', inplace=True)
 
     # endregion
 
@@ -208,6 +237,61 @@ class PCPTProcessing(object):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
+    def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
+                 ags_group="SCPT", verbose_keys=True, use_shorthands=True, **kwargs):
+        """
+        Loads PCPT data from an AGS file. Specific column keys have to be provided for z, qc, fs and u2.
+        If column keys are not specified, the following keys are used:
+
+            - 'z [m]' for depth below mudline
+            - 'qc [MPa]' for cone tip resistance
+            - 'fs [MPa]' for sleeve friction
+            - 'u2 [MPa]' for pore pressure at cone shoulder
+
+        Note that cone tip resistance, sleeve friction and pore pressure at the shoulder all need to be converted to MPa.
+        Multipliers can be specified if a conversion from kPa to MPa is required. Optional keyword arguments for the
+        `read_ags` function in Pandas can be specified as `**kwargs`.
+
+        :param path: Path to the ags file
+        :param z_key: Column key for depth. Optional, default=None when 'z [m]' is the column key.
+        :param qc_key: Column key for cone tip resistance. Optional, default=None when 'qc [MPa]' is the column key.
+        :param fs_key: Column key for sleeve friction. Optional, default=None when 'fs [MPa]' is the column key.
+        :param u2_key: Column key for pore pressure at shoulder. Optional, default=None when 'u2 [MPa]' is the column key.
+        :param push_key: Column key for the current push (for downhole PCPT). Optional, default=None for a continuous push.
+        :param qc_multiplier: Multiplier applied on cone tip resistance to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
+        :param fs_multiplier: Multiplier applied on sleeve friction to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
+        :param u2_multiplier: Multiplier applied on pore pressure at shoulder to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
+        :param add_zero_row: Boolean determining whether a datapoint needs to be added at zero depth.
+        :param ags_group: Name of the AGS group with the CPT data (default= ``"SCPT"``)
+        :param verbose_keys: Boolean for using verbose keys in the AGS converter (default=True)
+        :param use_shorthands: Boolean for using shorthands in the AGS converter (default=True)
+        :param kwargs: Optional keyword arguments for the read_excel function in Pandas (e.g. sheet_name, header, ...)
+        :return: Sets the columns 'z [m]', 'qc [MPa]', 'fs [MPa]' and 'u2 [MPa]' of the `.data` attribute
+        """
+
+        try:
+            converter = AGSConverter(path=path)
+            converter.create_dataframes(selectedgroups=[ags_group], verbose_keys=verbose_keys,
+                                        use_shorthands=use_shorthands)
+        except Exception as err:
+            raise ValueError("Error during reading of AGS file. Review the error message and try again. - %s" % (
+                str(err)))
+
+        self.load_pandas(
+            df=converter.data[ags_group],
+            z_key=z_key,
+            qc_key=qc_key,
+            fs_key=fs_key,
+            u2_key=u2_key,
+            push_key=push_key,
+            qc_multiplier=qc_multiplier,
+            fs_multiplier=fs_multiplier,
+            u2_multiplier=u2_multiplier,
+            add_zero_row=add_zero_row,
+            **kwargs)
+
+
     def load_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
@@ -280,17 +364,19 @@ class PCPTProcessing(object):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-    def load_gef(self, path, headers, skiprows=None,
+    def load_gef(self, path, inverse_depths=False, override_title=True,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
-        Reads PCPT data from a Uniplot .asc file
-        The widths of the columns for the .asc file need to be specified.
+        Reads PCPT data from a Geotechnical Exchange Format (.gef) file.
+        The file is parsed using regular expressions to provide the necessary data.
+        If location data is provided, this data is also
+
+        https://publicwiki.deltares.nl/download/attachments/102204314/GEFCR100.pdf?version=1&modificationDate=1411129283000&api=v2
 
         :param path: Path to the .asc file
-        :param column_widths: Column widths to use for the import (compulsory)
-        :param headers: Column headers to be used (compulsory)
-        :param skiprows: Number of rows to skip (optional, default=None for auto-detection, depends on the occurence of 'Data table' in the file)
+        :param inverse_depths: Boolean indicating whether depths need to be inverted. A positive downward z-axis is expected.
+        :param override_title: Boolean indicating if the title specified needs to be replaced by the test id (default = True).
         :param z_key: Column key for depth. Optional, default=None when 'z [m]' is the column key.
         :param qc_key: Column key for cone tip resistance. Optional, default=None when 'qc [MPa]' is the column key.
         :param fs_key: Column key for sleeve friction. Optional, default=None when 'fs [MPa]' is the column key.
@@ -300,34 +386,166 @@ class PCPTProcessing(object):
         :param fs_multiplier: Multiplier applied on sleeve friction to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param u2_multiplier: Multiplier applied on pore pressure at shoulder to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param add_zero_row: Boolean determining whether a datapoint needs to be added at zero depth.
-        :param kwargs: Optional keyword arguments for reading the datafile
+        :param kwargs: Optional keyword arguments for reading the datafile (using ``read_csv`` from Pandas)
         :return:
         """
 
-        # Automatic detection of the number of rows to skip
-        if skiprows is None:
-            with open(path, 'rb') as f:
-                raw_file = pd.DataFrame(f.readlines(), columns=["GEF lines"])
-            # Find the line where the data starts
-            start_line = raw_file[raw_file["GEF lines"].str.contains(b'#EOH=')]
-            skiprows = start_line.index[0] + 1
-        else:
-            skiprows = skiprows
+        # Regular expression setup
+        colno_pattern = re.compile(r'#COLUMN\s*=\s*(?P<colno>\d+)')
+        colinfo_pattern = re.compile(
+            r'#COLUMNINFO\s*=\s*(?P<colno>\d+)\s*,\s*(?P<units>.+)\s*,\s*(?P<title>.+)\s*,\s*(?P<quantity>\d+)\s*')
+        separator_pattern = re.compile(r'#COLUMNSEPARATOR\s*=\s*(?P<separator>.)')
+        test_id_pattern = re.compile(r'#TESTID\s*=\s*(?P<test_id>.*)')
+        xy_id_pattern = re.compile(
+            r'#XYID\s*=\s*(?P<coordsys>\d*)\s*,\s*(?P<X>\d*.?\d*)\s*,' +
+            '\s*(?P<Y>\d*.?\d*)\s*,\s*(?P<dX>\d*.?\d*)\s*,\s*(?P<dY>\d*.?\d*)\s*')
+        z_id_pattern = re.compile(r'#ZID\s*=\s*(?P<datum>\d*)\s*,\s*(?P<Z>\d*.?\d*)\s*,\s*(?P<dZ>\d*.?\d*)\s*')
+        measurementtext_pattern = re.compile(r'#MEASUREMENTTEXT\s*=\s*(?P<number>\d*)\s*,\s*(?P<text>.*)')
+        measurementvalue_pattern = re.compile(
+            r'#MEASUREMENTVAR\s*=\s*(?P<number>\d*)\s*,\s*(?P<value>\d*.\d*)\s*,\s*(?P<unit>.*)\s*,\s*(?P<text>.*)\s*')
+        voidvalue_pattern = re.compile(r'#COLUMNVOID\s*=\s*(?P<colno>\d+)\s*,\s*(?P<voidvalue>-*\d*.\d*)')
 
-        # Read the data
+        # Read the raw data
+        with open(path) as f:
+            gef_raw = pd.DataFrame(f.readlines(), columns=["GEF lines"])
+
+        # Process the header
+        colinfo_dict = dict()
+        measurementtext_dict = dict()
+        measurementvalue_dict = dict()
+        voidvalue_dict = dict()
+
+        separator = ' '
+        test_id = None
+        easting = None
+        northing = None
+        srid = None
+        dx = None
+        dy = None
+        z = None
+        dz = None
+        datum = None
+
+
+        for i, row in gef_raw.iterrows():
+            try:
+                match = re.search(colno_pattern, row['GEF lines'])
+                colno = match.group('colno')
+            except:
+                pass
+
+            try:
+                match = re.search(colinfo_pattern, row['GEF lines'])
+                colinfo_dict[match.group('colno')] = dict(units=match.group('units'), title=match.group('title'),
+                                                          quantity=match.group('quantity'))
+            except:
+                pass
+
+            try:
+                match = re.search(voidvalue_pattern, row['GEF lines'])
+                voidvalue_dict[match.group('colno')] = match.group('voidvalue')
+            except:
+                pass
+
+            try:
+                match = re.search(separator_pattern, row['GEF lines'])
+                separator = match.group('separator')
+            except:
+                pass
+
+            try:
+                match = re.search(test_id_pattern, row['GEF lines'])
+                test_id = match.group('test_id')
+            except:
+                pass
+
+            try:
+                match = re.search(xy_id_pattern, row['GEF lines'])
+                easting = float(match.group('X'))
+                northing = float(match.group('Y'))
+                srid = match.group('coordsys')
+                dx = float(match.group('dX'))
+                dy = float(match.group('dY'))
+            except:
+                pass
+
+            try:
+                match = re.search(z_id_pattern, row['GEF lines'])
+                z = float(match.group('Z'))
+                dz = float(match.group('dZ'))
+                datum = match.group('datum')
+            except:
+                pass
+
+            try:
+                match = re.search(measurementtext_pattern, row['GEF lines'])
+                measurementtext_dict[match.group('number')] = dict(text=match.group('text'))
+            except:
+                pass
+
+            try:
+                match = re.search(measurementvalue_pattern, row['GEF lines'])
+                measurementvalue_dict[match.group('number')] = dict(
+                    value=float(match.group('value')),
+                    unit=match.group('unit'),
+                    text=match.group('text'))
+            except:
+                pass
+
+        # Detect the start of the file
+        indices = gef_raw[gef_raw["GEF lines"].str.startswith('#EOH')].index
+
+        # Define column keys
+        keys = []
+        for key, value in colinfo_dict.items():
+            try:
+                keys.append(GEF_COLINFO[value['quantity']])
+            except:
+                keys.append('%s [%s]' % (value['title'], value['units']))
+
+        # Read data
         self.data = pd.read_csv(
-            path,
-            names=headers,
-            skiprows=skiprows,
-            delimiter=' ',
-            **kwargs)
+            path, sep=separator, skiprows=indices[0]+1, names=keys, index_col=False,
+            na_values=voidvalue_dict.values(), **kwargs)
+
+        # Dump additional data
+        self.additionaldata = {
+            "Measurement text": measurementtext_dict,
+            "Measurement var": measurementvalue_dict
+        }
+
+        # Inverse depth column
+        if inverse_depths:
+            self.data['z [m]'] = -self.data['z [m]']
+
+        # Coordinates
+        if (not easting is None) and (not northing is None) and (not datum is None):
+            self.set_position(
+                easting=easting,
+                northing=northing,
+                srid=srid,
+                elevation=z,
+                datum=datum
+            )
+
+        # Set title
+        if override_title and test_id is not None:
+            self.title = test_id.strip()
 
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
         if push_key is None:
             self.data.loc[:, "Push"] = 1
-        self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
-        self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
+        try:
+            self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
+        except Exception as err:
+            warnings.warn(
+                "Conversion of column names unsuccessful. Review imported data (Error message %s)" % str(err))
+        try:
+            self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
+        except Exception as err:
+            warnings.warn(
+                "Application of column multipliers unsuccessful. Review imported data (Error message %s)" % str(err))
 
         if self.data["z [m]"].min() != 0 and add_zero_row:
             # Append a row with zero data for vertical effective stress calculation
@@ -652,7 +870,10 @@ class PCPTProcessing(object):
 
     # region Layer-based processing and correction
 
-    def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES, vertical_total_stress=None, vertical_effective_stress=None, waterlevel=0):
+    def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES,
+                       initial_vertical_total_stress=0,
+                       vertical_total_stress=None,
+                       vertical_effective_stress=None, waterlevel=0):
         """
         Maps the soil properties defined in the layering and the cone properties to the grid
         defined by the cone data. The procedure also calculates the total and effective vertical stress.
@@ -661,6 +882,7 @@ class PCPTProcessing(object):
 
         :param layer_profile: ``SoilProfile`` object with the layer properties (need to contain the soil parameter ``Total unit weight [kN/m3]``
         :param cone_profile: ``SoilProfile`` object with the cone properties (default=``DEFAULT_CONE_PROPERTIES``)
+        :param initial_vertical_total_stress: Initial vertical total stress at the highest point of the soil profile
         :param vertical_total_stress: Pre-calculated total vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param vertical_effective_stress: Pre-calculated effective vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param map_cone: Boolean determining whether cone properties need to be mapped or not (default=True)
@@ -672,6 +894,22 @@ class PCPTProcessing(object):
         # Validation
         if 'Total unit weight [kN/m3]' not in layer_profile.numerical_soil_parameters():
             raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
+
+        # Validate that cone property boundaries fully contain the CPT info
+        for _profiletype, _profile in zip(("Layering", "Cone properties"), (layer_profile, cone_profile)):
+            # Validate that layer boundaries fully contain the CPT info
+            if _profile.min_depth > self.data['z [m]'].min():
+                raise ValueError(
+                    "%s starts below minimum CPT depth. " % _profiletype +
+                    "Ensure that layering fully contains CPT data (%.2fm - %.2fm)" % (
+                        self.data['z [m]'].min(), self.data['z [m]'].max()
+                    ))
+            if _profile.max_depth < self.data['z [m]'].max():
+                raise ValueError(
+                    "%s ends above minimum CPT depth. " % _profiletype +
+                    "Ensure that layering fully contains CPT data (%.2fm - %.2fm)" % (
+                        self.data['z [m]'].min(), self.data['z [m]'].max()
+                    ))
 
         # Map cone properties
         _mapped_cone_props = cone_profile.map_soilprofile(self.data['z [m]'])
@@ -689,9 +927,9 @@ class PCPTProcessing(object):
         if vertical_total_stress is None:
             # Calculate vertical total stress
             self.data["Vertical total stress [kPa]"] = np.append(
-                0,
+                initial_vertical_total_stress,
                 (np.array(self.data["z [m]"].diff()[1:]) *
-                 np.array(self.data["Total unit weight [kN/m3]"][0:-1])).cumsum())
+                 np.array(self.data["Total unit weight [kN/m3]"][0:-1])).cumsum() + initial_vertical_total_stress)
         else:
             self.data["Vertical total stress [kPa]"] = vertical_total_stress
 
@@ -751,6 +989,8 @@ class PCPTProcessing(object):
 
         Note that the absence of pore water pressure measurements will lead to NaN values. Reasoning can be used (e.g. presence of rapidly draining layers) to edit the pore pressure data before running this method.
 
+        The total sleeve friction is also calculated. If the cross-sectional area of the friction sleeve is equal at the top and bottom of the sleeve, a correction is not required. This is the default behaviour (cross-sectional areas equal to NaN) but the areas can be entered to calculate the total sleeve friction.
+
         .. math::
             q_c = q_c^* + d \\cdot a \\cdot \\gamma_w
 
@@ -770,7 +1010,9 @@ class PCPTProcessing(object):
 
             q_{net} = q_t - \\sigma_{vo}
 
-        :return: Supplements the PCPT data (`.data`) with the normalised properties (column keys 'qt [MPa]', 'Delta u2 [MPa]', 'Rf [%]', 'Bq [-]', 'Qt [-]', 'Fr [%]', 'qnet [MPa]'
+            f_t = f_s - u_2 \\frac{A_{sb} - A_{st}}{A_s}
+
+        :return: Supplements the PCPT data (`.data`) with the normalised properties (column keys 'qt [MPa]', 'Delta u2 [MPa]', 'Rf [%]', 'Bq [-]', 'Qt [-]', 'Fr [%]', 'qnet [MPa]', 'ft [MPa]'
         """
         try:
             self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
@@ -783,6 +1025,16 @@ class PCPTProcessing(object):
             self.data['Fr [%]'] = 100 * self.data['fs [MPa]'] / (
                     self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
             self.data['qnet [MPa]'] = self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]
+            for i, row in self.data.iterrows():
+                try:
+                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
+                        (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+                    )
+                    if np.math.isnan(self.data.loc[i, "ft [MPa]"]):
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+                except:
+                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+
         except Exception as err:
             raise ValueError("Error during calculation of normalised properties."
                              "Review the error message and try again (%s)" % (str(err)))

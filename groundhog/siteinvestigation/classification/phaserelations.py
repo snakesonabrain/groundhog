@@ -296,56 +296,6 @@ def relative_density(void_ratio, e_min, e_max, **kwargs):
         'Dr [-]': _Dr,
     }
 
-RELATIVEDENSITY_CATEGORIES = {
-    'relative_density': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
-}
-
-RELATIVEDENSITY_CATEGORIES_ERRORRETURN = {
-    'Relative density []': None,
-}
-
-
-@Validator(RELATIVEDENSITY_CATEGORIES, RELATIVEDENSITY_CATEGORIES_ERRORRETURN)
-def relativedensity_categories(
-        relative_density,
-        **kwargs):
-    """
-    Categorizes relative densities according to the following definition:
-
-        - 0 - 0.15: Very loose
-        - 0.15 - 0.35: Loose
-        - 0.35 - 0.65: Medium dense
-        - 0.65 - 0.85: Dense
-        - 0.85 - 1: Very dense
-
-    :param relative_density: Relative density of cohesionless material (:math:`D_r`) [:math:`-`] - Suggested range: 0.0 <= relative_density <= 1.0
-
-    .. math::
-        D_r = \\frac{e - e_{min}}{e_{max} - e_{min}}
-
-    :returns: Dictionary with the following keys:
-
-        - 'Relative density': Relative density class
-
-    Reference - API RP2 GEO
-
-    """
-
-    if 0 <= relative_density < 0.15:
-        _relative_density = "Very loose"
-    elif 0.15 <= relative_density < 0.35:
-        _relative_density = "Loose"
-    elif 0.35 <= relative_density < 0.65:
-        _relative_density = "Medium dense"
-    elif 0.65 <= relative_density < 0.85:
-        _relative_density = "Dense"
-    elif relative_density > 0.85:
-        _relative_density = "Very dense"
-
-    return {
-        'Relative density': _relative_density,
-    }
-
 
 VOIDRATIO_BULKUNITWEIGHT = {
     'bulkunitweight': {'type': 'float', 'min_value': 10.0, 'max_value': 25.0},
@@ -444,3 +394,5 @@ def unitweight_watercontent_saturated(
     return {
         'gamma [kN/m3]': _gamma,
     }
+
+

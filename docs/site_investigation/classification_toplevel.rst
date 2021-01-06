@@ -6,3 +6,5 @@ Soil classification
    :maxdepth: 2
 
    phaserelations
+
+   categories

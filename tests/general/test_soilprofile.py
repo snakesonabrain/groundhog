@@ -187,6 +187,7 @@ class Test_SoilProfile(unittest.TestCase):
             values=[10, 11, 12, 13],
             linearvariation=True
         )
+        print(self.profile)
         self.assertAlmostEqual(self.profile.loc[2, "Su from [kPa]"], 9, 4)
         self.assertAlmostEqual(self.profile.loc[2, "Su to [kPa]"], 14, 4)
         # TODO: Check linear variation with min and max rule
@@ -331,3 +332,15 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertAlmostEqual(
             profile.loc[2, 'Liquefaction probability to [pct]'], 27, 0
         )
+
+    def test_profile_from_dataframe(self):
+        """
+        Check whether a SoilProfile is correctly created from a dataframe, even when the index does not start at 0
+        :return:
+        """
+        df = pd.DataFrame({
+            'Depth from [m]': [-2, 0, 2, 4],
+            'Depth to [m]': [0, 2, 4, 6],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'CLAY']
+        })
+        sp.profile_from_dataframe(df[1:])

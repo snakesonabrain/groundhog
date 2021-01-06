@@ -131,3 +131,19 @@ class Test_sensitivity_frictionratio_lunne(unittest.TestCase):
         self.assertAlmostEqual(result['St BE [-]'], 7.47, 2)
         self.assertAlmostEqual(result['St HE [-]'], 9.63, 2)
 
+
+class Test_unitweight_mayne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.unitweight_mayne(ft=0.25, sigma_vo_eff=100)
+        self.assertAlmostEqual(result['gamma [kN/m3]'], 1.95 * 10.25 * (2.5 ** 0.06) * (1 ** 0.06), 2)
+
+
+class Test_vs_ic_robertsoncabal(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_ic_robertsoncabal(qt=10, ic=2.3, sigma_vo=200)
+        print(result['Vs [m/s]'])
+        self.assertAlmostEqual(result['alpha_vs [-]'], 881.05, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 293.84, 2)
+

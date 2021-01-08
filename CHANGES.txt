@@ -1,4 +1,10 @@
-v0.4.0, Date TBC -- 2021 New Year's release
+v0.5.0, TBC -- 2021 2nd release
+    - TODO: Add general functionality for gridded calculations
+    - TODO: Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
+    - TODO: Include correlation for damping according to Seed & Idriss (1970)
+    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
+
+v0.4.0, 06 January 2021 -- 2021 New Year's release
     - Added a module for dynamic soil properties to soildynamics
     - Bugfix for SoilProfile from dataframe
     - Added a module for soil parameter and soil type classification and moved relative density classification to it

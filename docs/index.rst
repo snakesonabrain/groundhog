@@ -46,6 +46,12 @@ Installation is easily done using pip:
 
    pip install groundhog
 
+A more comprehensive Getting Started section with detailed installation instructions is included in the documentation.
+
+.. toctree::
+
+   gettingstarted
+
 Support groundhog
 ------------------
 

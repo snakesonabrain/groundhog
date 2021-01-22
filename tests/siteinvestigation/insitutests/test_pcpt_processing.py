@@ -60,6 +60,35 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
         )
 
+    def test_pcpt_mapping_extended(self):
+        """
+        Test automatic extending of soilprofiles for mapping
+        :return:
+        """
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 18],
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        cone_props = pcpt_processing.DEFAULT_CONE_PROPERTIES
+        cone_props['Depth to [m]'] = [18,]
+
+        self.test_pandas_pcpt_creation()
+        self.pandas_pcpt.map_properties(layer_profile=layers, cone_profile=cone_props)
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[206, "area ratio [-]"], 0.8, 1
+        )
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[206, "Water pressure [kPa]"], 42.23, 2
+        )
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 31.51, 2
+        )
+        self.assertEqual(
+            self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
+        )
+
     def test_pcpt_mapping_nonzero_initial_stress(self):
         """
         Test mapping of soil and cone properties to the PCPT grid

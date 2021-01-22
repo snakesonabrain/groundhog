@@ -1,8 +1,11 @@
 v0.5.0, TBC -- 2021 2nd release
+    - Added extension of soil profile and cone properties to CPT maximum depth by default in map_properties
     - TODO: Add general functionality for gridded calculations
     - TODO: Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
     - TODO: Include correlation for damping according to Seed & Idriss (1970)
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
+    - TODO: Include standard PSD plot and Plasticity chart
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release
     - Added a module for dynamic soil properties to soildynamics

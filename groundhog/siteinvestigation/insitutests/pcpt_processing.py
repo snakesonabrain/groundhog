@@ -873,7 +873,8 @@ class PCPTProcessing(object):
     def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES,
                        initial_vertical_total_stress=0,
                        vertical_total_stress=None,
-                       vertical_effective_stress=None, waterlevel=0):
+                       vertical_effective_stress=None, waterlevel=0,
+                       extend_cone_profile=True, extend_layer_profile=True):
         """
         Maps the soil properties defined in the layering and the cone properties to the grid
         defined by the cone data. The procedure also calculates the total and effective vertical stress.
@@ -885,7 +886,9 @@ class PCPTProcessing(object):
         :param initial_vertical_total_stress: Initial vertical total stress at the highest point of the soil profile
         :param vertical_total_stress: Pre-calculated total vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param vertical_effective_stress: Pre-calculated effective vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
-        :param map_cone: Boolean determining whether cone properties need to be mapped or not (default=True)
+        :param waterlevel: Waterlevel [m] in the soil (measured from soil surface), default = 0m
+        :param extend_cone_profile: Boolean determining whether the cone profile needs to be extended to go to the bottom of the CPT (default = True)
+        :param extend_layer_profile: Boolean determining whether the layer profile needs to be extended to the bottom of the CPT (default = True)
         :return: Expands the dataframe `.data` with additional columns for the cone and soil properties
         """
         self.waterlevel = waterlevel
@@ -896,6 +899,17 @@ class PCPTProcessing(object):
             raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
 
         # Validate that cone property boundaries fully contain the CPT info
+
+        if extend_cone_profile:
+            if layer_profile[layer_profile.depth_to_col].max() < self.data['z [m]'].max():
+                warnings.warn("Layering extended to bottom of CPT")
+                layer_profile[layer_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
+
+        if extend_layer_profile:
+            if cone_profile[cone_profile.depth_to_col].max() < self.data['z [m]'].max():
+                warnings.warn("Cone properties extended to bottom of CPT")
+                cone_profile[cone_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
+
         for _profiletype, _profile in zip(("Layering", "Cone properties"), (layer_profile, cone_profile)):
             # Validate that layer boundaries fully contain the CPT info
             if _profile.min_depth > self.data['z [m]'].min():

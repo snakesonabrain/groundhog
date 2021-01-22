@@ -900,12 +900,12 @@ class PCPTProcessing(object):
 
         # Validate that cone property boundaries fully contain the CPT info
 
-        if extend_cone_profile:
+        if extend_layer_profile:
             if layer_profile[layer_profile.depth_to_col].max() < self.data['z [m]'].max():
                 warnings.warn("Layering extended to bottom of CPT")
                 layer_profile[layer_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
 
-        if extend_layer_profile:
+        if extend_cone_profile:
             if cone_profile[cone_profile.depth_to_col].max() < self.data['z [m]'].max():
                 warnings.warn("Cone properties extended to bottom of CPT")
                 cone_profile[cone_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()

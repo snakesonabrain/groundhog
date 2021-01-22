@@ -129,7 +129,8 @@ class Test_PCPTProcessing(unittest.TestCase):
             'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
         })
         self.test_pandas_pcpt_creation()
-        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers)
+        with self.assertRaises(ValueError):
+            self.pandas_pcpt.map_properties(layers, extend_layer_profile=False)
 
         layers = SoilProfile({
             "Depth from [m]": [1, 3.16, 5.9, 14.86, 15.7],
@@ -158,7 +159,8 @@ class Test_PCPTProcessing(unittest.TestCase):
         cone_props.loc[0, "Depth from [m]"] = 0
         cone_props.loc[0, "Depth to [m]"] = 18
         self.test_pandas_pcpt_creation()
-        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers, cone_props)
+        with self.assertRaises(ValueError):
+            self.pandas_pcpt.map_properties(layers, cone_props, extend_cone_profile=False, extend_layer_profile=False)
 
         cone_props.loc[0, "Depth to [m]"] = 20
         self.test_pandas_pcpt_creation()

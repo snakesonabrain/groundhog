@@ -1,5 +1,6 @@
 v0.5.0, TBC -- 2021 2nd release
     - Added extension of soil profile and cone properties to CPT maximum depth by default in map_properties
+    - Fixed up plotting of normalised properties and soil parameters for discontinuous CPTs
     - TODO: Add general functionality for gridded calculations
     - TODO: Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
     - TODO: Include correlation for damping according to Seed & Idriss (1970)

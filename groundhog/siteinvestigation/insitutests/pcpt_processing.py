@@ -1192,24 +1192,27 @@ class PCPTProcessing(object):
             color = DEFAULT_PLOTLY_COLORS[0]
 
         fig = subplots.make_subplots(rows=1, cols=3, print_grid=False, shared_yaxes=True)
-        trace1 = go.Scatter(
-            x=self.data['Qt [-]'],
-            y=self.data['z [m]'],
-            line=dict(color=color),
-            showlegend=False, mode='lines', name=r'$ Q_t $')
-        fig.append_trace(trace1, 1, 1)
-        trace2 = go.Scatter(
-            x=self.data['Fr [%]'],
-            y=self.data['z [m]'],
-            line=dict(color=color),
-            showlegend=False, mode='lines', name=r'$ F_r $')
-        fig.append_trace(trace2, 1, 2)
-        trace3 = go.Scatter(
-            x=self.data['Bq [-]'],
-            y=self.data['z [m]'],
-            line=dict(color=color),
-            showlegend=False, mode='lines', name=r'$ B_q $')
-        fig.append_trace(trace3, 1, 3)
+        for _push in self.data["Push"].unique():
+            push_data = self.data[self.data["Push"] == _push]
+        
+            trace1 = go.Scatter(
+                x=push_data['Qt [-]'],
+                y=push_data['z [m]'],
+                line=dict(color=color),
+                showlegend=False, mode='lines', name=r'$ Q_t $')
+            fig.append_trace(trace1, 1, 1)
+            trace2 = go.Scatter(
+                x=push_data['Fr [%]'],
+                y=push_data['z [m]'],
+                line=dict(color=color),
+                showlegend=False, mode='lines', name=r'$ F_r $')
+            fig.append_trace(trace2, 1, 2)
+            trace3 = go.Scatter(
+                x=push_data['Bq [-]'],
+                y=push_data['z [m]'],
+                line=dict(color=color),
+                showlegend=False, mode='lines', name=r'$ B_q $')
+            fig.append_trace(trace3, 1, 3)
         # Plot layers
         try:
             for i, row in self.layerdata.iterrows():
@@ -1286,12 +1289,14 @@ class PCPTProcessing(object):
         fig = subplots.make_subplots(rows=1, cols=prop_keys.__len__(), print_grid=False, shared_yaxes=True)
         for i, _props in enumerate(prop_keys):
             for j, _prop in enumerate(_props):
-                trace = go.Scatter(
-                    x=self.data[_prop],
-                    y=self.data['z [m]'],
-                    line=dict(color=colors[j]),
-                    showlegend=False, mode='lines', name=legend_titles[i][j])
-                fig.append_trace(trace, 1, i+1)
+                for _push in self.data["Push"].unique():
+                    push_data = self.data[self.data["Push"] == _push]
+                    trace = go.Scatter(
+                        x=push_data[_prop],
+                        y=push_data['z [m]'],
+                        line=dict(color=colors[j]),
+                        showlegend=False, mode='lines', name=legend_titles[i][j])
+                    fig.append_trace(trace, 1, i+1)
         # Plot layers
         try:
             for i, row in self.layerdata.iterrows():
@@ -1353,8 +1358,16 @@ class PCPTProcessing(object):
             _x_panel = []
             _z_panel = []
             for _prop in _panel:
-                _x_panel.append(self.data[_prop])
-                _z_panel.append(self.data['z [m]'])
+                _x_data = np.array([])
+                _z_data = np.array([])
+                for _push in self.data["Push"].unique():
+                    push_data = self.data[self.data["Push"] == _push]
+                    _x_data = np.append(_x_data, np.nan)
+                    _z_data = np.append(_z_data, np.nan)
+                    _x_data = np.append(_x_data, push_data[_prop])
+                    _z_data = np.append(_z_data, push_data['z [m]'])
+                _x_panel.append(_x_data)
+                _z_panel.append(_z_data)
             _x.append(_x_panel)
             _z.append(_z_panel)
 

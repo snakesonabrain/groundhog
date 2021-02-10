@@ -143,7 +143,13 @@ class Test_vs_ic_robertsoncabal(unittest.TestCase):
 
     def test_values(self):
         result = pcpt_correlations.vs_ic_robertsoncabal(qt=10, ic=2.3, sigma_vo=200)
-        print(result['Vs [m/s]'])
         self.assertAlmostEqual(result['alpha_vs [-]'], 881.05, 2)
         self.assertAlmostEqual(result['Vs [m/s]'], 293.84, 2)
+
+
+class Test_k0_sand_mayne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.k0_sand_mayne(qt=10, sigma_vo_eff=100, ocr=1)
+        self.assertAlmostEqual(result['K0 CPT [-]'], 0.53, 2)
 

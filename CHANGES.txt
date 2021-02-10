@@ -7,6 +7,7 @@ v0.5.0, TBC -- 2021 2nd release
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include standard PSD plot and Plasticity chart
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release
     - Added a module for dynamic soil properties to soildynamics

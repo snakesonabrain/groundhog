@@ -31,7 +31,8 @@ PCPT_KEY_MAPPING = {
     'Rf [%]': 'Rf',
     'K0 [-]': 'K0',
     'Vs [m/s]': 'Vs',
-    'gamma [kN/m3]': 'gamma'
+    'gamma [kN/m3]': 'gamma',
+    'OCR [-]': 'ocr'
 }
 
 
@@ -1069,6 +1070,84 @@ def vs_ic_robertsoncabal(
     }
 
 
+K0_SAND_MAYNE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'ocr': {'type': 'float', 'min_value': 1.0, 'max_value': 20.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'friction_angle': {'type': 'float', 'min_value': 25.0, 'max_value': 45.0},
+}
+
+K0_SAND_MAYNE_ERRORRETURN = {
+    'K0 CPT [-]': np.nan,
+    'K0 conventional [-]': np.nan,
+    'Kp [-]': np.nan,
+}
+
+
+@Validator(K0_SAND_MAYNE, K0_SAND_MAYNE_ERRORRETURN)
+def k0_sand_mayne(
+        qt, sigma_vo_eff, ocr,
+        atmospheric_pressure=100.0, multiplier=0.192, exponent_1=0.22, exponent_2=0.31, exponent_3=0.27,
+        friction_angle=32.0, **kwargs):
+    """
+    Calculates the lateral coefficient of earth pressure at rest based on calibration chamber tests on clean sands.
+    The values calculated from the equation need to be compared to values obtained using friction angle and OCR (see equations).
+
+    :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param ocr: Overconsolidation ratio (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= ocr <= 20.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+    :param multiplier: Multiplier in equation (:math:``) [:math:`-`] (optional, default= 0.192)
+    :param exponent_1: First exponent in equation (:math:``) [:math:`-`] (optional, default= 0.22)
+    :param exponent_2: Second exponent in equation (:math:``) [:math:`-`] (optional, default= 0.31)
+    :param exponent_3: Third exponent in equation (:math:``) [:math:`-`] (optional, default= 0.27)
+    :param friction_angle: Effective friction angle of the sand (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 25.0 <= friction_angle <= 45.0 (optional, default= 32.0)
+
+    .. math::
+        K_0 = 0.192 \\cdot \\left( \\frac{q_t}{P_a} \\right)^{0.22} \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.31} \\cdot \\text{OCR}^{0.27}
+
+        \\text{The maximum value for } K_0 \\text{ can be obtained as}:
+
+        K_p = \\tan^2 \\left( \\frac{\\pi}{4} + \\frac{\\varphi^{\\prime}}{2} \\right) = \\frac{1 + \\sin \\varphi^{\\prime}}{1 - \\sin \\varphi^{\\prime}}
+
+        \\text{These values need to be compared to}:
+
+        K_0 = (1 - \\sin \\varphi^{\\prime}) \\cdot \\text{OCR} ^{\\sin \\varphi^{\\prime}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'K0 CPT [-]': Coefficient of lateral earth pressure at rest derived from CPT (:math:`K_{0,CPT}`)  [:math:`-`]
+        - 'K0 conventional [-]': Value derived from the conventional equation (:math:`K_{0,\\text{conventional}}`)  [:math:`-`]
+        - 'Kp [-]': Limiting value of coefficient of lateral earth pressure based on Rankine passive earth pressure (:math:`K_p`)  [:math:`-`]
+
+    .. figure:: images/k0_sand_mayne_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Dataset used for calibration
+
+    Reference - Mayne (2007) NCHRP SYNTHESIS 368. Cone Penetration Testing. A Synthesis of Highway Practice.
+
+    """
+
+    _K0_CPT = multiplier * ((1000 * qt / atmospheric_pressure) ** exponent_1) * \
+              ((atmospheric_pressure / sigma_vo_eff) ** exponent_2) * (ocr ** exponent_3)
+    _Kp= (np.tan(0.25 * np.pi + 0.5 * np.radians(friction_angle))) ** 2
+    _K0_conventional = (1 - np.sin(np.radians(friction_angle))) * (ocr ** (np.sin(np.radians(friction_angle))))
+
+    return {
+        'K0 CPT [-]': _K0_CPT,
+        'K0 conventional [-]': _K0_conventional,
+        'Kp [-]': _Kp,
+    }
+
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Gmax Rix and Stokoe (1991)': gmax_sand_rixstokoe,
@@ -1082,5 +1161,6 @@ CORRELATIONS = {
     'OCR Lunne (1989)': ocr_cpt_lunne,
     'Sensitivity Rad and Lunne (1986)': sensitivity_frictionratio_lunne,
     'Unit weight Mayne et al (2010)': unitweight_mayne,
-    'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal
+    'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal,
+    'K0 Mayne (2007) - sand': k0_sand_mayne
 }

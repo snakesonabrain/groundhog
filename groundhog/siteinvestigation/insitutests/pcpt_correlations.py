@@ -151,6 +151,60 @@ def pcpt_normalisations(
         'qnet [MPa]': _qnet,
     }
 
+
+IC_SOILCLASS_ROBERTSON = {
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+}
+
+IC_SOILCLASS_ROBERTSON_ERRORRETURN = {
+    'Soil type number [-]': np.nan,
+    'Soil type []': np.nan,
+}
+
+
+@Validator(IC_SOILCLASS_ROBERTSON, IC_SOILCLASS_ROBERTSON_ERRORRETURN)
+def ic_soilclass_robertson(
+        ic,
+        **kwargs):
+    """
+    Provides soil type classification according to the soil behaviour type index by Robertson and Wride.
+
+    :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
+
+    :returns: Dictionary with the following keys:
+
+        - 'Soil type number [-]': Number of the soil type in the Robertson chart [:math:`-`]
+        - 'Soil type []': Description of the soil type in the Robertson chart
+
+    Reference - Fugro guidance on PCPT interpretation
+
+    """
+
+    if ic < 1.31:
+        ic_class_number = 7,
+        ic_class = "Gravelly sand to sand"
+    elif 1.31 <= ic < 2.05:
+        ic_class_number = 6
+        ic_class = "Sands: clean sands to silty sands"
+    elif 2.05 <= ic < 2.6:
+        ic_class_number = 5
+        ic_class = "Sand mixtures: silty sand to sand silty"
+    elif 2.6 <= ic < 2.95:
+        ic_class_number = 4
+        ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif 2.95 <= ic < 3.6:
+        ic_class_number = 3
+        ic_class = "Clays: clay to silty clay"
+    else:
+        ic_class_number = 2
+        ic_class = "Organic soils-peats"
+
+    return {
+        'Soil type number [-]': ic_class_number,
+        'Soil type []': ic_class,
+    }
+
+
 BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE = {
     'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
     'fs': {'type': 'float', 'min_value': 0.0, 'max_value': None},
@@ -267,7 +321,6 @@ def behaviourindex_pcpt_robertsonwride(
     else:
         _Ic_class_number = 2
         _Ic_class = "Organic soils-peats"
-
 
     return {
         'exponent_zhang [-]': _exponent_zhang,

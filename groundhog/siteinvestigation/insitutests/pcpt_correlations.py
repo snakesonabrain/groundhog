@@ -171,6 +171,8 @@ BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE_ERRORRETURN = {
     'Qtn [-]': np.nan,
     'Fr [%]': np.nan,
     'Ic [-]': np.nan,
+    'Ic class number [-]': np.nan,
+    'Ic class': None,
 }
 
 
@@ -209,6 +211,8 @@ def behaviourindex_pcpt_robertsonwride(
         - 'Qtn [-]': Normalised cone resistance (:math:`Q_{tn}`)  [:math:`-`]
         - 'Fr [%]': Normalised friction ratio (:math:`F_r`)  [:math:`%`]
         - 'Ic [-]': Soil behaviour type index (:math:`I_c`)  [:math:`-`]
+        - 'Ic class number [-]': Soil behaviour type class number according to the Robertson chart
+        - 'Ic class': Soil behaviour type class description according to the Robertson chart
 
     .. figure:: images/behaviourindex_pcpt_robertsonwride_1.png
         :figwidth: 500.0
@@ -245,11 +249,33 @@ def behaviourindex_pcpt_robertsonwride(
     _Qtn = Qtn(qt, sigma_vo, sigma_vo_eff, _exponent_zhang)
     _Fr = Fr(fs, qt, sigma_vo)
 
+    if _Ic < 1.31:
+        _Ic_class_number = 7,
+        _Ic_class = "Gravelly sand to sand"
+    elif 1.31 <= _Ic < 2.05:
+        _Ic_class_number = 6
+        _Ic_class = "Sands: clean sands to silty sands"
+    elif 2.05 <= _Ic < 2.6:
+        _Ic_class_number = 5
+        _Ic_class = "Sand mixtures: silty sand to sand silty"
+    elif 2.6 <= _Ic < 2.95:
+        _Ic_class_number = 4
+        _Ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif 2.95 <= _Ic < 3.6:
+        _Ic_class_number = 3
+        _Ic_class = "Clays: clay to silty clay"
+    else:
+        _Ic_class_number = 2
+        _Ic_class = "Organic soils-peats"
+
+
     return {
         'exponent_zhang [-]': _exponent_zhang,
         'Qtn [-]': _Qtn,
         'Fr [%]': _Fr,
-        'Ic [-]': _Ic
+        'Ic [-]': _Ic,
+        'Ic class number [-]': _Ic_class_number,
+        'Ic class': _Ic_class
     }
 
 

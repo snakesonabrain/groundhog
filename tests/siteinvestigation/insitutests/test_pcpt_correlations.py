@@ -153,3 +153,14 @@ class Test_k0_sand_mayne(unittest.TestCase):
         result = pcpt_correlations.k0_sand_mayne(qt=10, sigma_vo_eff=100, ocr=1)
         self.assertAlmostEqual(result['K0 CPT [-]'], 0.53, 2)
 
+
+class Test_gmax_cpt_puechen(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.gmax_cpt_puechen(
+            qc=15,
+            sigma_vo_eff=100,
+            Bq=0
+        )
+        self.assertAlmostEqual(result['Gmax [kPa]'], 101689.2, 1)
+

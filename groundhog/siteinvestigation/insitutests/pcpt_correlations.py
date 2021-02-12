@@ -181,7 +181,7 @@ def ic_soilclass_robertson(
     """
 
     if ic < 1.31:
-        ic_class_number = 7,
+        ic_class_number = 7
         ic_class = "Gravelly sand to sand"
     elif 1.31 <= ic < 2.05:
         ic_class_number = 6
@@ -1227,10 +1227,62 @@ def k0_sand_mayne(
     }
 
 
+GMAX_CPT_PUECHEN = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 70.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'Bq': {'type': 'float', 'min_value': -0.2, 'max_value': 0.5},
+    'coefficient_b': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_Bq': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier_qc': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+GMAX_CPT_PUECHEN_ERRORRETURN = {
+    'Gmax [kPa]': np.nan,
+}
+
+
+@Validator(GMAX_CPT_PUECHEN, GMAX_CPT_PUECHEN_ERRORRETURN)
+def gmax_cpt_puechen(
+        qc, sigma_vo_eff, Bq,
+        coefficient_b=1.0, coefficient_Bq=4.0, multiplier_qc=1.634, exponent_1=0.25, exponent_2=0.375, **kwargs):
+    """
+    Calculates the small-strain modulus based on CPT data. The correlation by Rix and Stokoe is modified to include the importance of the pore pressure ratio.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 70.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param Bq: Pore pressure ratio (:math:`B_q`) [:math:`-`] - Suggested range: -0.2 <= Bq <= 0.5
+    :param coefficient_b: Calibration coefficient b (:math:`b`) [:math:`-`] (optional, default= 1.0)
+    :param coefficient_Bq: Multiplier on Bq (:math:``) [:math:`-`] (optional, default= 4.0)
+    :param multiplier_qc: Multiplier applied on qc (:math:``) [:math:`-`] (optional, default= 1.634)
+    :param exponent_1: Exponent on qc (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param exponent_2: Exponent on vertical effective stress (:math:``) [:math:`-`] (optional, default= 0.375)
+
+    .. math::
+        G_{max} = b \\cdot \\left( 1 + 4 \\cdot B_q \\right) \\cdot 1.634 \\cdot q_c^{0.25} \\cdot \\sigma_{vo}^{\\prime \\ 0.375}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
+
+    Reference - Puechen et al (2020). Characteristic values for geotechnical design of offshore monopiles in sandy soils - Case study. ISFOG2020
+
+    """
+
+    _Gmax = coefficient_b * (1 + coefficient_Bq * Bq) * 1000 * multiplier_qc * \
+            ((1000 * qc) ** exponent_1) * (sigma_vo_eff ** exponent_2)
+
+    return {
+        'Gmax [kPa]': _Gmax,
+    }
+
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Gmax Rix and Stokoe (1991)': gmax_sand_rixstokoe,
     'Gmax Mayne and Rix (1993)': gmax_clay_maynerix,
+    'Gmax Puechen (2020)': gmax_cpt_puechen,
     'Dr Baldi et al (1986) - NC sand': relativedensity_ncsand_baldi,
     'Dr Baldi et al (1986) - OC sand': relativedensity_ocsand_baldi,
     'Dr Jamiolkowski et al (2003)': relativedensity_sand_jamiolkowski,

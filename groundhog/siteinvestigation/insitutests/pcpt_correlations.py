@@ -158,7 +158,7 @@ IC_SOILCLASS_ROBERTSON = {
 
 IC_SOILCLASS_ROBERTSON_ERRORRETURN = {
     'Soil type number [-]': np.nan,
-    'Soil type []': np.nan,
+    'Soil type': np.nan,
 }
 
 
@@ -174,7 +174,7 @@ def ic_soilclass_robertson(
     :returns: Dictionary with the following keys:
 
         - 'Soil type number [-]': Number of the soil type in the Robertson chart [:math:`-`]
-        - 'Soil type []': Description of the soil type in the Robertson chart
+        - 'Soil type': Description of the soil type in the Robertson chart
 
     Reference - Fugro guidance on PCPT interpretation
 
@@ -201,7 +201,7 @@ def ic_soilclass_robertson(
 
     return {
         'Soil type number [-]': ic_class_number,
-        'Soil type []': ic_class,
+        'Soil type': ic_class,
     }
 
 
@@ -1236,6 +1236,8 @@ GMAX_CPT_PUECHEN = {
     'multiplier_qc': {'type': 'float', 'min_value': None, 'max_value': None},
     'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
     'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'Bq_min': {'type': 'float', 'min_value': None, 'max_value': None},
+    'Bq_max': {'type': 'float', 'min_value': None, 'max_value': None},
 }
 
 GMAX_CPT_PUECHEN_ERRORRETURN = {
@@ -1246,9 +1248,12 @@ GMAX_CPT_PUECHEN_ERRORRETURN = {
 @Validator(GMAX_CPT_PUECHEN, GMAX_CPT_PUECHEN_ERRORRETURN)
 def gmax_cpt_puechen(
         qc, sigma_vo_eff, Bq,
-        coefficient_b=1.0, coefficient_Bq=4.0, multiplier_qc=1.634, exponent_1=0.25, exponent_2=0.375, **kwargs):
+        coefficient_b=1.0, coefficient_Bq=4.0, multiplier_qc=1.634, exponent_1=0.25, exponent_2=0.375,
+        Bq_min=0, Bq_max=0.5, **kwargs):
     """
     Calculates the small-strain modulus based on CPT data. The correlation by Rix and Stokoe is modified to include the importance of the pore pressure ratio.
+
+    The calibration coefficient b has recommended values between 0.5 and 2, with a suggested best estimate of 1.
 
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 70.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
@@ -1258,6 +1263,8 @@ def gmax_cpt_puechen(
     :param multiplier_qc: Multiplier applied on qc (:math:``) [:math:`-`] (optional, default= 1.634)
     :param exponent_1: Exponent on qc (:math:``) [:math:`-`] (optional, default= 0.25)
     :param exponent_2: Exponent on vertical effective stress (:math:``) [:math:`-`] (optional, default= 0.375)
+    :param Bq_min: Minimum value of Bq. If Bq is lower than this value, the minimum will be used for the calculation [:math:`-`] (optional, default= 0)
+    :param Bq_max: Maximum value of Bq. If Bq is higher than this value, the maximum will be used for the calculation [:math:`-`] (optional, default= 0.5)
 
     .. math::
         G_{max} = b \\cdot \\left( 1 + 4 \\cdot B_q \\right) \\cdot 1.634 \\cdot q_c^{0.25} \\cdot \\sigma_{vo}^{\\prime \\ 0.375}
@@ -1270,6 +1277,12 @@ def gmax_cpt_puechen(
 
     """
 
+    if Bq < Bq_min:
+        Bq = Bq_min
+
+    if Bq > Bq_max:
+        Bq = Bq_max
+
     _Gmax = coefficient_b * (1 + coefficient_Bq * Bq) * 1000 * multiplier_qc * \
             ((1000 * qc) ** exponent_1) * (sigma_vo_eff ** exponent_2)
 
@@ -1278,8 +1291,61 @@ def gmax_cpt_puechen(
     }
 
 
+BEHAVIOURINDEX_PCPT_NONNORMALISED = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'Rf': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+}
+
+BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN = {
+    'Isbt [-]': np.nan,
+}
+
+
+@Validator(BEHAVIOURINDEX_PCPT_NONNORMALISED, BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN)
+def behaviourindex_pcpt_nonnormalised(
+        qc, Rf,
+        atmospheric_pressure=100.0, **kwargs):
+    """
+    Calculates the non-normalised soil behaviour type index. For vertical effective stresses between 50 and 150kPa, the non-normalised index is almost equal to the normalised soil behaviour type index.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param Rf: Friction rato (:math:`R_f`) [:math:`pct`] - Suggested range: 0.1 <= Rf <= 10.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+
+    .. math::
+        I_{SBT} = \\sqrt{ \\left( 3.47 - \\log ( q_c / P_a ) \\right)^2 + \\left( \\log R_f + 1.22 \\right)^2}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Isbt [-]': Non-normalised soil behaviour type index (:math:`I_{SBT}`)  [:math:`-`]
+
+    .. figure:: images/behaviourindex_pcpt_nonnormalised_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Contours of non-normalised soil behaviour type index
+
+    Reference - Fugro guidance on PCPT interpretation
+
+    """
+
+    _Isbt = np.sqrt((3.47 - np.log10(1000 * qc / atmospheric_pressure)) ** 2 +
+                    (np.log10(Rf) + 1.22) ** 2)
+
+    classes = ic_soilclass_robertson(_Isbt)
+
+    return {
+        'Isbt [-]': _Isbt,
+        'Isbt class number [-]': classes['Soil type number [-]'],
+        'Isbt class': classes['Soil type']
+    }
+
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
+    'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
     'Gmax Rix and Stokoe (1991)': gmax_sand_rixstokoe,
     'Gmax Mayne and Rix (1993)': gmax_clay_maynerix,
     'Gmax Puechen (2020)': gmax_cpt_puechen,

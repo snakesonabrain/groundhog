@@ -163,4 +163,20 @@ class Test_gmax_cpt_puechen(unittest.TestCase):
             Bq=0
         )
         self.assertAlmostEqual(result['Gmax [kPa]'], 101689.2, 1)
+        result = pcpt_correlations.gmax_cpt_puechen(
+            qc=15,
+            sigma_vo_eff=100,
+            Bq=-0.2
+        )
+        self.assertAlmostEqual(result['Gmax [kPa]'], 101689.2, 1)
 
+
+class Test_behaviourindex_pcpt_nonnormalised(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.behaviourindex_pcpt_nonnormalised(
+            qc=10,
+            Rf=1
+        )
+        self.assertAlmostEqual(result['Isbt [-]'], 1.9, 1)
+        self.assertEqual(result['Isbt class number [-]'], 6)

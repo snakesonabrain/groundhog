@@ -213,7 +213,10 @@ class DeBeerCalculation(object):
         :returns Ultimate bearing resistance for the cone [MPa]
         """
         h_prime_crit = hcrit * (diameter_pile / diameter_cone)
-        return qc * ((1.0 + ((gamma * h_prime_crit) / (2.0 * po))) / (1.0 + ((gamma * hcrit) / (2.0 * po))))
+        try:
+            return qc * ((1.0 + ((gamma * h_prime_crit) / (2.0 * po))) / (1.0 + ((gamma * hcrit) / (2.0 * po))))
+        except:
+            return qc
 
     def calculate_base_resistance(self, vanimpecorrection=False, hcrit=0.2):
         """
@@ -300,15 +303,21 @@ class DeBeerCalculation(object):
         :return: Returns a dataframe `calc` with the different correction stages
         """
         calc = deepcopy(self.calculation_data)
-        calc = calc[calc['qc [MPa]'] > 0].reset_index(drop=True)
+        for i, row in calc.iterrows():
+            if row['qc [MPa]'] < 0:
+                calc.loc[i, 'qc [MPa]'] = 0
 
         # ----------------------------------------------------
         # Step 1: Shallow depth failure surface correction
         # ----------------------------------------------------
 
         # Calculate phi according to Equation 23
-        calc['phi [deg]'] = np.rad2deg(
-            self.phi_func()(1000 * calc['qc [MPa]'] / calc['Effective vertical stress [kPa]']))
+        for i, row in calc.iterrows():
+            try:
+                calc.loc[i, 'phi [deg]'] = np.rad2deg(
+                    self.phi_func()(1000 * row['qc [MPa]'] / row['Effective vertical stress [kPa]']))
+            except:
+                calc.loc[i, 'phi [deg]'] = 45
         # Determine the values of the normalised depths h/d and h/D
         calc['h/d [-]'] = calc['z [m]'] / self.diameter_cone
         calc['h/D [-]'] = calc['z [m]'] / pile_diameter

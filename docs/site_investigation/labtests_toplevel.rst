@@ -6,3 +6,5 @@ Laboratory testing
    :maxdepth: 2
 
    samplepreparation
+
+   indextests

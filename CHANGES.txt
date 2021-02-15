@@ -11,7 +11,7 @@ v0.5.0, TBC -- 2021 2nd release
     - Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
     - Include correlation for damping according to Seed & Idriss (1970)
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
-    - TODO: Include standard PSD plot and Plasticity chart
+    - Include standard PSD plot and Plasticity chart
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine
 

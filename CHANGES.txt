@@ -6,14 +6,15 @@ v0.5.0, TBC -- 2021 2nd release
     - Added modified Gmax correlation from CPT with effect of Bq according to Puechen et al (2020)
     - Added non-normalised soil behaviour type index Isbt correlation
     - Fixed a plotting bug leading to a depth shift in De Beer's method for unit base resistance
+    - Added a general LogPlot class for creating paneled plots with a log
     - TODO: Add general functionality for gridded calculations
-    - TODO: Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
-    - TODO: Include correlation for damping according to Seed & Idriss (1970)
+    - Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
+    - Include correlation for damping according to Seed & Idriss (1970)
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include standard PSD plot and Plasticity chart
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Add logplot class allowing easy creating of plots with a soil mini-log
+
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release
     - Added a module for dynamic soil properties to soildynamics

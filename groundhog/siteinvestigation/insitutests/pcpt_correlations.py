@@ -1343,6 +1343,157 @@ def behaviourindex_pcpt_nonnormalised(
     }
 
 
+
+DRAINEDSECANTMODULUS_SAND_BELLOTTI = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 50.0, 'max_value': 300.0},
+    'K0': {'type': 'float', 'min_value': 0.5, 'max_value': 2.0},
+    'sandtype': {'type': 'string', 'options': ("NC", "Aged NC", "OC"), 'regex': None},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+}
+
+DRAINEDSECANTMODULUS_SAND_BELLOTTI_ERRORRETURN = {
+    'qc1 [-]': np.nan,
+    'Es_qc [-]': np.nan,
+    'Es [kPa]': np.nan,
+}
+
+@Validator(DRAINEDSECANTMODULUS_SAND_BELLOTTI, DRAINEDSECANTMODULUS_SAND_BELLOTTI_ERRORRETURN)
+def drainedsecantmodulus_sand_bellotti(
+        qc, sigma_vo_eff, K0, sandtype,
+        atmospheric_pressure=100.0, **kwargs):
+
+    """
+    Calculates the drained secant modulus for various types of sand for an average strain of 0.1 percent. This stress range should be representative for well-designed foundations (with sufficient safety against excessive deformations).
+
+    Bands for mean effective stress from 50kPa to 300kPa are provided. Note that the correlation will not return values outside that range.
+
+    Ageing and overconsolidation are beneficial effects, leading to increased stiffness.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 50.0 <= sigma_vo_eff <= 300.0
+    :param K0: Coefficient of lateral earth pressure at rest (:math:`K_0`) [:math:`-`] - Suggested range: 0.5 <= K0 <= 2.0
+    :param sandtype: Type of sand - Options: ("NC", "Aged NC", "OC")
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+
+    .. math::
+        q_{c1} = \\left( \\frac{q_c}{P_a} \\right) \\cdot \\sqrt{ \\frac{P_a}{\\sigma_{vo}^{\\prime}} }
+
+        \\sigma_{mo}^{\\prime} = \\frac{(1 + 2 \\cdot K_0) \\cdot \\sigma_{vo}^{\\prime}}{3}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc1 [-]': Normalised cone resistance (:math:`q_{c1}`)  [:math:`-`]
+        - 'Es_qc [-]': Ratio of drained secant modulus to cone resistance (:math:`E_s^{\\prime} / q_c`)  [:math:`-`]
+        - 'Es [kPa]': Drained secant modulus at strain level of 0.1 percent (:math:`E_s^{\\prime}`)  [:math:`kPa`]
+
+    .. figure:: images/drainedsecantmodulus_sand__1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Visualisation of correlation
+
+    Reference - Bellotti, R., Ghionna, V. N., Jamiolkowski, M., Lancellotta, R., & Robertson, P. K. (1989). Shear strength of sand from CPT. In Congrès international de mécanique des sols et des travaux de fondations. 12 (pp. 179-184).
+
+    """
+    _sigma_mo_eff = ((1 + 2 * K0) * sigma_vo_eff) / 3
+    _qc1 = (1000 * qc / atmospheric_pressure) * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+
+    qc1__nc_50 = np.array(
+        [36.0, 40.60330415823624, 46.020854882827855, 51.41286865966658, 59.40641474746315, 68.97423612037261,
+         83.63131157432191, 97.56959774187784, 114.38054759574864, 134.08797382678958, 152.71270994765013,
+         173.92441032542308, 200.0])
+
+    E_qc__nc_50 = np.array(
+        [3.706708268330736, 3.4820592823712992, 3.2574102964118588, 3.070202808112328, 2.8455538221528904, 2.62090483619345,
+         2.3213728549141983, 2.2090483619344816, 2.0218408736349502, 1.8720748829953209, 1.7971918876755095,
+         1.7597503900156042, 1.7597503900156042])
+
+    qc1__nc_300 = np.array(
+        [36.0, 40.408183360314055, 45.799699828776, 52.66621257255607, 59.693273152946574, 67.33279591108146,
+         75.58504107246422, 86.0837562404445, 95.70757527884192, 105.38706697485875, 119.44847879561136, 136.0397981668792,
+         152.71270994765013, 173.92441032542308, 200.0])
+
+    E_qc__nc_300 = np.array(
+        [5.017160686427459, 4.717628705148208, 4.418096723868956, 4.081123244929799, 3.7815912636505473, 3.519500780031205,
+         3.2574102964118588, 3.032761310452422, 2.8455538221528904, 2.6957878315132606, 2.5460218408736357,
+         2.4336973478939186, 2.358814352574104, 2.283931357254289, 2.1716068642745725])
+
+    qc1__nc_aged_50 = np.array(
+        [36.0, 39.828428929006265, 43.43602549287978, 47.82897607010807, 52.161249633588966, 58.27270013483514,
+         64.1661742450743, 72.03032118526116, 80.46972295582609, 90.33201773973744, 103.8750311939775, 117.73469759745085,
+         137.35677306263798, 157.94996551160924, 185.16427213057165, 200.0])
+
+    E_qc__nc_aged_50 = np.array(
+        [9.734789391575667, 9.210608424336977, 8.611544461778474, 7.975039001560062, 7.375975039001562, 6.70202808112325,
+         6.102964118564741, 5.503900156006242, 4.942277691107648, 4.492979719188771, 3.9313572542901767, 3.594383775351016,
+         3.2574102964118588, 3.032761310452422, 2.882995319812796, 2.770670826833076])
+
+    qc1__nc_aged_300 = np.array(
+        [36.0, 41.79397491103586, 46.46637385138504, 52.920524263063506, 58.27270013483514, 66.36674192014331,
+         74.14257284871742, 82.82945568191151, 90.76820798422662, 102.87907878967758, 114.93286204934958,
+         134.08797382678958, 154.19109206798834, 180.75775603565143, 200.0])
+
+    E_qc__nc_aged_300 = np.array(
+        [11.981279251170047, 11.1201248049922, 10.408736349453976, 9.547581903276138, 8.911076443057727, 8.049921996879878,
+         7.3010920436817495, 6.66458658346334, 6.177847113884558, 5.616224648985963, 5.2418096723869, 4.8299531981279245,
+         4.492979719188771, 4.156006240249614, 3.968798751950082])
+
+    qc1__oc_50 = np.array(
+        [36.0, 38.88059697907535, 41.79397491103586, 46.020854882827855, 49.70813683794835, 54.47239108201235,
+         60.27115215047096, 66.68720996800097, 73.43169485579755, 79.31518754764512, 87.3368169432148, 98.0407364118493,
+         114.38054759574864, 138.6864973368832, 165.74484792151944, 189.6782103606226, 200.0])
+
+    E_qc__oc_50 = np.array(
+        [16.02496099843994, 15.463338533541346, 14.826833073322936, 13.965678627145088, 13.366614664586587,
+         12.617784711388456, 11.794071762870518, 10.970358814352577, 10.146645865834637, 9.547581903276138,
+         8.836193447737912, 8.049921996879878, 7.151326053042125, 6.2527301092043714, 5.578783151326057, 5.204368174726991,
+         5.054602184087365])
+
+    qc1__oc_300 = np.array(
+        [36.0, 38.507810337311405, 40.60330415823624, 43.43602549287978, 46.46637385138504, 50.91992276530692,
+         54.999727733004406, 58.83682684054747, 66.36674192014331, 72.03032118526116, 78.55471459444749, 86.49943271508333,
+         94.78993233218729, 102.87907878967758, 114.38054759574864, 126.55672442978188, 144.13537469613595,
+         161.80047284520188, 189.6782103606226, 200.0])
+
+    E_qc__oc_300 = np.array(
+        [24.000000000000004, 23.251170046801878, 22.464898595943843, 21.56630265210609, 20.705148205928236,
+         19.544461778471145, 18.645865834633387, 17.784711388455538, 16.361934477379094, 15.388455538221534,
+         14.377535101404057, 13.366614664586587, 12.393135725429019, 11.606864274570984, 10.745709828393137,
+         9.9219968798752, 8.985959438377536, 8.274570982839318, 7.48829953198128, 7.2262090483619374])
+
+    if sandtype == 'NC':
+        _qc1_50 = qc1__nc_50
+        _qc1_300 = qc1__nc_300
+        _Eratio_50 = E_qc__nc_50
+        _Eratio_300 = E_qc__nc_300
+    elif sandtype == "Aged NC":
+        _qc1_50 = qc1__nc_aged_50
+        _qc1_300 = qc1__nc_aged_300
+        _Eratio_50 = E_qc__nc_aged_50
+        _Eratio_300 = E_qc__nc_aged_300
+    elif sandtype == 'OC':
+        _qc1_50 = qc1__oc_50
+        _qc1_300 = qc1__oc_300
+        _Eratio_50 = E_qc__oc_50
+        _Eratio_300 = E_qc__oc_300
+    else:
+        raise ValueError("Sand type not recognised, selected from 'NC', 'Aged NC' or 'OC'")
+
+    _Es_qc_50 = np.interp(np.log10(_qc1), np.log10(_qc1_50), _Eratio_50)
+    _Es_qc_300 = np.interp(np.log10(_qc1), np.log10(_qc1_300), _Eratio_300)
+    _Es_qc = np.interp(_sigma_mo_eff, [50, 300], [_Es_qc_50, _Es_qc_300])
+    _Es = _Es_qc * qc * 1000
+
+    return {
+        'qc1 [-]': _qc1,
+        'Es_qc [-]': _Es_qc,
+        'Es [kPa]': _Es,
+    }
+
+
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,

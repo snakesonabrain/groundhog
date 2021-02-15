@@ -63,3 +63,14 @@ class Test_SoilProperties(unittest.TestCase):
         self.assertAlmostEqual(
             result['Gmax [kPa]'], 77472, 0
         )
+
+    def test_dampingratio_sandgravel_seed(self):
+        result = soilproperties.dampingratio_sandgravel_seed(
+            cyclic_shear_strain=0.01
+        )
+        self.assertAlmostEqual(
+            result['D LE [pct]'], 2.48, 2)
+        self.assertAlmostEqual(
+            result['D BE [pct]'], 5.4, 2)
+        self.assertAlmostEqual(
+            result['D HE [pct]'], 10.04, 2)

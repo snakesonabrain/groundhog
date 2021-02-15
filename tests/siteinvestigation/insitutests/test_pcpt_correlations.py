@@ -180,3 +180,29 @@ class Test_behaviourindex_pcpt_nonnormalised(unittest.TestCase):
         )
         self.assertAlmostEqual(result['Isbt [-]'], 1.9, 1)
         self.assertEqual(result['Isbt class number [-]'], 6)
+
+
+class Test_drainedsecantmodulus_sand_bellotti(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.drainedsecantmodulus_sand_bellotti(
+            qc=10,
+            sigma_vo_eff=100,
+            K0=1,
+            sandtype='NC'
+        )
+        self.assertAlmostEqual(result['Es_qc [-]'], 2.3, 1)
+        result = pcpt_correlations.drainedsecantmodulus_sand_bellotti(
+            qc=10,
+            sigma_vo_eff=100,
+            K0=1,
+            sandtype='Aged NC'
+        )
+        self.assertAlmostEqual(result['Es_qc [-]'], 4.4, 1)
+        result = pcpt_correlations.drainedsecantmodulus_sand_bellotti(
+            qc=10,
+            sigma_vo_eff=100,
+            K0=1,
+            sandtype='OC'
+        )
+        self.assertAlmostEqual(result['Es_qc [-]'], 8.7, 1)

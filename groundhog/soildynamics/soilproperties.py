@@ -111,20 +111,20 @@ def modulusreduction_plasticity_ishibashi(
     }
 
 
-GMAX_SHEARWAVEVELOCTY = {
+GMAX_SHEARWAVEVELOCITY = {
     'Vs': {'type': 'float', 'min_value': 0.0, 'max_value': 600.0},
     'gamma': {'type': 'float', 'min_value': 12.0, 'max_value': 22.0},
     'g': {'type': 'float', 'min_value': 9.7, 'max_value': 10.2},
 }
 
-GMAX_SHEARWAVEVELOCTY_ERRORRETURN = {
+GMAX_SHEARWAVEVELOCITY_ERRORRETURN = {
     'rho [kg/m3]': np.nan,
     'Gmax [kPa]': np.nan,
 }
 
 
-@Validator(GMAX_SHEARWAVEVELOCTY, GMAX_SHEARWAVEVELOCTY_ERRORRETURN)
-def gmax_shearwavevelocty(
+@Validator(GMAX_SHEARWAVEVELOCITY, GMAX_SHEARWAVEVELOCITY_ERRORRETURN)
+def gmax_shearwavevelocity(
         Vs, gamma,
         g=9.81, **kwargs):
     """

@@ -53,7 +53,7 @@ class Test_SoilProperties(unittest.TestCase):
         )
 
     def test_gmax_shearwavevelocty(self):
-        result = soilproperties.gmax_shearwavevelocty(
+        result = soilproperties.gmax_shearwavevelocity(
             Vs=200,
             gamma=19
         )

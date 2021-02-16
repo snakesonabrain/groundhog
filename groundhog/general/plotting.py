@@ -549,6 +549,7 @@ class LogPlot(object):
 
     def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
                  fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
+                 soiltypelegend=True,
                  **kwargs):
         """
         Initializes a figure with a minilog on the side.
@@ -556,6 +557,7 @@ class LogPlot(object):
         :param no_panels: Number of panels
         :param logwidth: Width of the minilog as a ratio to the total width of the figure (default=0.05)
         :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
         :param kwargs: Optional keyword arguments for the make_subplots method
         """
 
@@ -581,9 +583,20 @@ class LogPlot(object):
             _y1 = row['Depth to [m]']
             _layers.append(
                 dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
+            try:
+                if soiltypelegend:
+                    _trace = go.Bar(
+                        x=[-10, -10],
+                        y=[row['Depth to [m]'], row['Depth to [m]']],
+                        name=row['Soil type'],
+                        marker=dict(color=_fillcolor))
+                    self.fig.append_trace(_trace, 1, 1)
+            except:
+                pass
+
         self.fig['layout'].update(shapes=_layers)
         self.fig['layout']['xaxis1'].update(
-            anchor='y', title=None, side='top', tickvals=[])
+            anchor='y', title=None, side='top', tickvals=[], range=(0, 1))
         self.fig['layout']['yaxis1'].update(title='Depth [m]')
 
         for i in range(0, no_panels):

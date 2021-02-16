@@ -1510,5 +1510,6 @@ CORRELATIONS = {
     'Sensitivity Rad and Lunne (1986)': sensitivity_frictionratio_lunne,
     'Unit weight Mayne et al (2010)': unitweight_mayne,
     'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal,
-    'K0 Mayne (2007) - sand': k0_sand_mayne
+    'K0 Mayne (2007) - sand': k0_sand_mayne,
+    'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti
 }

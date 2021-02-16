@@ -1506,14 +1506,22 @@ class PCPTProcessing(object):
         types to which the correlation can be applied can be specified with the `apply_for_soiltypes` keyword argument.
         A list with the soil types for which the correlation needs to be applied can be provided.
 
-            - Robertson and Wride (1998) (`behaviourindex_pcpt_robertsonwride`) - Calculation of soil behaviour type index from cone tip resistance and sleeve friction
-            - Rix and Stokoe (1991) (`gmax_sand_rixstokoe`) - Calculation of small-strain shear modulus for uncemented silica sand from cone tip resistance and vertical effective stress
-            - Mayne and Rix (1993) (`gmax_clay_maynerix`) - Calculation of small-strain shear modulus for clay from cone tip resistance
-            - Baldi et al (1986) - NC sand (`relativedensity_ncsand_baldi`) - Calculation of relative density of normally consolidated silica sand
-            - Baldi et al (1986) - OC sand (`relativedensity_ocsand_baldi`) - Calculation of relative density of overconsolidated silica sand
-            - Jamiolkowski et al (2003) (`relativedensity_sand_jamiolkowski`) - Calculation of relative density dry and saturated silica sand
-            - Kulhawy and Mayne (1990) (`frictionangle_sand_kulhawymayne`) - Calculation of effective friction angle for sand
-            - Rad and Lunne (1988): (`undrainedshearstrength_clay_radlunne`) - Calculation of undrained shear strength for clay based on empirical cone factor Nk
+            - Ic Robertson and Wride (1998) (`behaviourindex_pcpt_robertsonwride`) - Calculation of soil behaviour type index from cone tip resistance and sleeve friction
+            - Isbt Robertson (2010) (`behaviourindex_pcpt_nonnormalised`) - Calculation of non-normalised soil behaviour type index from cone tip resistance and friction ratio
+            - Gmax Rix and Stokoe (1991) (`gmax_sand_rixstokoe`) - Calculation of small-strain shear modulus for uncemented silica sand from cone tip resistance and vertical effective stress
+            - Gmax Mayne and Rix (1993) (`gmax_clay_maynerix`) - Calculation of small-strain shear modulus for clay from cone tip resistance
+            - Dr Baldi et al (1986) - NC sand (`relativedensity_ncsand_baldi`) - Calculation of relative density of normally consolidated silica sand
+            - Dr Baldi et al (1986) - OC sand (`relativedensity_ocsand_baldi`) - Calculation of relative density of overconsolidated silica sand
+            - Dr Jamiolkowski et al (2003) (`relativedensity_sand_jamiolkowski`) - Calculation of relative density dry and saturated silica sand
+            - Friction angle Kulhawy and Mayne (1990) (`frictionangle_sand_kulhawymayne`) - Calculation of effective friction angle for sand
+            - Su Rad and Lunne (1988): (`undrainedshearstrength_clay_radlunne`) - Calculation of undrained shear strength for clay based on empirical cone factor Nk
+            - Friction angle Kleven (1986): (`frictionangle_overburden_kleven`) - Calculation of friction angle for North Sea sands at various stress levels and relative densities
+            - OCR Lunne (1989): (`ocr_cpt_lunne`) - Calculation of OCR for clay
+            - Sensitivity Rad and Lunne (1986): (`sensitivity_frictionratio_lunne`) - Calculation of sensitivity for clay
+            - Unit weight Mayne et al (2010): (`unitweight_mayne`) - Calculation of total unit weight
+            - Shear wave velocity Robertson and Cabal (2015): (`vs_ic_robertsoncabal`) - Calculation of shear wave velocity for all soil types
+            - K0 Mayne (2007) - sand: (`k0_sand_mayne`) - Calculation of coefficient of lateral earth pressure for sand
+            - Es Bellotti (1989) - sand: (`drainedsecantmodulus_sand_bellotti`) - Calculation of drained modulus at average strain of 0.1pct for sand
 
         Note that certain correlations require either the calculation of normalised properties or application of preceding correlations
 

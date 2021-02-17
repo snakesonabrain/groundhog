@@ -583,12 +583,19 @@ class LogPlot(object):
             _y1 = row['Depth to [m]']
             _layers.append(
                 dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
+
+        for _soiltype in soilprofile['Soil type'].unique():
+            try:
+                _fillcolor = fillcolordict[_soiltype]
+            except:
+                soiltypelegend = False
+
             try:
                 if soiltypelegend:
                     _trace = go.Bar(
                         x=[-10, -10],
                         y=[row['Depth to [m]'], row['Depth to [m]']],
-                        name=row['Soil type'],
+                        name=_soiltype,
                         marker=dict(color=_fillcolor))
                     self.fig.append_trace(_trace, 1, 1)
             except:

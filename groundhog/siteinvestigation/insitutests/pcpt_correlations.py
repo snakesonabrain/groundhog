@@ -1097,6 +1097,8 @@ VS_IC_ROBERTSONCABAL = {
     'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 4.0},
     'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 800.0},
     'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'gamma': {'type': 'float', 'min_value': 12, 'max_value': 22},
+    'g': {'type': 'float', 'min_value': 9.7, 'max_value': 10.2},
     'exponent': {'type': 'float', 'min_value': None, 'max_value': None},
     'calibration_coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
     'calibration_coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
@@ -1105,16 +1107,18 @@ VS_IC_ROBERTSONCABAL = {
 VS_IC_ROBERTSONCABAL_ERRORRETURN = {
     'alpha_vs [-]': np.nan,
     'Vs [m/s]': np.nan,
+    'Gmax [kPa]': np.nan
 }
 
 
 @Validator(VS_IC_ROBERTSONCABAL, VS_IC_ROBERTSONCABAL_ERRORRETURN)
 def vs_ic_robertsoncabal(
         qt, ic, sigma_vo,
-        atmospheric_pressure=100.0, exponent=0.5, calibration_coefficient_1=0.55, calibration_coefficient_2=1.68,
+        atmospheric_pressure=100.0, gamma=19, g=9.81, exponent=0.5, calibration_coefficient_1=0.55, calibration_coefficient_2=1.68,
         **kwargs):
     """
     Calculates shear wave velocity based on a correlation with total cone resistance and soil behaviour type index. Shear wave velocity is sensitive to age and cementation, where older deposits of the same soil have higher shear wave velocity (i.e. higher stiffness) than younger deposits. The correlation is based on measured shear wave velocity data for uncemented Holocene to Pleistocene age soils.
+    Since the small-strain shear modulus can be derived from the shear wave velocity and the bulk density of the soil, is it also calculated. The bulk density of the soil can be specified as an optional argument.
 
     Unfortunately, no plots on the background data to the calibrated equation are available.
 
@@ -1122,6 +1126,8 @@ def vs_ic_robertsoncabal(
     :param ic: Soil behaviour type index according to Robertson and Wride (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 4.0
     :param sigma_vo: Total vertical stress (:math:`sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 800.0
     :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param gamma: Bulk unit weight (:math:`\\gamma`) [:math:`kN/m3`] - Suggested range: 12.0 <= gamma <= 22.0
+    :param g: Acceleration due to gravity (:math:`g`) [:math:`m/s2`] - Suggested range: 9.7 <= g <= 10.2 (optional, default= 9.81)
     :param exponent: Exponent in equation for shear wave velocity (:math:``) [:math:`-`] (optional, default= 0.5)
     :param calibration_coefficient_1: First calibration coefficient in equation for alpha_s (:math:``) [:math:`-`] (optional, default= 0.55)
     :param calibration_coefficient_2: Second calibration coefficient in equation for alpha_s (:math:``) [:math:`-`] (optional, default= 1.68)
@@ -1131,10 +1137,15 @@ def vs_ic_robertsoncabal(
 
         \\alpha_{vs} = 10^{0.55 \\cdot I_c + 1.68}
 
+        G_{max} = \\rho \\cdot V_s^2
+
+        \\rho = \\gamma / g
+
     :returns: Dictionary with the following keys:
 
         - 'alpha_vs [-]': Coefficient to the shear wave velocity calculation, capturing the influence of the soil behaviour (:math:`\\alpha_{vs}`)  [:math:`-`]
         - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
 
     Reference - Robertson, P.K. and Cabal, K.L. (2015). Guide to Cone Penetration Testing for Geotechnical Engineering. 6th edition. Gregg Drilling & Testing, Inc.
 
@@ -1142,10 +1153,13 @@ def vs_ic_robertsoncabal(
 
     _alpha_vs = 10 ** (calibration_coefficient_1 * ic + calibration_coefficient_2)
     _Vs = (_alpha_vs * ((1000 * qt - sigma_vo) / atmospheric_pressure)) ** exponent
+    _rho = 1000 * gamma / g
+    _Gmax = 1e-3 * _rho * (_Vs ** 2)
 
     return {
         'alpha_vs [-]': _alpha_vs,
         'Vs [m/s]': _Vs,
+        'Gmax [kPa]': _Gmax
     }
 
 

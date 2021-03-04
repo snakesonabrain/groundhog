@@ -629,10 +629,15 @@ class LogPlot(object):
         :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
         :return: Adds the trace to the specified panel
         """
+        try:
+            mode = kwargs['mode']
+            kwargs.pop('mode')
+        except:
+            mode = 'lines'
         _data = go.Scatter(
             x=x,
             y=z,
-            mode='lines',
+            mode=mode,
             name=name,
             **kwargs)
         self.fig.append_trace(_data, 1, panel_no + 1)

@@ -1259,7 +1259,7 @@ class PCPTProcessing(object):
 
     def plot_properties(
             self, prop_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
-            legend_titles=None, axis_titles=None,
+            legend_titles=None, axis_titles=None, showlegends=None, plot_layers=True,
             plot_height=700, plot_width=1000, colors=None, return_fig=False, plot_title=None):
         """
         Plots the soil and/or PCPT properties vs depth.
@@ -1271,6 +1271,8 @@ class PCPTProcessing(object):
         :param z_tick: Tick mark distance for PCPT (optional, default=2)
         :param legend_titles: Tuple with entries to be used in the legend. If left blank, the keys are used
         :param axis_titles: Tuple with entries to be used as axis labels. If left blank, the keys are used
+        :param showlegends: Array of booleans determining whether or not to show the trace in the legend
+        :param plot_layers: Boolean determining whether layers are plotted (default=True)
         :param plot_height: Height of the plot in pixels
         :param plot_width: Width of the plot in pixels
         :param return_fig: Boolean determining whether the figure is returned or the plot is generated; Default behaviour is to generate the plot.
@@ -1286,30 +1288,46 @@ class PCPTProcessing(object):
         if axis_titles is None:
             axis_titles = prop_keys
 
+        _showlegends = []
+        for i, _x in enumerate(prop_keys):
+            _showlegends_panel = []
+            for j, _trace_x in enumerate(_x):
+                _showlegends_panel.append(True)
+        _showlegends.append(_showlegends_panel)
+
+        if showlegends is None:
+            showlegends = _showlegends
+
         fig = subplots.make_subplots(rows=1, cols=prop_keys.__len__(), print_grid=False, shared_yaxes=True)
         for i, _props in enumerate(prop_keys):
             for j, _prop in enumerate(_props):
-                for _push in self.data["Push"].unique():
+                for k, _push in enumerate(self.data["Push"].unique()):
+                    if k == 0:
+                        showlegend = showlegends[i][j]
+                    else:
+                        showlegend = False
                     push_data = self.data[self.data["Push"] == _push]
                     trace = go.Scatter(
                         x=push_data[_prop],
                         y=push_data['z [m]'],
                         line=dict(color=colors[j]),
-                        showlegend=False, mode='lines', name=legend_titles[i][j])
+                        showlegend=showlegend, mode='lines', name=legend_titles[i][j])
                     fig.append_trace(trace, 1, i+1)
         # Plot layers
-        try:
-            for i, row in self.layerdata.iterrows():
-                if i > 0:
-                    for j, _range in enumerate(plot_ranges):
-                        layer_trace = go.Scatter(
-                            x=_range,
-                            y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
-                            line=dict(color='black', dash='dot'),
-                            showlegend=False, mode='lines')
-                        fig.append_trace(layer_trace, 1, j+1)
-        except:
-            pass
+        if plot_layers:
+            try:
+                for i, row in self.layerdata.iterrows():
+                    if i > 0:
+                        for j, _range in enumerate(plot_ranges):
+                            layer_trace = go.Scatter(
+                                x=_range,
+                                y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
+                                line=dict(color='black', dash='dot'),
+                                showlegend=False, mode='lines')
+                            fig.append_trace(layer_trace, 1, j+1)
+            except:
+                pass
+
         for i, _range in enumerate(plot_ranges):
             fig['layout']['xaxis%i' % (i+1)].update(
                 title=axis_titles[i], side='top', anchor='y',

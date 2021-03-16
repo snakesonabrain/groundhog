@@ -1303,7 +1303,10 @@ class PCPTProcessing(object):
             for j, _prop in enumerate(_props):
                 for k, _push in enumerate(self.data["Push"].unique()):
                     if k == 0:
-                        showlegend = showlegends[i][j]
+                        try:
+                            showlegend = showlegends[i][j]
+                        except:
+                            showlegend = False
                     else:
                         showlegend = False
                     push_data = self.data[self.data["Push"] == _push]

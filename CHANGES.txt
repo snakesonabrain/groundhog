@@ -10,6 +10,7 @@ v0.5.0, TBC -- 2021 2nd release
     - TODO: Add general functionality for gridded calculations
     - Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
     - Include correlation for damping according to Seed & Idriss (1970)
+    - Modification to plot_properties method for CPTs to allows showing/hiding of legends and plotting of layer interfaces
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - Include standard PSD plot and Plasticity chart
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

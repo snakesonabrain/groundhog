@@ -522,6 +522,58 @@ def relativedensity_ocsand_baldi(
         'Dr [-]': _Dr,
     }
 
+CONERESISTANCE_OCSAND_BALDI = {
+    'dr': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'k0': {'type': 'float', 'min_value': 0.3, 'max_value': 5.0},
+    'coefficient_0': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+CONERESISTANCE_OCSAND_BALDI_ERRORRETURN = {
+    'qc [MPa]': np.nan,
+}
+
+
+@Validator(CONERESISTANCE_OCSAND_BALDI, CONERESISTANCE_OCSAND_BALDI_ERRORRETURN)
+def coneresistance_ocsand_baldi(
+        dr, sigma_vo_eff, k0,
+        coefficient_0=181.0, coefficient_1=0.55, coefficient_2=2.61, **kwargs):
+    """
+    Calculates the cone resistance for a given relative density for overconsolidated sand based on calibration chamber tests on silica sand.
+    It should be noted that this correlation provides an approximative estimate of relative density and the sand at the site should be compared to the sands used in the calibration chamber tests.
+    The correlation will always be sensitive to variations in compressibility and horizontal stress.
+    Note that this correlation requires an estimate of the coefficient of lateral earth pressure.
+
+    :param dr: Relative density (:math:`D_r`) [:math:`-`] - Suggested range: 0.0 <= dr <= 1.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param k0: Coefficient of lateral earth pressure (:math:`K_o`) [:math:`-`] - Suggested range: 0.3 <= k0 <= 5.0
+    :param coefficient_0: Coefficient C0 (:math:`C_0`) [:math:`-`] (optional, default= 181.0)
+    :param coefficient_1: Coefficient C1 (:math:`C_1`) [:math:`-`] (optional, default= 0.55)
+    :param coefficient_2: Coefficient C2 (:math:`C_2`) [:math:`-`] (optional, default= 2.61)
+
+    .. math::
+        D_r = \\frac{1}{2.61} \\cdot \\ln \\left[ \\frac{q_c}{181 \\cdot \\left( \\sigma_{m}^{\\prime} \\right)^{0.55} } \\right]
+
+        \\sigma_{m}^{\\prime} = \\frac{\\sigma_{vo}^{\\prime} + 2 \\cdot K_o \\ cdot \\sigma_{m}^{\\prime}}{3}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc [MPa]': Cone resistance corresponding to the given relative density (:math:`q_c`)  [:math:`MPa`]
+
+    Reference - Baldi et al 1986.
+
+    """
+
+    _sigma_m_eff = (1 / 3) * (sigma_vo_eff + 2 * k0 * sigma_vo_eff)
+
+    _qc = 0.001 * np.exp(dr / (1 / coefficient_2)) * (coefficient_0 * (_sigma_m_eff ** coefficient_1))
+
+    return {
+        'qc [MPa]': _qc,
+    }
+
 
 RELATIVEDENSITY_SAND_JAMIOLKOWSKI = {
     'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},

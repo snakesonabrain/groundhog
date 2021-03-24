@@ -76,6 +76,17 @@ class Test_relativedensity_ocsand_baldi(unittest.TestCase):
         self.assertAlmostEqual(result['Dr [-]'], 0.686, 3)
 
 
+class Test_coneresistance_ocsand_baldi(unittest.TestCase):
+
+    def test_coneresistance_ocsand_baldi(self):
+        result = pcpt_correlations.coneresistance_ocsand_baldi(
+            dr=0.686,
+            sigma_vo_eff=200,
+            k0=1
+        )
+        self.assertAlmostEqual(result['qc [MPa]'], 20, 1)
+
+
 class Test_relativedensity_sand_jamiolkowski(unittest.TestCase):
 
     def test_relativedensity_sand_jamiolkowski(self):

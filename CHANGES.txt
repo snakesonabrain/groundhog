@@ -1,4 +1,11 @@
-v0.5.0, TBC -- 2021 2nd release
+v0.6.0, TBC -- 2021 3rd release
+    - TODO: Add general functionality for gridded calculations
+    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+
+
+v0.5.0, 12 April 2021 -- CGS webinar release
     - Added extension of soil profile and cone properties to CPT maximum depth by default in map_properties
     - Fixed up plotting of normalised properties and soil parameters for discontinuous CPTs
     - Added correlation for K0 from CPT for sand according to Mayne (2007)
@@ -7,15 +14,11 @@ v0.5.0, TBC -- 2021 2nd release
     - Added non-normalised soil behaviour type index Isbt correlation
     - Fixed a plotting bug leading to a depth shift in De Beer's method for unit base resistance
     - Added a general LogPlot class for creating paneled plots with a log
-    - TODO: Add general functionality for gridded calculations
     - Include correlation for drained secant modulus from cone tip resistance and vertical effective stress
     - Include correlation for damping according to Seed & Idriss (1970)
     - Modification to plot_properties method for CPTs to allows showing/hiding of legends and plotting of layer interfaces
     - Added inverse correlation for cone resistance from relative density for OC sand according to Baldi et al
-    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - Include standard PSD plot and Plasticity chart
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
 
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release

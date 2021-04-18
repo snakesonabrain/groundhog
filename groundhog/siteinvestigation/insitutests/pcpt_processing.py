@@ -86,7 +86,15 @@ class PCPTProcessing(object):
         self.data = pd.DataFrame()
         self.downhole_corrected = False
         self.waterunitweight=waterunitweight
+        self.waterlevel = None
+        self.coneprofile = pd.DataFrame()
+        self.layerdata = pd.DataFrame()
         self.additionaldata = dict()
+        self.easting = np.nan
+        self.northing = np.nan
+        self.elevation = np.nan
+        self.srid = None
+        self.datum = None
 
     # region Utility functions
 
@@ -239,7 +247,7 @@ class PCPTProcessing(object):
 
     def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
-                 ags_group="SCPT", verbose_keys=True, use_shorthands=True, **kwargs):
+                 ags_group="SCPT", verbose_keys=False, use_shorthands=False, **kwargs):
         """
         Loads PCPT data from an AGS file. Specific column keys have to be provided for z, qc, fs and u2.
         If column keys are not specified, the following keys are used:
@@ -894,6 +902,7 @@ class PCPTProcessing(object):
         self.waterlevel = waterlevel
         self.layerdata = layer_profile
 
+
         # Validation
         if 'Total unit weight [kN/m3]' not in layer_profile.numerical_soil_parameters():
             raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
@@ -909,6 +918,8 @@ class PCPTProcessing(object):
             if cone_profile[cone_profile.depth_to_col].max() < self.data['z [m]'].max():
                 warnings.warn("Cone properties extended to bottom of CPT")
                 cone_profile[cone_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
+
+        self.coneprofile = cone_profile
 
         for _profiletype, _profile in zip(("Layering", "Cone properties"), (layer_profile, cone_profile)):
             # Validate that layer boundaries fully contain the CPT info
@@ -1679,10 +1690,16 @@ class PCPTProcessing(object):
         :return: If no file is returned, the JSON containing the location and data of the PCPT is returned.
         """
         dict_pcpt = {
-            'easting': self.easting,
-            'northing': self.northing,
-            'waterdepth': self.elevation,
-            'srid': self.srid,
+            'location': {
+                'easting': self.easting,
+                'northing': self.northing,
+                'waterdepth': self.elevation,
+                'srid': self.srid,
+                'datum': self.datum
+            },
+            'waterlevel': self.waterlevel,
+            'coneprops': self.coneprofile.to_json(),
+            'layering': self.layerdata.to_json(),
             'data': self.data.to_json()
         }
         if write_file:
@@ -1691,8 +1708,36 @@ class PCPTProcessing(object):
         else:
             return json.dumps(dict_pcpt)
 
-    # endregion
+    def to_excel(self, output_path):
+        """
+        Write the PCPT object to an Excel file.
+        The Excel file contains multiple sheet for the location, layer data, cone properties and raw data.
 
+        :param output_path: A valid path to the output .xlsx file (include the file suffix).
+        :return: The file is written to the specified location
+        """
+        # Create some Pandas dataframes from some data.
+        loc_df = pd.DataFrame(
+            {'Easting': [self.easting,],
+             'Northing': [self.northing,],
+             'Elevation [m]': [self.elevation,],
+             'Water level [m]': [self.waterlevel,],
+             'srid': [self.srid,],
+             'datum': [self.datum,]
+            })
+
+        # Create a Pandas Excel writer using XlsxWriter as the engine.
+        writer = pd.ExcelWriter(output_path, engine='xlsxwriter')
+
+        # Write each dataframe to a different worksheet.
+        loc_df.to_excel(writer, sheet_name='Location data', index=False)
+        self.coneprofile.to_excel(writer, sheet_name='Cone properties', index=False)
+        self.layerdata.to_excel(writer, sheet_name='Layering', index=False)
+        self.data.to_excel(writer, sheet_name='Data', index=False)
+
+        # Close the Pandas Excel writer and output the Excel file.
+        writer.save()
+    # endregion
 
 def plot_longitudinal_profile(
     cpts=[],

@@ -89,6 +89,14 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
         )
 
+    def test_excel_output(self):
+        """
+        Tests whether an output Excel file is correctly written
+        :return:
+        """
+        self.test_pcpt_mapping_extended()
+        self.pandas_pcpt.to_excel(output_path=os.path.join(TESTS_DATA_DIR, "output_pcpt.xlsx"))
+
     def test_pcpt_mapping_nonzero_initial_stress(self):
         """
         Test mapping of soil and cone properties to the PCPT grid

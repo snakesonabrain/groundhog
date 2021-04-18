@@ -19,6 +19,7 @@ v0.5.0, 12 April 2021 -- CGS webinar release
     - Modification to plot_properties method for CPTs to allows showing/hiding of legends and plotting of layer interfaces
     - Added inverse correlation for cone resistance from relative density for OC sand according to Baldi et al
     - Include standard PSD plot and Plasticity chart
+    - TODO: Excel export of CPT with data, cone properties, layering and location info
 
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release

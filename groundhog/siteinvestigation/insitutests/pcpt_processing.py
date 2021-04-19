@@ -1564,6 +1564,10 @@ class PCPTProcessing(object):
         :param kwargs: Optional keyword arguments for the correlation.
         :return: Adds a column with key `outkey` to the dataframe with PCPT data
         """
+
+        if outkey in self.data.columns:
+            self.data.drop(outkey, axis=1, inplace=True)
+
         self.data.rename(columns=PCPT_KEY_MAPPING, inplace=True)
         for i, row in self.data.iterrows():
             if apply_for_soiltypes == 'all' or row['Soil type'] in apply_for_soiltypes:

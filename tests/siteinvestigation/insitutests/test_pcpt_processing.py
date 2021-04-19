@@ -60,6 +60,43 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
         )
 
+    def test_pcpt_mapping_extended(self):
+        """
+        Test automatic extending of soilprofiles for mapping
+        :return:
+        """
+        layers = SoilProfile({
+            "Depth from [m]": [0, 3.16, 5.9, 14.86, 15.7],
+            "Depth to [m]": [3.16, 5.9, 14.86, 15.7, 18],
+            "Total unit weight [kN/m3]": [18, 17, 19.5, 20, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
+        })
+        cone_props = pcpt_processing.DEFAULT_CONE_PROPERTIES
+        cone_props['Depth to [m]'] = [18,]
+
+        self.test_pandas_pcpt_creation()
+        self.pandas_pcpt.map_properties(layer_profile=layers, cone_profile=cone_props)
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[206, "area ratio [-]"], 0.8, 1
+        )
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[206, "Water pressure [kPa]"], 42.23, 2
+        )
+        self.assertAlmostEqual(
+            self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 31.51, 2
+        )
+        self.assertEqual(
+            self.pandas_pcpt.data.loc[204, "Total unit weight [kN/m3]"], 17
+        )
+
+    def test_excel_output(self):
+        """
+        Tests whether an output Excel file is correctly written
+        :return:
+        """
+        self.test_pcpt_mapping_extended()
+        self.pandas_pcpt.to_excel(output_path=os.path.join(TESTS_DATA_DIR, "output_pcpt.xlsx"))
+
     def test_pcpt_mapping_nonzero_initial_stress(self):
         """
         Test mapping of soil and cone properties to the PCPT grid
@@ -100,7 +137,8 @@ class Test_PCPTProcessing(unittest.TestCase):
             'Soil type': ['SAND', 'CLAY', 'SAND', 'SAND', 'SAND']
         })
         self.test_pandas_pcpt_creation()
-        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers)
+        with self.assertRaises(ValueError):
+            self.pandas_pcpt.map_properties(layers, extend_layer_profile=False)
 
         layers = SoilProfile({
             "Depth from [m]": [1, 3.16, 5.9, 14.86, 15.7],
@@ -129,7 +167,8 @@ class Test_PCPTProcessing(unittest.TestCase):
         cone_props.loc[0, "Depth from [m]"] = 0
         cone_props.loc[0, "Depth to [m]"] = 18
         self.test_pandas_pcpt_creation()
-        self.assertRaises(ValueError, self.pandas_pcpt.map_properties, layers, cone_props)
+        with self.assertRaises(ValueError):
+            self.pandas_pcpt.map_properties(layers, cone_props, extend_cone_profile=False, extend_layer_profile=False)
 
         cone_props.loc[0, "Depth to [m]"] = 20
         self.test_pandas_pcpt_creation()
@@ -298,7 +337,8 @@ class Test_AGSFile_reading(unittest.TestCase):
             fs_key="fs [kN/m2]",
             u2_key="u2 [kN/m2]",
             push_key="Test reference or push number",
-            fs_multiplier=0.001, u2_multiplier=0.001
+            fs_multiplier=0.001, u2_multiplier=0.001,
+            verbose_keys=True, use_shorthands=True
         )
         self.assertEqual(ags_pcpt.data['z [m]'].iloc[0], 0)
         self.assertEqual(ags_pcpt.data['z [m]'].iloc[1], 10)

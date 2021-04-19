@@ -542,3 +542,139 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
         iplot(_fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
     return _fig
 
+class LogPlot(object):
+    """
+    Class for planneled plots with a minilog on the side.
+    """
+
+    def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
+                 fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
+                 soiltypelegend=True,
+                 **kwargs):
+        """
+        Initializes a figure with a minilog on the side.
+        :param soilprofile: Soilprofile used for the minilog
+        :param no_panels: Number of panels
+        :param logwidth: Width of the minilog as a ratio to the total width of the figure (default=0.05)
+        :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
+        :param kwargs: Optional keyword arguments for the make_subplots method
+        """
+
+        # Determine the panel widths
+        panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, range(0, no_panels)))
+
+        panel_widths = list(np.append(logwidth, panel_widths))
+
+        # Set up the figure
+        self.fig = subplots.make_subplots(
+            rows=1, cols=no_panels+1, column_widths=panel_widths, shared_yaxes=True,
+            print_grid=False, **kwargs)
+        self.fig['layout']['yaxis1'].update(range=(soilprofile.max_depth, soilprofile.min_depth))
+
+        # Create rectangles for the log plot
+        _layers = []
+        for i, row in soilprofile.iterrows():
+            try:
+                _fillcolor = fillcolordict[row['Soil type']]
+            except:
+                _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            _y0 = row['Depth from [m]']
+            _y1 = row['Depth to [m]']
+            _layers.append(
+                dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
+
+        for _soiltype in soilprofile['Soil type'].unique():
+            try:
+                _fillcolor = fillcolordict[_soiltype]
+            except:
+                soiltypelegend = False
+
+            try:
+                if soiltypelegend:
+                    _trace = go.Bar(
+                        x=[-10, -10],
+                        y=[row['Depth to [m]'], row['Depth to [m]']],
+                        name=_soiltype,
+                        marker=dict(color=_fillcolor))
+                    self.fig.append_trace(_trace, 1, 1)
+            except:
+                pass
+
+        self.fig['layout'].update(shapes=_layers)
+        self.fig['layout']['xaxis1'].update(
+            anchor='y', title=None, side='top', tickvals=[], range=(0, 1))
+        self.fig['layout']['yaxis1'].update(title='Depth [m]')
+
+        for i in range(0, no_panels):
+            _dummy_data = go.Scatter(
+                x=[0, 100],
+                y=[np.nan, np.nan],
+                mode='lines',
+                name='Dummy',
+                showlegend=False,
+                line=dict(color='black'))
+            self.fig.append_trace(_dummy_data, 1, i + 2)
+            self.fig['layout']['xaxis%i' % (i + 2)].update(
+                anchor='y', title='X-axis %i' % (i+1), side='top')
+
+    def add_trace(self, x, z, name, panel_no, resetaxisrange=True, **kwargs):
+        """
+        Adds a trace to the plot. By default, lines are added but optional keyword arguments can be added for go.Scatter as ``**kwargs``
+        :param x: Array with the x-values
+        :param z: Array with the z-values
+        :param name: Name for the trace (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param panel_no: Panel to plot the trace on (1-indexed)
+        :param resetaxisrange: Boolean determining whether the axis range needs to be reset to fit this trace
+        :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
+        :return: Adds the trace to the specified panel
+        """
+        try:
+            mode = kwargs['mode']
+            kwargs.pop('mode')
+        except:
+            mode = 'lines'
+        _data = go.Scatter(
+            x=x,
+            y=z,
+            mode=mode,
+            name=name,
+            **kwargs)
+        self.fig.append_trace(_data, 1, panel_no + 1)
+
+        if resetaxisrange:
+            self.fig['layout']['xaxis%i' % (panel_no + 1)].update(
+                range=(np.array(x).min(), np.array(x).max()))
+
+    def set_xaxis(self, title, panel_no, **kwargs):
+        """
+        Changes the X-axis title of a panel
+        :param title: Title to be set (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param panel_no: Panel number (1-indexed)
+        :param kwargs: Additional keyword arguments for the axis layout update function, e.g. ``range=(0, 100)``
+        :return: Adjusts the X-axis of the specified panel
+        """
+        self.fig['layout']['xaxis%i' % (panel_no + 1)].update(
+            title=title, **kwargs)
+
+    def set_zaxis(self, title, **kwargs):
+        """
+        Changes the Z-axis
+        :param title: Title to be set (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param kwargs: Additional keyword arguments for the axis layout update function, e.g. ``range=(0, 100)``
+        :return: Adjusts the Z-axis
+        """
+        self.fig['layout']['yaxis1'].update(
+            title=title, **kwargs)
+
+    def set_size(self, width, height):
+        """
+        Adjust the size of the plot
+        :param width: Width of the plot in pixels
+        :param height: Height of the plot in pixels
+        :return: Adjust the height and width as specified
+        """
+        self.fig['layout'].update(height=height, width=width)
+
+    def show(self):
+        self.fig.show(config=GROUNDHOG_PLOTTING_CONFIG)

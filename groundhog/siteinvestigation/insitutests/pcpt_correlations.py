@@ -31,7 +31,8 @@ PCPT_KEY_MAPPING = {
     'Rf [%]': 'Rf',
     'K0 [-]': 'K0',
     'Vs [m/s]': 'Vs',
-    'gamma [kN/m3]': 'gamma'
+    'gamma [kN/m3]': 'gamma',
+    'OCR [-]': 'ocr'
 }
 
 
@@ -150,6 +151,60 @@ def pcpt_normalisations(
         'qnet [MPa]': _qnet,
     }
 
+
+IC_SOILCLASS_ROBERTSON = {
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+}
+
+IC_SOILCLASS_ROBERTSON_ERRORRETURN = {
+    'Soil type number [-]': np.nan,
+    'Soil type': np.nan,
+}
+
+
+@Validator(IC_SOILCLASS_ROBERTSON, IC_SOILCLASS_ROBERTSON_ERRORRETURN)
+def ic_soilclass_robertson(
+        ic,
+        **kwargs):
+    """
+    Provides soil type classification according to the soil behaviour type index by Robertson and Wride.
+
+    :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
+
+    :returns: Dictionary with the following keys:
+
+        - 'Soil type number [-]': Number of the soil type in the Robertson chart [:math:`-`]
+        - 'Soil type': Description of the soil type in the Robertson chart
+
+    Reference - Fugro guidance on PCPT interpretation
+
+    """
+
+    if ic < 1.31:
+        ic_class_number = 7
+        ic_class = "Gravelly sand to sand"
+    elif 1.31 <= ic < 2.05:
+        ic_class_number = 6
+        ic_class = "Sands: clean sands to silty sands"
+    elif 2.05 <= ic < 2.6:
+        ic_class_number = 5
+        ic_class = "Sand mixtures: silty sand to sand silty"
+    elif 2.6 <= ic < 2.95:
+        ic_class_number = 4
+        ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif 2.95 <= ic < 3.6:
+        ic_class_number = 3
+        ic_class = "Clays: clay to silty clay"
+    else:
+        ic_class_number = 2
+        ic_class = "Organic soils-peats"
+
+    return {
+        'Soil type number [-]': ic_class_number,
+        'Soil type': ic_class,
+    }
+
+
 BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE = {
     'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
     'fs': {'type': 'float', 'min_value': 0.0, 'max_value': None},
@@ -170,6 +225,8 @@ BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE_ERRORRETURN = {
     'Qtn [-]': np.nan,
     'Fr [%]': np.nan,
     'Ic [-]': np.nan,
+    'Ic class number [-]': np.nan,
+    'Ic class': None,
 }
 
 
@@ -208,6 +265,8 @@ def behaviourindex_pcpt_robertsonwride(
         - 'Qtn [-]': Normalised cone resistance (:math:`Q_{tn}`)  [:math:`-`]
         - 'Fr [%]': Normalised friction ratio (:math:`F_r`)  [:math:`%`]
         - 'Ic [-]': Soil behaviour type index (:math:`I_c`)  [:math:`-`]
+        - 'Ic class number [-]': Soil behaviour type class number according to the Robertson chart
+        - 'Ic class': Soil behaviour type class description according to the Robertson chart
 
     .. figure:: images/behaviourindex_pcpt_robertsonwride_1.png
         :figwidth: 500.0
@@ -244,11 +303,32 @@ def behaviourindex_pcpt_robertsonwride(
     _Qtn = Qtn(qt, sigma_vo, sigma_vo_eff, _exponent_zhang)
     _Fr = Fr(fs, qt, sigma_vo)
 
+    if _Ic < 1.31:
+        _Ic_class_number = 7,
+        _Ic_class = "Gravelly sand to sand"
+    elif 1.31 <= _Ic < 2.05:
+        _Ic_class_number = 6
+        _Ic_class = "Sands: clean sands to silty sands"
+    elif 2.05 <= _Ic < 2.6:
+        _Ic_class_number = 5
+        _Ic_class = "Sand mixtures: silty sand to sand silty"
+    elif 2.6 <= _Ic < 2.95:
+        _Ic_class_number = 4
+        _Ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif 2.95 <= _Ic < 3.6:
+        _Ic_class_number = 3
+        _Ic_class = "Clays: clay to silty clay"
+    else:
+        _Ic_class_number = 2
+        _Ic_class = "Organic soils-peats"
+
     return {
         'exponent_zhang [-]': _exponent_zhang,
         'Qtn [-]': _Qtn,
         'Fr [%]': _Fr,
-        'Ic [-]': _Ic
+        'Ic [-]': _Ic,
+        'Ic class number [-]': _Ic_class_number,
+        'Ic class': _Ic_class
     }
 
 
@@ -440,6 +520,58 @@ def relativedensity_ocsand_baldi(
 
     return {
         'Dr [-]': _Dr,
+    }
+
+CONERESISTANCE_OCSAND_BALDI = {
+    'dr': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'k0': {'type': 'float', 'min_value': 0.3, 'max_value': 5.0},
+    'coefficient_0': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+CONERESISTANCE_OCSAND_BALDI_ERRORRETURN = {
+    'qc [MPa]': np.nan,
+}
+
+
+@Validator(CONERESISTANCE_OCSAND_BALDI, CONERESISTANCE_OCSAND_BALDI_ERRORRETURN)
+def coneresistance_ocsand_baldi(
+        dr, sigma_vo_eff, k0,
+        coefficient_0=181.0, coefficient_1=0.55, coefficient_2=2.61, **kwargs):
+    """
+    Calculates the cone resistance for a given relative density for overconsolidated sand based on calibration chamber tests on silica sand.
+    It should be noted that this correlation provides an approximative estimate of relative density and the sand at the site should be compared to the sands used in the calibration chamber tests.
+    The correlation will always be sensitive to variations in compressibility and horizontal stress.
+    Note that this correlation requires an estimate of the coefficient of lateral earth pressure.
+
+    :param dr: Relative density (:math:`D_r`) [:math:`-`] - Suggested range: 0.0 <= dr <= 1.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param k0: Coefficient of lateral earth pressure (:math:`K_o`) [:math:`-`] - Suggested range: 0.3 <= k0 <= 5.0
+    :param coefficient_0: Coefficient C0 (:math:`C_0`) [:math:`-`] (optional, default= 181.0)
+    :param coefficient_1: Coefficient C1 (:math:`C_1`) [:math:`-`] (optional, default= 0.55)
+    :param coefficient_2: Coefficient C2 (:math:`C_2`) [:math:`-`] (optional, default= 2.61)
+
+    .. math::
+        D_r = \\frac{1}{2.61} \\cdot \\ln \\left[ \\frac{q_c}{181 \\cdot \\left( \\sigma_{m}^{\\prime} \\right)^{0.55} } \\right]
+
+        \\sigma_{m}^{\\prime} = \\frac{\\sigma_{vo}^{\\prime} + 2 \\cdot K_o \\ cdot \\sigma_{m}^{\\prime}}{3}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc [MPa]': Cone resistance corresponding to the given relative density (:math:`q_c`)  [:math:`MPa`]
+
+    Reference - Baldi et al 1986.
+
+    """
+
+    _sigma_m_eff = (1 / 3) * (sigma_vo_eff + 2 * k0 * sigma_vo_eff)
+
+    _qc = 0.001 * np.exp(dr / (1 / coefficient_2)) * (coefficient_0 * (_sigma_m_eff ** coefficient_1))
+
+    return {
+        'qc [MPa]': _qc,
     }
 
 
@@ -1017,6 +1149,8 @@ VS_IC_ROBERTSONCABAL = {
     'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 4.0},
     'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 800.0},
     'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'gamma': {'type': 'float', 'min_value': 12, 'max_value': 22},
+    'g': {'type': 'float', 'min_value': 9.7, 'max_value': 10.2},
     'exponent': {'type': 'float', 'min_value': None, 'max_value': None},
     'calibration_coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
     'calibration_coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
@@ -1025,16 +1159,18 @@ VS_IC_ROBERTSONCABAL = {
 VS_IC_ROBERTSONCABAL_ERRORRETURN = {
     'alpha_vs [-]': np.nan,
     'Vs [m/s]': np.nan,
+    'Gmax [kPa]': np.nan
 }
 
 
 @Validator(VS_IC_ROBERTSONCABAL, VS_IC_ROBERTSONCABAL_ERRORRETURN)
 def vs_ic_robertsoncabal(
         qt, ic, sigma_vo,
-        atmospheric_pressure=100.0, exponent=0.5, calibration_coefficient_1=0.55, calibration_coefficient_2=1.68,
+        atmospheric_pressure=100.0, gamma=19, g=9.81, exponent=0.5, calibration_coefficient_1=0.55, calibration_coefficient_2=1.68,
         **kwargs):
     """
     Calculates shear wave velocity based on a correlation with total cone resistance and soil behaviour type index. Shear wave velocity is sensitive to age and cementation, where older deposits of the same soil have higher shear wave velocity (i.e. higher stiffness) than younger deposits. The correlation is based on measured shear wave velocity data for uncemented Holocene to Pleistocene age soils.
+    Since the small-strain shear modulus can be derived from the shear wave velocity and the bulk density of the soil, is it also calculated. The bulk density of the soil can be specified as an optional argument.
 
     Unfortunately, no plots on the background data to the calibrated equation are available.
 
@@ -1042,6 +1178,8 @@ def vs_ic_robertsoncabal(
     :param ic: Soil behaviour type index according to Robertson and Wride (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 4.0
     :param sigma_vo: Total vertical stress (:math:`sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 800.0
     :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param gamma: Bulk unit weight (:math:`\\gamma`) [:math:`kN/m3`] - Suggested range: 12.0 <= gamma <= 22.0
+    :param g: Acceleration due to gravity (:math:`g`) [:math:`m/s2`] - Suggested range: 9.7 <= g <= 10.2 (optional, default= 9.81)
     :param exponent: Exponent in equation for shear wave velocity (:math:``) [:math:`-`] (optional, default= 0.5)
     :param calibration_coefficient_1: First calibration coefficient in equation for alpha_s (:math:``) [:math:`-`] (optional, default= 0.55)
     :param calibration_coefficient_2: Second calibration coefficient in equation for alpha_s (:math:``) [:math:`-`] (optional, default= 1.68)
@@ -1051,10 +1189,15 @@ def vs_ic_robertsoncabal(
 
         \\alpha_{vs} = 10^{0.55 \\cdot I_c + 1.68}
 
+        G_{max} = \\rho \\cdot V_s^2
+
+        \\rho = \\gamma / g
+
     :returns: Dictionary with the following keys:
 
         - 'alpha_vs [-]': Coefficient to the shear wave velocity calculation, capturing the influence of the soil behaviour (:math:`\\alpha_{vs}`)  [:math:`-`]
         - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
 
     Reference - Robertson, P.K. and Cabal, K.L. (2015). Guide to Cone Penetration Testing for Geotechnical Engineering. 6th edition. Gregg Drilling & Testing, Inc.
 
@@ -1062,17 +1205,367 @@ def vs_ic_robertsoncabal(
 
     _alpha_vs = 10 ** (calibration_coefficient_1 * ic + calibration_coefficient_2)
     _Vs = (_alpha_vs * ((1000 * qt - sigma_vo) / atmospheric_pressure)) ** exponent
+    _rho = 1000 * gamma / g
+    _Gmax = 1e-3 * _rho * (_Vs ** 2)
 
     return {
         'alpha_vs [-]': _alpha_vs,
         'Vs [m/s]': _Vs,
+        'Gmax [kPa]': _Gmax
     }
+
+
+K0_SAND_MAYNE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'ocr': {'type': 'float', 'min_value': 1.0, 'max_value': 20.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'friction_angle': {'type': 'float', 'min_value': 25.0, 'max_value': 45.0},
+}
+
+K0_SAND_MAYNE_ERRORRETURN = {
+    'K0 CPT [-]': np.nan,
+    'K0 conventional [-]': np.nan,
+    'Kp [-]': np.nan,
+}
+
+
+@Validator(K0_SAND_MAYNE, K0_SAND_MAYNE_ERRORRETURN)
+def k0_sand_mayne(
+        qt, sigma_vo_eff, ocr,
+        atmospheric_pressure=100.0, multiplier=0.192, exponent_1=0.22, exponent_2=0.31, exponent_3=0.27,
+        friction_angle=32.0, **kwargs):
+    """
+    Calculates the lateral coefficient of earth pressure at rest based on calibration chamber tests on clean sands.
+    The values calculated from the equation need to be compared to values obtained using friction angle and OCR (see equations).
+
+    :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param ocr: Overconsolidation ratio (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= ocr <= 20.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+    :param multiplier: Multiplier in equation (:math:``) [:math:`-`] (optional, default= 0.192)
+    :param exponent_1: First exponent in equation (:math:``) [:math:`-`] (optional, default= 0.22)
+    :param exponent_2: Second exponent in equation (:math:``) [:math:`-`] (optional, default= 0.31)
+    :param exponent_3: Third exponent in equation (:math:``) [:math:`-`] (optional, default= 0.27)
+    :param friction_angle: Effective friction angle of the sand (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 25.0 <= friction_angle <= 45.0 (optional, default= 32.0)
+
+    .. math::
+        K_0 = 0.192 \\cdot \\left( \\frac{q_t}{P_a} \\right)^{0.22} \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.31} \\cdot \\text{OCR}^{0.27}
+
+        \\text{The maximum value for } K_0 \\text{ can be obtained as}:
+
+        K_p = \\tan^2 \\left( \\frac{\\pi}{4} + \\frac{\\varphi^{\\prime}}{2} \\right) = \\frac{1 + \\sin \\varphi^{\\prime}}{1 - \\sin \\varphi^{\\prime}}
+
+        \\text{These values need to be compared to}:
+
+        K_0 = (1 - \\sin \\varphi^{\\prime}) \\cdot \\text{OCR} ^{\\sin \\varphi^{\\prime}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'K0 CPT [-]': Coefficient of lateral earth pressure at rest derived from CPT (:math:`K_{0,CPT}`)  [:math:`-`]
+        - 'K0 conventional [-]': Value derived from the conventional equation (:math:`K_{0,\\text{conventional}}`)  [:math:`-`]
+        - 'Kp [-]': Limiting value of coefficient of lateral earth pressure based on Rankine passive earth pressure (:math:`K_p`)  [:math:`-`]
+
+    .. figure:: images/k0_sand_mayne_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Dataset used for calibration
+
+    Reference - Mayne (2007) NCHRP SYNTHESIS 368. Cone Penetration Testing. A Synthesis of Highway Practice.
+
+    """
+
+    _K0_CPT = multiplier * ((1000 * qt / atmospheric_pressure) ** exponent_1) * \
+              ((atmospheric_pressure / sigma_vo_eff) ** exponent_2) * (ocr ** exponent_3)
+    _Kp= (np.tan(0.25 * np.pi + 0.5 * np.radians(friction_angle))) ** 2
+    _K0_conventional = (1 - np.sin(np.radians(friction_angle))) * (ocr ** (np.sin(np.radians(friction_angle))))
+
+    return {
+        'K0 CPT [-]': _K0_CPT,
+        'K0 conventional [-]': _K0_conventional,
+        'Kp [-]': _Kp,
+    }
+
+
+GMAX_CPT_PUECHEN = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 70.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'Bq': {'type': 'float', 'min_value': -0.2, 'max_value': 0.5},
+    'coefficient_b': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_Bq': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier_qc': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'Bq_min': {'type': 'float', 'min_value': None, 'max_value': None},
+    'Bq_max': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+GMAX_CPT_PUECHEN_ERRORRETURN = {
+    'Gmax [kPa]': np.nan,
+}
+
+
+@Validator(GMAX_CPT_PUECHEN, GMAX_CPT_PUECHEN_ERRORRETURN)
+def gmax_cpt_puechen(
+        qc, sigma_vo_eff, Bq,
+        coefficient_b=1.0, coefficient_Bq=4.0, multiplier_qc=1.634, exponent_1=0.25, exponent_2=0.375,
+        Bq_min=0, Bq_max=0.5, **kwargs):
+    """
+    Calculates the small-strain modulus based on CPT data. The correlation by Rix and Stokoe is modified to include the importance of the pore pressure ratio.
+
+    The calibration coefficient b has recommended values between 0.5 and 2, with a suggested best estimate of 1.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 70.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param Bq: Pore pressure ratio (:math:`B_q`) [:math:`-`] - Suggested range: -0.2 <= Bq <= 0.5
+    :param coefficient_b: Calibration coefficient b (:math:`b`) [:math:`-`] (optional, default= 1.0)
+    :param coefficient_Bq: Multiplier on Bq (:math:``) [:math:`-`] (optional, default= 4.0)
+    :param multiplier_qc: Multiplier applied on qc (:math:``) [:math:`-`] (optional, default= 1.634)
+    :param exponent_1: Exponent on qc (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param exponent_2: Exponent on vertical effective stress (:math:``) [:math:`-`] (optional, default= 0.375)
+    :param Bq_min: Minimum value of Bq. If Bq is lower than this value, the minimum will be used for the calculation [:math:`-`] (optional, default= 0)
+    :param Bq_max: Maximum value of Bq. If Bq is higher than this value, the maximum will be used for the calculation [:math:`-`] (optional, default= 0.5)
+
+    .. math::
+        G_{max} = b \\cdot \\left( 1 + 4 \\cdot B_q \\right) \\cdot 1.634 \\cdot q_c^{0.25} \\cdot \\sigma_{vo}^{\\prime \\ 0.375}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
+
+    Reference - Puechen et al (2020). Characteristic values for geotechnical design of offshore monopiles in sandy soils - Case study. ISFOG2020
+
+    """
+
+    if Bq < Bq_min:
+        Bq = Bq_min
+
+    if Bq > Bq_max:
+        Bq = Bq_max
+
+    _Gmax = coefficient_b * (1 + coefficient_Bq * Bq) * 1000 * multiplier_qc * \
+            ((1000 * qc) ** exponent_1) * (sigma_vo_eff ** exponent_2)
+
+    return {
+        'Gmax [kPa]': _Gmax,
+    }
+
+
+BEHAVIOURINDEX_PCPT_NONNORMALISED = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'Rf': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+}
+
+BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN = {
+    'Isbt [-]': np.nan,
+}
+
+
+@Validator(BEHAVIOURINDEX_PCPT_NONNORMALISED, BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN)
+def behaviourindex_pcpt_nonnormalised(
+        qc, Rf,
+        atmospheric_pressure=100.0, **kwargs):
+    """
+    Calculates the non-normalised soil behaviour type index. For vertical effective stresses between 50 and 150kPa, the non-normalised index is almost equal to the normalised soil behaviour type index.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param Rf: Friction rato (:math:`R_f`) [:math:`pct`] - Suggested range: 0.1 <= Rf <= 10.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+
+    .. math::
+        I_{SBT} = \\sqrt{ \\left( 3.47 - \\log ( q_c / P_a ) \\right)^2 + \\left( \\log R_f + 1.22 \\right)^2}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Isbt [-]': Non-normalised soil behaviour type index (:math:`I_{SBT}`)  [:math:`-`]
+
+    .. figure:: images/behaviourindex_pcpt_nonnormalised_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Contours of non-normalised soil behaviour type index
+
+    Reference - Fugro guidance on PCPT interpretation
+
+    """
+
+    _Isbt = np.sqrt((3.47 - np.log10(1000 * qc / atmospheric_pressure)) ** 2 +
+                    (np.log10(Rf) + 1.22) ** 2)
+
+    classes = ic_soilclass_robertson(_Isbt)
+
+    return {
+        'Isbt [-]': _Isbt,
+        'Isbt class number [-]': classes['Soil type number [-]'],
+        'Isbt class': classes['Soil type']
+    }
+
+
+
+DRAINEDSECANTMODULUS_SAND_BELLOTTI = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 50.0, 'max_value': 300.0},
+    'K0': {'type': 'float', 'min_value': 0.5, 'max_value': 2.0},
+    'sandtype': {'type': 'string', 'options': ("NC", "Aged NC", "OC"), 'regex': None},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+}
+
+DRAINEDSECANTMODULUS_SAND_BELLOTTI_ERRORRETURN = {
+    'qc1 [-]': np.nan,
+    'Es_qc [-]': np.nan,
+    'Es [kPa]': np.nan,
+}
+
+@Validator(DRAINEDSECANTMODULUS_SAND_BELLOTTI, DRAINEDSECANTMODULUS_SAND_BELLOTTI_ERRORRETURN)
+def drainedsecantmodulus_sand_bellotti(
+        qc, sigma_vo_eff, K0, sandtype,
+        atmospheric_pressure=100.0, **kwargs):
+
+    """
+    Calculates the drained secant modulus for various types of sand for an average strain of 0.1 percent. This stress range should be representative for well-designed foundations (with sufficient safety against excessive deformations).
+
+    Bands for mean effective stress from 50kPa to 300kPa are provided. Note that the correlation will not return values outside that range.
+
+    Ageing and overconsolidation are beneficial effects, leading to increased stiffness.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 50.0 <= sigma_vo_eff <= 300.0
+    :param K0: Coefficient of lateral earth pressure at rest (:math:`K_0`) [:math:`-`] - Suggested range: 0.5 <= K0 <= 2.0
+    :param sandtype: Type of sand - Options: ("NC", "Aged NC", "OC")
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+
+    .. math::
+        q_{c1} = \\left( \\frac{q_c}{P_a} \\right) \\cdot \\sqrt{ \\frac{P_a}{\\sigma_{vo}^{\\prime}} }
+
+        \\sigma_{mo}^{\\prime} = \\frac{(1 + 2 \\cdot K_0) \\cdot \\sigma_{vo}^{\\prime}}{3}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc1 [-]': Normalised cone resistance (:math:`q_{c1}`)  [:math:`-`]
+        - 'Es_qc [-]': Ratio of drained secant modulus to cone resistance (:math:`E_s^{\\prime} / q_c`)  [:math:`-`]
+        - 'Es [kPa]': Drained secant modulus at strain level of 0.1 percent (:math:`E_s^{\\prime}`)  [:math:`kPa`]
+
+    .. figure:: images/drainedsecantmodulus_sand__1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Visualisation of correlation
+
+    Reference - Bellotti, R., Ghionna, V. N., Jamiolkowski, M., Lancellotta, R., & Robertson, P. K. (1989). Shear strength of sand from CPT. In Congrès international de mécanique des sols et des travaux de fondations. 12 (pp. 179-184).
+
+    """
+    _sigma_mo_eff = ((1 + 2 * K0) * sigma_vo_eff) / 3
+    _qc1 = (1000 * qc / atmospheric_pressure) * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+
+    qc1__nc_50 = np.array(
+        [36.0, 40.60330415823624, 46.020854882827855, 51.41286865966658, 59.40641474746315, 68.97423612037261,
+         83.63131157432191, 97.56959774187784, 114.38054759574864, 134.08797382678958, 152.71270994765013,
+         173.92441032542308, 200.0])
+
+    E_qc__nc_50 = np.array(
+        [3.706708268330736, 3.4820592823712992, 3.2574102964118588, 3.070202808112328, 2.8455538221528904, 2.62090483619345,
+         2.3213728549141983, 2.2090483619344816, 2.0218408736349502, 1.8720748829953209, 1.7971918876755095,
+         1.7597503900156042, 1.7597503900156042])
+
+    qc1__nc_300 = np.array(
+        [36.0, 40.408183360314055, 45.799699828776, 52.66621257255607, 59.693273152946574, 67.33279591108146,
+         75.58504107246422, 86.0837562404445, 95.70757527884192, 105.38706697485875, 119.44847879561136, 136.0397981668792,
+         152.71270994765013, 173.92441032542308, 200.0])
+
+    E_qc__nc_300 = np.array(
+        [5.017160686427459, 4.717628705148208, 4.418096723868956, 4.081123244929799, 3.7815912636505473, 3.519500780031205,
+         3.2574102964118588, 3.032761310452422, 2.8455538221528904, 2.6957878315132606, 2.5460218408736357,
+         2.4336973478939186, 2.358814352574104, 2.283931357254289, 2.1716068642745725])
+
+    qc1__nc_aged_50 = np.array(
+        [36.0, 39.828428929006265, 43.43602549287978, 47.82897607010807, 52.161249633588966, 58.27270013483514,
+         64.1661742450743, 72.03032118526116, 80.46972295582609, 90.33201773973744, 103.8750311939775, 117.73469759745085,
+         137.35677306263798, 157.94996551160924, 185.16427213057165, 200.0])
+
+    E_qc__nc_aged_50 = np.array(
+        [9.734789391575667, 9.210608424336977, 8.611544461778474, 7.975039001560062, 7.375975039001562, 6.70202808112325,
+         6.102964118564741, 5.503900156006242, 4.942277691107648, 4.492979719188771, 3.9313572542901767, 3.594383775351016,
+         3.2574102964118588, 3.032761310452422, 2.882995319812796, 2.770670826833076])
+
+    qc1__nc_aged_300 = np.array(
+        [36.0, 41.79397491103586, 46.46637385138504, 52.920524263063506, 58.27270013483514, 66.36674192014331,
+         74.14257284871742, 82.82945568191151, 90.76820798422662, 102.87907878967758, 114.93286204934958,
+         134.08797382678958, 154.19109206798834, 180.75775603565143, 200.0])
+
+    E_qc__nc_aged_300 = np.array(
+        [11.981279251170047, 11.1201248049922, 10.408736349453976, 9.547581903276138, 8.911076443057727, 8.049921996879878,
+         7.3010920436817495, 6.66458658346334, 6.177847113884558, 5.616224648985963, 5.2418096723869, 4.8299531981279245,
+         4.492979719188771, 4.156006240249614, 3.968798751950082])
+
+    qc1__oc_50 = np.array(
+        [36.0, 38.88059697907535, 41.79397491103586, 46.020854882827855, 49.70813683794835, 54.47239108201235,
+         60.27115215047096, 66.68720996800097, 73.43169485579755, 79.31518754764512, 87.3368169432148, 98.0407364118493,
+         114.38054759574864, 138.6864973368832, 165.74484792151944, 189.6782103606226, 200.0])
+
+    E_qc__oc_50 = np.array(
+        [16.02496099843994, 15.463338533541346, 14.826833073322936, 13.965678627145088, 13.366614664586587,
+         12.617784711388456, 11.794071762870518, 10.970358814352577, 10.146645865834637, 9.547581903276138,
+         8.836193447737912, 8.049921996879878, 7.151326053042125, 6.2527301092043714, 5.578783151326057, 5.204368174726991,
+         5.054602184087365])
+
+    qc1__oc_300 = np.array(
+        [36.0, 38.507810337311405, 40.60330415823624, 43.43602549287978, 46.46637385138504, 50.91992276530692,
+         54.999727733004406, 58.83682684054747, 66.36674192014331, 72.03032118526116, 78.55471459444749, 86.49943271508333,
+         94.78993233218729, 102.87907878967758, 114.38054759574864, 126.55672442978188, 144.13537469613595,
+         161.80047284520188, 189.6782103606226, 200.0])
+
+    E_qc__oc_300 = np.array(
+        [24.000000000000004, 23.251170046801878, 22.464898595943843, 21.56630265210609, 20.705148205928236,
+         19.544461778471145, 18.645865834633387, 17.784711388455538, 16.361934477379094, 15.388455538221534,
+         14.377535101404057, 13.366614664586587, 12.393135725429019, 11.606864274570984, 10.745709828393137,
+         9.9219968798752, 8.985959438377536, 8.274570982839318, 7.48829953198128, 7.2262090483619374])
+
+    if sandtype == 'NC':
+        _qc1_50 = qc1__nc_50
+        _qc1_300 = qc1__nc_300
+        _Eratio_50 = E_qc__nc_50
+        _Eratio_300 = E_qc__nc_300
+    elif sandtype == "Aged NC":
+        _qc1_50 = qc1__nc_aged_50
+        _qc1_300 = qc1__nc_aged_300
+        _Eratio_50 = E_qc__nc_aged_50
+        _Eratio_300 = E_qc__nc_aged_300
+    elif sandtype == 'OC':
+        _qc1_50 = qc1__oc_50
+        _qc1_300 = qc1__oc_300
+        _Eratio_50 = E_qc__oc_50
+        _Eratio_300 = E_qc__oc_300
+    else:
+        raise ValueError("Sand type not recognised, selected from 'NC', 'Aged NC' or 'OC'")
+
+    _Es_qc_50 = np.interp(np.log10(_qc1), np.log10(_qc1_50), _Eratio_50)
+    _Es_qc_300 = np.interp(np.log10(_qc1), np.log10(_qc1_300), _Eratio_300)
+    _Es_qc = np.interp(_sigma_mo_eff, [50, 300], [_Es_qc_50, _Es_qc_300])
+    _Es = _Es_qc * qc * 1000
+
+    return {
+        'qc1 [-]': _qc1,
+        'Es_qc [-]': _Es_qc,
+        'Es [kPa]': _Es,
+    }
+
 
 
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
+    'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
     'Gmax Rix and Stokoe (1991)': gmax_sand_rixstokoe,
     'Gmax Mayne and Rix (1993)': gmax_clay_maynerix,
+    'Gmax Puechen (2020)': gmax_cpt_puechen,
     'Dr Baldi et al (1986) - NC sand': relativedensity_ncsand_baldi,
     'Dr Baldi et al (1986) - OC sand': relativedensity_ocsand_baldi,
     'Dr Jamiolkowski et al (2003)': relativedensity_sand_jamiolkowski,
@@ -1082,5 +1575,7 @@ CORRELATIONS = {
     'OCR Lunne (1989)': ocr_cpt_lunne,
     'Sensitivity Rad and Lunne (1986)': sensitivity_frictionratio_lunne,
     'Unit weight Mayne et al (2010)': unitweight_mayne,
-    'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal
+    'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal,
+    'K0 Mayne (2007) - sand': k0_sand_mayne,
+    'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti
 }

@@ -76,6 +76,17 @@ class Test_relativedensity_ocsand_baldi(unittest.TestCase):
         self.assertAlmostEqual(result['Dr [-]'], 0.686, 3)
 
 
+class Test_coneresistance_ocsand_baldi(unittest.TestCase):
+
+    def test_coneresistance_ocsand_baldi(self):
+        result = pcpt_correlations.coneresistance_ocsand_baldi(
+            dr=0.686,
+            sigma_vo_eff=200,
+            k0=1
+        )
+        self.assertAlmostEqual(result['qc [MPa]'], 20, 1)
+
+
 class Test_relativedensity_sand_jamiolkowski(unittest.TestCase):
 
     def test_relativedensity_sand_jamiolkowski(self):
@@ -143,7 +154,66 @@ class Test_vs_ic_robertsoncabal(unittest.TestCase):
 
     def test_values(self):
         result = pcpt_correlations.vs_ic_robertsoncabal(qt=10, ic=2.3, sigma_vo=200)
-        print(result['Vs [m/s]'])
         self.assertAlmostEqual(result['alpha_vs [-]'], 881.05, 2)
         self.assertAlmostEqual(result['Vs [m/s]'], 293.84, 2)
 
+
+class Test_k0_sand_mayne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.k0_sand_mayne(qt=10, sigma_vo_eff=100, ocr=1)
+        self.assertAlmostEqual(result['K0 CPT [-]'], 0.53, 2)
+
+
+class Test_gmax_cpt_puechen(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.gmax_cpt_puechen(
+            qc=15,
+            sigma_vo_eff=100,
+            Bq=0
+        )
+        self.assertAlmostEqual(result['Gmax [kPa]'], 101689.2, 1)
+        result = pcpt_correlations.gmax_cpt_puechen(
+            qc=15,
+            sigma_vo_eff=100,
+            Bq=-0.2
+        )
+        self.assertAlmostEqual(result['Gmax [kPa]'], 101689.2, 1)
+
+
+class Test_behaviourindex_pcpt_nonnormalised(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.behaviourindex_pcpt_nonnormalised(
+            qc=10,
+            Rf=1
+        )
+        self.assertAlmostEqual(result['Isbt [-]'], 1.9, 1)
+        self.assertEqual(result['Isbt class number [-]'], 6)
+
+
+class Test_drainedsecantmodulus_sand_bellotti(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.drainedsecantmodulus_sand_bellotti(
+            qc=10,
+            sigma_vo_eff=100,
+            K0=1,
+            sandtype='NC'
+        )
+        self.assertAlmostEqual(result['Es_qc [-]'], 2.3, 1)
+        result = pcpt_correlations.drainedsecantmodulus_sand_bellotti(
+            qc=10,
+            sigma_vo_eff=100,
+            K0=1,
+            sandtype='Aged NC'
+        )
+        self.assertAlmostEqual(result['Es_qc [-]'], 4.4, 1)
+        result = pcpt_correlations.drainedsecantmodulus_sand_bellotti(
+            qc=10,
+            sigma_vo_eff=100,
+            K0=1,
+            sandtype='OC'
+        )
+        self.assertAlmostEqual(result['Es_qc [-]'], 8.7, 1)

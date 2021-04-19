@@ -86,7 +86,15 @@ class PCPTProcessing(object):
         self.data = pd.DataFrame()
         self.downhole_corrected = False
         self.waterunitweight=waterunitweight
+        self.waterlevel = None
+        self.coneprofile = pd.DataFrame()
+        self.layerdata = pd.DataFrame()
         self.additionaldata = dict()
+        self.easting = np.nan
+        self.northing = np.nan
+        self.elevation = np.nan
+        self.srid = None
+        self.datum = None
 
     # region Utility functions
 
@@ -239,7 +247,7 @@ class PCPTProcessing(object):
 
     def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
-                 ags_group="SCPT", verbose_keys=True, use_shorthands=True, **kwargs):
+                 ags_group="SCPT", verbose_keys=False, use_shorthands=False, **kwargs):
         """
         Loads PCPT data from an AGS file. Specific column keys have to be provided for z, qc, fs and u2.
         If column keys are not specified, the following keys are used:
@@ -873,7 +881,8 @@ class PCPTProcessing(object):
     def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES,
                        initial_vertical_total_stress=0,
                        vertical_total_stress=None,
-                       vertical_effective_stress=None, waterlevel=0):
+                       vertical_effective_stress=None, waterlevel=0,
+                       extend_cone_profile=True, extend_layer_profile=True):
         """
         Maps the soil properties defined in the layering and the cone properties to the grid
         defined by the cone data. The procedure also calculates the total and effective vertical stress.
@@ -885,17 +894,33 @@ class PCPTProcessing(object):
         :param initial_vertical_total_stress: Initial vertical total stress at the highest point of the soil profile
         :param vertical_total_stress: Pre-calculated total vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
         :param vertical_effective_stress: Pre-calculated effective vertical stress at PCPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
-        :param map_cone: Boolean determining whether cone properties need to be mapped or not (default=True)
+        :param waterlevel: Waterlevel [m] in the soil (measured from soil surface), default = 0m
+        :param extend_cone_profile: Boolean determining whether the cone profile needs to be extended to go to the bottom of the CPT (default = True)
+        :param extend_layer_profile: Boolean determining whether the layer profile needs to be extended to the bottom of the CPT (default = True)
         :return: Expands the dataframe `.data` with additional columns for the cone and soil properties
         """
         self.waterlevel = waterlevel
         self.layerdata = layer_profile
+
 
         # Validation
         if 'Total unit weight [kN/m3]' not in layer_profile.numerical_soil_parameters():
             raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
 
         # Validate that cone property boundaries fully contain the CPT info
+
+        if extend_layer_profile:
+            if layer_profile[layer_profile.depth_to_col].max() < self.data['z [m]'].max():
+                warnings.warn("Layering extended to bottom of CPT")
+                layer_profile[layer_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
+
+        if extend_cone_profile:
+            if cone_profile[cone_profile.depth_to_col].max() < self.data['z [m]'].max():
+                warnings.warn("Cone properties extended to bottom of CPT")
+                cone_profile[cone_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
+
+        self.coneprofile = cone_profile
+
         for _profiletype, _profile in zip(("Layering", "Cone properties"), (layer_profile, cone_profile)):
             # Validate that layer boundaries fully contain the CPT info
             if _profile.min_depth > self.data['z [m]'].min():
@@ -1178,24 +1203,27 @@ class PCPTProcessing(object):
             color = DEFAULT_PLOTLY_COLORS[0]
 
         fig = subplots.make_subplots(rows=1, cols=3, print_grid=False, shared_yaxes=True)
-        trace1 = go.Scatter(
-            x=self.data['Qt [-]'],
-            y=self.data['z [m]'],
-            line=dict(color=color),
-            showlegend=False, mode='lines', name=r'$ Q_t $')
-        fig.append_trace(trace1, 1, 1)
-        trace2 = go.Scatter(
-            x=self.data['Fr [%]'],
-            y=self.data['z [m]'],
-            line=dict(color=color),
-            showlegend=False, mode='lines', name=r'$ F_r $')
-        fig.append_trace(trace2, 1, 2)
-        trace3 = go.Scatter(
-            x=self.data['Bq [-]'],
-            y=self.data['z [m]'],
-            line=dict(color=color),
-            showlegend=False, mode='lines', name=r'$ B_q $')
-        fig.append_trace(trace3, 1, 3)
+        for _push in self.data["Push"].unique():
+            push_data = self.data[self.data["Push"] == _push]
+        
+            trace1 = go.Scatter(
+                x=push_data['Qt [-]'],
+                y=push_data['z [m]'],
+                line=dict(color=color),
+                showlegend=False, mode='lines', name=r'$ Q_t $')
+            fig.append_trace(trace1, 1, 1)
+            trace2 = go.Scatter(
+                x=push_data['Fr [%]'],
+                y=push_data['z [m]'],
+                line=dict(color=color),
+                showlegend=False, mode='lines', name=r'$ F_r $')
+            fig.append_trace(trace2, 1, 2)
+            trace3 = go.Scatter(
+                x=push_data['Bq [-]'],
+                y=push_data['z [m]'],
+                line=dict(color=color),
+                showlegend=False, mode='lines', name=r'$ B_q $')
+            fig.append_trace(trace3, 1, 3)
         # Plot layers
         try:
             for i, row in self.layerdata.iterrows():
@@ -1242,7 +1270,7 @@ class PCPTProcessing(object):
 
     def plot_properties(
             self, prop_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
-            legend_titles=None, axis_titles=None,
+            legend_titles=None, axis_titles=None, showlegends=None, plot_layers=True,
             plot_height=700, plot_width=1000, colors=None, return_fig=False, plot_title=None):
         """
         Plots the soil and/or PCPT properties vs depth.
@@ -1254,6 +1282,8 @@ class PCPTProcessing(object):
         :param z_tick: Tick mark distance for PCPT (optional, default=2)
         :param legend_titles: Tuple with entries to be used in the legend. If left blank, the keys are used
         :param axis_titles: Tuple with entries to be used as axis labels. If left blank, the keys are used
+        :param showlegends: Array of booleans determining whether or not to show the trace in the legend
+        :param plot_layers: Boolean determining whether layers are plotted (default=True)
         :param plot_height: Height of the plot in pixels
         :param plot_width: Width of the plot in pixels
         :param return_fig: Boolean determining whether the figure is returned or the plot is generated; Default behaviour is to generate the plot.
@@ -1269,28 +1299,49 @@ class PCPTProcessing(object):
         if axis_titles is None:
             axis_titles = prop_keys
 
+        _showlegends = []
+        for i, _x in enumerate(prop_keys):
+            _showlegends_panel = []
+            for j, _trace_x in enumerate(_x):
+                _showlegends_panel.append(True)
+        _showlegends.append(_showlegends_panel)
+
+        if showlegends is None:
+            showlegends = _showlegends
+
         fig = subplots.make_subplots(rows=1, cols=prop_keys.__len__(), print_grid=False, shared_yaxes=True)
         for i, _props in enumerate(prop_keys):
             for j, _prop in enumerate(_props):
-                trace = go.Scatter(
-                    x=self.data[_prop],
-                    y=self.data['z [m]'],
-                    line=dict(color=colors[j]),
-                    showlegend=False, mode='lines', name=legend_titles[i][j])
-                fig.append_trace(trace, 1, i+1)
+                for k, _push in enumerate(self.data["Push"].unique()):
+                    if k == 0:
+                        try:
+                            showlegend = showlegends[i][j]
+                        except:
+                            showlegend = False
+                    else:
+                        showlegend = False
+                    push_data = self.data[self.data["Push"] == _push]
+                    trace = go.Scatter(
+                        x=push_data[_prop],
+                        y=push_data['z [m]'],
+                        line=dict(color=colors[j]),
+                        showlegend=showlegend, mode='lines', name=legend_titles[i][j])
+                    fig.append_trace(trace, 1, i+1)
         # Plot layers
-        try:
-            for i, row in self.layerdata.iterrows():
-                if i > 0:
-                    for j, _range in enumerate(plot_ranges):
-                        layer_trace = go.Scatter(
-                            x=_range,
-                            y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
-                            line=dict(color='black', dash='dot'),
-                            showlegend=False, mode='lines')
-                        fig.append_trace(layer_trace, 1, j+1)
-        except:
-            pass
+        if plot_layers:
+            try:
+                for i, row in self.layerdata.iterrows():
+                    if i > 0:
+                        for j, _range in enumerate(plot_ranges):
+                            layer_trace = go.Scatter(
+                                x=_range,
+                                y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
+                                line=dict(color='black', dash='dot'),
+                                showlegend=False, mode='lines')
+                            fig.append_trace(layer_trace, 1, j+1)
+            except:
+                pass
+
         for i, _range in enumerate(plot_ranges):
             fig['layout']['xaxis%i' % (i+1)].update(
                 title=axis_titles[i], side='top', anchor='y',
@@ -1339,8 +1390,16 @@ class PCPTProcessing(object):
             _x_panel = []
             _z_panel = []
             for _prop in _panel:
-                _x_panel.append(self.data[_prop])
-                _z_panel.append(self.data['z [m]'])
+                _x_data = np.array([])
+                _z_data = np.array([])
+                for _push in self.data["Push"].unique():
+                    push_data = self.data[self.data["Push"] == _push]
+                    _x_data = np.append(_x_data, np.nan)
+                    _z_data = np.append(_z_data, np.nan)
+                    _x_data = np.append(_x_data, push_data[_prop])
+                    _z_data = np.append(_z_data, push_data['z [m]'])
+                _x_panel.append(_x_data)
+                _z_panel.append(_z_data)
             _x.append(_x_panel)
             _z.append(_z_panel)
 
@@ -1479,14 +1538,22 @@ class PCPTProcessing(object):
         types to which the correlation can be applied can be specified with the `apply_for_soiltypes` keyword argument.
         A list with the soil types for which the correlation needs to be applied can be provided.
 
-            - Robertson and Wride (1998) (`behaviourindex_pcpt_robertsonwride`) - Calculation of soil behaviour type index from cone tip resistance and sleeve friction
-            - Rix and Stokoe (1991) (`gmax_sand_rixstokoe`) - Calculation of small-strain shear modulus for uncemented silica sand from cone tip resistance and vertical effective stress
-            - Mayne and Rix (1993) (`gmax_clay_maynerix`) - Calculation of small-strain shear modulus for clay from cone tip resistance
-            - Baldi et al (1986) - NC sand (`relativedensity_ncsand_baldi`) - Calculation of relative density of normally consolidated silica sand
-            - Baldi et al (1986) - OC sand (`relativedensity_ocsand_baldi`) - Calculation of relative density of overconsolidated silica sand
-            - Jamiolkowski et al (2003) (`relativedensity_sand_jamiolkowski`) - Calculation of relative density dry and saturated silica sand
-            - Kulhawy and Mayne (1990) (`frictionangle_sand_kulhawymayne`) - Calculation of effective friction angle for sand
-            - Rad and Lunne (1988): (`undrainedshearstrength_clay_radlunne`) - Calculation of undrained shear strength for clay based on empirical cone factor Nk
+            - Ic Robertson and Wride (1998) (`behaviourindex_pcpt_robertsonwride`) - Calculation of soil behaviour type index from cone tip resistance and sleeve friction
+            - Isbt Robertson (2010) (`behaviourindex_pcpt_nonnormalised`) - Calculation of non-normalised soil behaviour type index from cone tip resistance and friction ratio
+            - Gmax Rix and Stokoe (1991) (`gmax_sand_rixstokoe`) - Calculation of small-strain shear modulus for uncemented silica sand from cone tip resistance and vertical effective stress
+            - Gmax Mayne and Rix (1993) (`gmax_clay_maynerix`) - Calculation of small-strain shear modulus for clay from cone tip resistance
+            - Dr Baldi et al (1986) - NC sand (`relativedensity_ncsand_baldi`) - Calculation of relative density of normally consolidated silica sand
+            - Dr Baldi et al (1986) - OC sand (`relativedensity_ocsand_baldi`) - Calculation of relative density of overconsolidated silica sand
+            - Dr Jamiolkowski et al (2003) (`relativedensity_sand_jamiolkowski`) - Calculation of relative density dry and saturated silica sand
+            - Friction angle Kulhawy and Mayne (1990) (`frictionangle_sand_kulhawymayne`) - Calculation of effective friction angle for sand
+            - Su Rad and Lunne (1988): (`undrainedshearstrength_clay_radlunne`) - Calculation of undrained shear strength for clay based on empirical cone factor Nk
+            - Friction angle Kleven (1986): (`frictionangle_overburden_kleven`) - Calculation of friction angle for North Sea sands at various stress levels and relative densities
+            - OCR Lunne (1989): (`ocr_cpt_lunne`) - Calculation of OCR for clay
+            - Sensitivity Rad and Lunne (1986): (`sensitivity_frictionratio_lunne`) - Calculation of sensitivity for clay
+            - Unit weight Mayne et al (2010): (`unitweight_mayne`) - Calculation of total unit weight
+            - Shear wave velocity Robertson and Cabal (2015): (`vs_ic_robertsoncabal`) - Calculation of shear wave velocity for all soil types
+            - K0 Mayne (2007) - sand: (`k0_sand_mayne`) - Calculation of coefficient of lateral earth pressure for sand
+            - Es Bellotti (1989) - sand: (`drainedsecantmodulus_sand_bellotti`) - Calculation of drained modulus at average strain of 0.1pct for sand
 
         Note that certain correlations require either the calculation of normalised properties or application of preceding correlations
 
@@ -1497,6 +1564,10 @@ class PCPTProcessing(object):
         :param kwargs: Optional keyword arguments for the correlation.
         :return: Adds a column with key `outkey` to the dataframe with PCPT data
         """
+
+        if outkey in self.data.columns:
+            self.data.drop(outkey, axis=1, inplace=True)
+
         self.data.rename(columns=PCPT_KEY_MAPPING, inplace=True)
         for i, row in self.data.iterrows():
             if apply_for_soiltypes == 'all' or row['Soil type'] in apply_for_soiltypes:
@@ -1623,10 +1694,16 @@ class PCPTProcessing(object):
         :return: If no file is returned, the JSON containing the location and data of the PCPT is returned.
         """
         dict_pcpt = {
-            'easting': self.easting,
-            'northing': self.northing,
-            'waterdepth': self.elevation,
-            'srid': self.srid,
+            'location': {
+                'easting': self.easting,
+                'northing': self.northing,
+                'waterdepth': self.elevation,
+                'srid': self.srid,
+                'datum': self.datum
+            },
+            'waterlevel': self.waterlevel,
+            'coneprops': self.coneprofile.to_json(),
+            'layering': self.layerdata.to_json(),
             'data': self.data.to_json()
         }
         if write_file:
@@ -1635,8 +1712,36 @@ class PCPTProcessing(object):
         else:
             return json.dumps(dict_pcpt)
 
-    # endregion
+    def to_excel(self, output_path):
+        """
+        Write the PCPT object to an Excel file.
+        The Excel file contains multiple sheet for the location, layer data, cone properties and raw data.
 
+        :param output_path: A valid path to the output .xlsx file (include the file suffix).
+        :return: The file is written to the specified location
+        """
+        # Create some Pandas dataframes from some data.
+        loc_df = pd.DataFrame(
+            {'Easting': [self.easting,],
+             'Northing': [self.northing,],
+             'Elevation [m]': [self.elevation,],
+             'Water level [m]': [self.waterlevel,],
+             'srid': [self.srid,],
+             'datum': [self.datum,]
+            })
+
+        # Create a Pandas Excel writer using XlsxWriter as the engine.
+        writer = pd.ExcelWriter(output_path, engine='xlsxwriter')
+
+        # Write each dataframe to a different worksheet.
+        loc_df.to_excel(writer, sheet_name='Location data', index=False)
+        self.coneprofile.to_excel(writer, sheet_name='Cone properties', index=False)
+        self.layerdata.to_excel(writer, sheet_name='Layering', index=False)
+        self.data.to_excel(writer, sheet_name='Data', index=False)
+
+        # Close the Pandas Excel writer and output the Excel file.
+        writer.save()
+    # endregion
 
 def plot_longitudinal_profile(
     cpts=[],

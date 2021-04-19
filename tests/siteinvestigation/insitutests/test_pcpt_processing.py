@@ -337,7 +337,8 @@ class Test_AGSFile_reading(unittest.TestCase):
             fs_key="fs [kN/m2]",
             u2_key="u2 [kN/m2]",
             push_key="Test reference or push number",
-            fs_multiplier=0.001, u2_multiplier=0.001
+            fs_multiplier=0.001, u2_multiplier=0.001,
+            verbose_keys=True, use_shorthands=True
         )
         self.assertEqual(ags_pcpt.data['z [m]'].iloc[0], 0)
         self.assertEqual(ags_pcpt.data['z [m]'].iloc[1], 10)

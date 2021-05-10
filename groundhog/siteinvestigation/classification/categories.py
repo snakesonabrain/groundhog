@@ -59,7 +59,7 @@ def relativedensity_categories(
         _relative_density = "Medium dense"
     elif 0.65 <= relative_density < 0.85:
         _relative_density = "Dense"
-    elif relative_density > 0.85:
+    elif relative_density >= 0.85:
         _relative_density = "Very dense"
 
     return {

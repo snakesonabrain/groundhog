@@ -8,3 +8,5 @@ In-situ tests
    pcpt_class
 
    pcpt_functions
+
+   spt_correlations

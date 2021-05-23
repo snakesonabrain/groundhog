@@ -15,7 +15,6 @@ from scipy import interpolate
 # Project imports
 from groundhog.general.validation import Validator
 
-
 COMPRESSIONINDEX_WATERCONTENT_KOPPULA = {
     'water_content': {'type': 'float', 'min_value': 0.0, 'max_value': 4.0},
     'cc_cr_ratio': {'type': 'float', 'min_value': 5.0, 'max_value': 10.0}
@@ -95,7 +94,7 @@ def frictionangle_plasticityindex(
 
     """
 
-    _linear_part =  (
+    _linear_part = (
         (5.308659949013567, 34.743875278396445),
         (14.43975330745808, 31.848552338530073),
         (24.27554974584225, 29.510022271714927),
@@ -139,4 +138,90 @@ def frictionangle_plasticityindex(
 
     return {
         'Effective friction angle [deg]': _effective_friction_angle,
+    }
+
+
+CV_LIQUIDLIMIT_USNAVY = {
+    'liquid_limit': {'type': 'float', 'min_value': 20.0, 'max_value': 160.0},
+    'trend': {'type': 'string', 'options': ('Remoulded', 'NC', 'OC'), 'regex': None},
+}
+
+CV_LIQUIDLIMIT_USNAVY_ERRORRETURN = {
+    'cv [m2/yr]': np.nan,
+}
+
+
+@Validator(CV_LIQUIDLIMIT_USNAVY, CV_LIQUIDLIMIT_USNAVY_ERRORRETURN)
+def cv_liquidlimit_usnavy(
+        liquid_limit,
+        trend='NC', **kwargs):
+    """
+    Calculates an estimate of the coefficient of consolidation based on the liquid limit of a clay. Three trends are available; an upper bound trend for remoulded clays, a trend for normally consolidated and a lower bound trend for undisturbed overconsolidated clay. Note that sample disturbance can lead to a reduced coefficient of consolidation.
+
+    :param liquid_limit: Liquid limit of the clay (:math:`LL`) [:math:`pct`] - Suggested range: 20.0 <= liquid_limit <= 160.0
+    :param trend: Choice of trend, choose between trends for remoulded, NC and OC clay (optional, default= 'NC') - Options: ('Remoulded', 'NC', 'OC')
+
+    :returns: Dictionary with the following keys:
+
+        - 'cv [m2/yr]': Coefficient of consolidation (:math:`c_v`)  [:math:`m2/yr`]
+
+    .. figure:: images/cv_liquidlimit_usnavy_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Proposed relation between coefficient of consolidation and liquid limit
+
+    Reference - U.S. Navy (1982) Soil mechanics – design manual 7.1, Department of the Navy, Naval Facilities Engineering Command, U.S. Government Printing Office, Washington, DC
+
+    """
+    if trend == "Remoulded":
+        ll = np.array(
+            [27.02702702702703, 30.13513513513513, 33.37837837837838, 36.8918918918919, 41.08108108108108,
+             45.13513513513514, 49.45945945945946, 54.189189189189186, 59.189189189189186, 64.32432432432432,
+             70.13513513513513, 76.75675675675676, 81.35135135135134, 86.35135135135134, 92.02702702702706,
+             97.83783783783785, 102.97297297297298, 107.83783783783785, 112.43243243243244, 116.75675675675676,
+             119.32432432432432])
+        cv = np.array(
+            [4.630822063309323, 3.8367516748979065, 3.2122391203904126, 2.6614202957569466, 2.114777837261994,
+             1.789153093899863, 1.4823579994700684, 1.2027671084175822, 0.986162679019052, 0.8085661992948271,
+             0.6560607018262126, 0.5323196107580059, 0.4745129932767461, 0.4274273713329328, 0.37313055744122897,
+             0.3291530487025109, 0.3027535600686647, 0.2727115172299714, 0.2534740092387953, 0.23072052590916264,
+             0.2212747818867807])
+    elif trend == 'NC':
+        ll = np.array([27.567567567567572, 30.40540540540541, 34.18918918918919, 37.162162162162154, 41.21621621621622,
+                       45.270270270270274, 48.10810810810811, 52.2972972972973, 55.810810810810814, 60.270270270270274,
+                       64.5945945945946, 69.5945945945946, 74.18918918918921, 78.91891891891892, 83.51351351351352,
+                       87.97297297297298, 93.10810810810813, 97.43243243243244, 101.8918918918919, 106.89189189189187,
+                       111.08108108108108, 116.8918918918919, 121.35135135135134, 126.08108108108108,
+                       131.35135135135135, 137.56756756756755, 143.24324324324326, 150.13513513513516,
+                       157.43243243243245, 160.0])
+        cv = np.array([18.983055258835638, 15.56442681131302, 12.238997318607332, 10.354487139495033, 8.227727110118272,
+                       6.675876912745551, 5.767242726040353, 4.679470046791455, 3.9177872379240335, 3.113093273947991,
+                       2.5792754870822447, 2.071035744516675, 1.6804130140979967, 1.3922641289640214,
+                       1.1535255848041792, 0.9759104869460395, 0.8085661992948271, 0.6840665206536173,
+                       0.5971684063713107, 0.5105263404735331, 0.4456733255412902, 0.3770503904529313,
+                       0.3326108866106533, 0.29960612028550504, 0.26707074860207874, 0.23314430470695946,
+                       0.21221574849530087, 0.1872038063002005, 0.17039916941183805, 0.16513979448635985])
+    elif trend == 'OC':
+        ll = np.array([33.10810810810811, 36.75675675675676, 39.729729729729726, 43.1081081081081, 46.621621621621635,
+                       49.86486486486486, 53.918918918918926, 57.43243243243244, 61.62162162162162, 65.4054054054054,
+                       69.72972972972973, 73.24324324324327, 78.10810810810811, 82.43243243243244, 86.75675675675676,
+                       90.94594594594595, 95.0, 99.72972972972973, 104.5945945945946, 109.72972972972971,
+                       114.86486486486488, 119.72972972972973])
+        cv = np.array([94.90893726308384, 70.09521157973178, 53.417717287029845, 40.708237493673955, 30.38100372887026,
+                       23.152563941389857, 16.745695005475795, 12.895516135304856, 9.72516829490034, 7.647330038378023,
+                       5.889051954526701, 4.778304561515615, 3.5290277068786917, 2.7461812536665784, 2.2282178035561744,
+                       1.8269415776458084, 1.5136667015367813, 1.2805985642889186, 1.0947988735954193,
+                       0.9165971813425068, 0.791841805338592, 0.6769549339857521])
+    else:
+        raise ValueError("Trend not recognised. Choose from 'Remoulded', 'NC' or 'OC'")
+
+    if liquid_limit < ll.min() or liquid_limit > ll.max():
+        _cv = np.nan
+    else:
+        _cv = 10 ** np.interp(liquid_limit, ll, np.log10(cv))
+
+    return {
+        'cv [m2/yr]': _cv,
     }

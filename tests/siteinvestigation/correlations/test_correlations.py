@@ -60,3 +60,20 @@ class Test_Correlations(unittest.TestCase):
             11.5,
             1
         )
+
+    def test_cv_liquidlimit_usnavy(self):
+        self.assertAlmostEqual(
+            cohesive.cv_liquidlimit_usnavy(liquid_limit=60)['cv [m2/yr]'],
+            3.2,
+            1
+        )
+        self.assertAlmostEqual(
+            cohesive.cv_liquidlimit_usnavy(liquid_limit=80, trend='Remoulded')['cv [m2/yr]'],
+            0.5,
+            1
+        )
+        self.assertAlmostEqual(
+            cohesive.cv_liquidlimit_usnavy(liquid_limit=80, trend='OC')['cv [m2/yr]'],
+            3.2,
+            1
+        )

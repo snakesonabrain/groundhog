@@ -25,6 +25,9 @@ class Test_Categories(unittest.TestCase):
         self.assertEqual(
             categories.relativedensity_categories(
                 relative_density=0.9)['Relative density'], "Very dense")
+        self.assertEqual(
+            categories.relativedensity_categories(
+                relative_density=0.85)['Relative density'], "Very dense")
 
     def test_su_categories(self):
         self.assertEqual(

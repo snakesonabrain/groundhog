@@ -9,4 +9,6 @@ In-situ tests
 
    pcpt_functions
 
+   spt_processing
+
    spt_correlations

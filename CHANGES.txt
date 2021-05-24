@@ -2,6 +2,7 @@ v0.6.0, TBC -- 2021 3rd release
     - Bugfix for relativedensity categories (relativedensity_categories)
     - Added correlation between liquid limit and cv (cv_liquidlimit_usnavy)
     - Started implementing SPT corrections and correlations (overburden correction and N60 correction)
+    - Started implementing an SPTProcessing class
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

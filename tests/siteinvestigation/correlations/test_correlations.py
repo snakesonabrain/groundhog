@@ -77,3 +77,17 @@ class Test_Correlations(unittest.TestCase):
             3.2,
             1
         )
+
+    def test_hssmall_parameters_sand(self):
+        result = cohesionless.hssmall_parameters_sand(
+            relative_density=50
+        )
+        self.assertAlmostEqual(
+            result['E50_ref [kPa]'], 30000, 0
+        )
+        self.assertAlmostEqual(
+            result['phi_eff [deg]'], 34.3, 1
+        )
+        self.assertAlmostEqual(
+            result['gamma_07 [-]'], 0.000150, 3
+        )

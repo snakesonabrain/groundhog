@@ -129,7 +129,7 @@ def hssmall_parameters_sand(
     """
     Calculates the constitutive parameters for the HS Small model in PLAXIS as a function of relative density.
 
-The formulae were calibrated against a high-quality laboratory testing dataset on Toyoura, Ham River, Hostun and Ticino sand.
+    The formulae were calibrated against a high-quality laboratory testing dataset on Toyoura, Ham River, Hostun and Ticino sand.
 
     :param relative_density: Relative density of sand (:math:`D_r`) [:math:`pct`] - Suggested range: 10.0 <= relative_density <= 100.0
 

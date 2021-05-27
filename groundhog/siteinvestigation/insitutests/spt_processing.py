@@ -33,6 +33,8 @@ class SPTProcessing(object):
 
     Check the GeoEngineer website for more useful information and an insightful presentation by Paul W. Mayne on SPT hammer types.
 
+    Data for checking and validation was provided by Ajay Sastri of GeoSyntec and Dennis O'Meara of Foundation Alternatives.
+
     .. figure:: images/spt_principle.png
         :figwidth: 700.0
         :width: 650.0

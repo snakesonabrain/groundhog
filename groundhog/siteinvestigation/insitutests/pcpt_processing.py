@@ -776,7 +776,7 @@ class PCPTProcessing(object):
         self.data = sondering.search(query=query)
         if push_key is None:
             self.data.loc[:, "Push"] = 1
-        self.rename_columns(z_key='z', qc_key='qc', fs_key='fs', u2_key='u')
+        self.rename_columns(z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u')
         self.convert_columns(qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001)
 
         try:

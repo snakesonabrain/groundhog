@@ -417,7 +417,7 @@ def generate_html(outpath, figures, titles, drawnby, report,
         raise
 
 
-def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
+def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None, hide_all_legends=False,
                   modes=None, markerformats=None,
                   soildata=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
                   colors=None, logwidth=0.05,
@@ -433,7 +433,8 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
     :param x: List of lists of x-arrays for the traces
     :param z: List of lists of z-arrays for the traces
     :param names: List of lists of names for the traces (used in legend)
-    :param showlegends: Array of booleans determining whether or not to show the trace in the legend
+    :param showlegends: Array of booleans determining whether or not to show the trace in the legend. Showing/hiding legends can be specified per trace.
+    :param hide_all_legends: Boolean indicating whether all legends need to be hidden (default=False).
     :param modes: List of display modes for the traces (select from 'lines', 'markers' or 'lines+markers'
     :param markerformats: List of formats for the markers (see Plotly docs for more info)
     :param soildata: Pandas dataframe with keys 'Soil type': Array with soil type for each layer, 'Depth from [m]': Array with start depth for each layer, 'Depth to [m]': Array with bottom depth for each layer
@@ -470,7 +471,7 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None,
         _markerformats_panel = []
         _colors_panel = []
         for j, _trace_x in enumerate(_x):
-            _showlegends_panel.append(True)
+            _showlegends_panel.append(not(hide_all_legends))
             _modes_panel.append('lines')
             _markerformats_panel.append(dict(size=5))
             _colors_panel.append(DEFAULT_PLOTLY_COLORS[j])

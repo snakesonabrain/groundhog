@@ -16,12 +16,23 @@ from plotly.offline import iplot
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.spt_correlations import *
+from groundhog.siteinvestigation.insitutests.pcpt_processing import InsituTestProcessing
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
 from groundhog.general.parameter_mapping import offsets
 from groundhog.general.agsconversion import AGSConverter
 
+DEFAULT_SPT_PROPERTIES = SoilProfile({
+    'Depth from [m]': [0, ],
+    'Depth to [m]': [20, ],
+    'area ratio [-]': [0.8, ],
+    'Cone type': ['U', ],
+    'Cone base area [cm2]': [10, ],
+    'Cone sleeve_area [cm2]': [150, ],
+    'Sleeve cross-sectional area top [cm2]': [np.nan,],
+    'Sleeve cross-sectional area bottom [cm2]': [np.nan,]
+})
 
-class SPTProcessing(object):
+class SPTProcessing(InsituTestProcessing):
     """
     The SPTProcessing class implements methods for reading, processing and presentation of Standard Penetration Test (SPT) data.
 
@@ -45,47 +56,30 @@ class SPTProcessing(object):
     The SPT test is a simple and robust test but it has its drawbacks. For example, measurements are discontinuous, the application of SPT N number in soft clays and silts is not possible, the are energy inefficiency problems, ... The user needs to be aware of these issues at the onset of a SPT processing exercise.
     """
 
-    def __init__(self, title, waterunitweight=10):
+    def map_properties(self, layer_profile, spt_profile=DEFAULT_SPT_PROPERTIES,
+                       initial_vertical_total_stress=0,
+                       vertical_total_stress=None,
+                       vertical_effective_stress=None, waterlevel=0,
+                       extend_cone_profile=True, extend_layer_profile=True):
         """
-        Initialises a SPTProcessing object based on a title. Optionally, a geographical position can be defined. A dictionary for dumping unstructured data (``additionaldata``) is also available.
+        Maps the soil properties defined in the layering and the cone properties to the grid
+        defined by the cone data. The procedure also calculates the total and effective vertical stress.
+        Note that pre-calculated arrays with total and effective vertical stress can also be supplied to the routine.
+        These needs to have the same length as the array with PCPT depth data.
 
-        An empty dataframe (``.data`) is created for storing the SPT data`
-
-        :param title: Title for the PCPT test
-        :param waterunitweight: Unit weight of water used for effective stress calculations (default=10kN/m3 for groundwater)
-
+        :param layer_profile: ``SoilProfile`` object with the layer properties (need to contain the soil parameter ``Total unit weight [kN/m3]``
+        :param spt_profile: ``SoilProfile`` object with the spt test properties (default=``DEFAULT_SPT_PROPERTIES``)
+        :param initial_vertical_total_stress: Initial vertical total stress at the highest point of the soil profile
+        :param vertical_total_stress: Pre-calculated total vertical stress at SPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
+        :param vertical_effective_stress: Pre-calculated effective vertical stress at SPT depth nodes (default=None which will lead to calculation of total stress inside the routine)
+        :param waterlevel: Waterlevel [m] in the soil (measured from soil surface), default = 0m
+        :param extend_cone_profile: Boolean determining whether the cone profile needs to be extended to go to the bottom of the SPT (default = True)
+        :param extend_layer_profile: Boolean determining whether the layer profile needs to be extended to the bottom of the SPT (default = True)
+        :return: Expands the dataframe `.data` with additional columns for the SPT and soil properties
         """
-        self.title = title
-        self.data = pd.DataFrame()
-        self.downhole_corrected = False
-        self.waterunitweight=waterunitweight
-        self.waterlevel = None
-        self.layerdata = pd.DataFrame()
-        self.additionaldata = dict()
-        self.easting = np.nan
-        self.northing = np.nan
-        self.elevation = np.nan
-        self.srid = None
-        self.datum = None
+        super().map_properties(
+            layer_profile=layer_profile, initial_vertical_total_stress=initial_vertical_total_stress,
+            vertical_total_stress=vertical_total_stress, vertical_effective_stress=vertical_effective_stress,
+            waterlevel=waterlevel, extend_layer_profile=extend_layer_profile)
 
-    def set_position(self, easting, northing, elevation, srid=4326, datum='mLAT'):
-        """
-        Sets the position of an SPT test in a given coordinate system.
-
-        By default, srid 4326 is used which means easting is longitude and northing is latitude.
-
-        The elevation is referenced to a chart datum for which mLAT (Lowest Astronomical Tide) is the default.
-
-        :param easting: X-coordinate of the SPT position
-        :param northing: Y-coordinate of the SPT position
-        :param elevation: Elevation of the SPT position
-        :param srid: SRID of the coordinate system (see http://epsg.io)
-        :param datum: Chart datum used for the elevation
-        :return: Sets the corresponding attributes of the ```SPTProcessing``` object
-        """
-        self.easting = easting
-        self.northing = northing
-        self.elevation = elevation
-        self.srid = srid
-        self.datum = datum
-
+        # TODO: Add mapping for SPT properties

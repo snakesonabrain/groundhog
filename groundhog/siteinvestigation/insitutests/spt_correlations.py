@@ -11,6 +11,16 @@ import numpy as np
 # Project imports
 from groundhog.general.validation import Validator
 
+SPT_KEY_MAPPING = {
+    'Borehole diameter [mm]': 'borehole_diameter',
+    'Country': 'country',
+    'Hammer type': 'hammertype',
+    'Sampler type': 'samplertype',
+    'eta H [-]': 'eta_H',
+    'eta B [-]': 'eta_B',
+    'eta S [-]': 'eta_S',
+    'eta R [-]': 'eta_R'
+}
 
 OVERBURDENCORRECTION_SPT_LIAOWHITMAN = {
     'N': {'type': 'float', 'min_value': 0.0, 'max_value': None},

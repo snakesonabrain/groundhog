@@ -171,10 +171,10 @@ def spt_N60_correction(
     :param hammertype: Type of hammer used - Options: ('Donut', 'Safety')
     :param hammerrelease: Release mechanism for the hammer - Options: ('Free fall', 'Rope and pulley')
     :param samplertype: Type of sampler used (optional, default= 'Standard sampler') - Options: ('Standard sampler', 'With liner for dense sand and clay', 'With liner for loose sand')
-    :param eta_H: Correction factor for hammer efficiency (:math:`\\eta_H`) [:math:`pct`] - Suggested range: 0.0 <= eta_H <= 100.0 (optional, default= -10.0)
-    :param eta_B: Correction factor for borehole diameter (:math:`\\eta_B`) [:math:`-`] - Suggested range: 1.0 <= eta_B <= 1.2 (optional, default= -10.0)
-    :param eta_S: Correction factor for sampler type (:math:`\\eta_S`) [:math:`-`] - Suggested range: 0.8 <= eta_S <= 1.0 (optional, default= -10.0)
-    :param eta_R: Correction factor for rod length (:math:`\\eta_R`) [:math:`-`] - Suggested range: 0.75 <= eta_R <= 1.0 (optional, default= -10.0)
+    :param eta_H: Correction factor for hammer efficiency (:math:`\\eta_H`) [:math:`pct`] - Suggested range: 0.0 <= eta_H <= 100.0 (optional, default= np.nan)
+    :param eta_B: Correction factor for borehole diameter (:math:`\\eta_B`) [:math:`-`] - Suggested range: 1.0 <= eta_B <= 1.2 (optional, default= np.nan)
+    :param eta_S: Correction factor for sampler type (:math:`\\eta_S`) [:math:`-`] - Suggested range: 0.8 <= eta_S <= 1.0 (optional, default= np.nan)
+    :param eta_R: Correction factor for rod length (:math:`\\eta_R`) [:math:`-`] - Suggested range: 0.75 <= eta_R <= 1.0 (optional, default= np.nan)
 
     .. math::
         N_{60} = \\frac{N \\cdot \\eta_H \\cdot \\eta_B \\cdot \\eta_S \\cdot \\eta_R}{60}

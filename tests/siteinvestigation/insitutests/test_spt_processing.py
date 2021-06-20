@@ -105,6 +105,28 @@ class Test_SPTProcessing(unittest.TestCase):
         self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[0], 7 * 60 * 1 * 1 * 0.75 / 60, 1)
         self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[-1], 53 * 60 * 1 * 1 * 1 / 60, 1)
 
+    def test_spt_N60correction_custom(self):
+        """
+        Test N60 calculation for the SPT N values
+        :return:
+        """
+        layers = read_excel(os.path.join(TESTS_DATA_DIR, 'spt_example_layering.xlsx'), unit='ft')
+        layers.convert_depth_reference(newunit='m', multiplier=0.3048)
+        self.test_pandas_spt_creation()
+
+        spt_custom_props = spt_processing.DEFAULT_SPT_PROPERTIES
+        spt_custom_props['eta H [-]'].iloc[0] = 50
+
+        self.pandas_spt.map_properties(layer_profile=layers, spt_profile=spt_custom_props)
+        self.pandas_spt.apply_correlation(
+            name='N60 correction',
+            outkey='N60 [-]',
+            resultkey='N60 [-]'
+        )
+        self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[0], 7 * 50 * 1 * 1 * 0.75 / 60, 1)
+        self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[-1], 53 * 50 * 1 * 1 * 1 / 60, 1)
+
+
     def test_spt_N60correction_withNaNs(self):
         """
         Test N60 calculation for the SPT N values with NaN values in the data

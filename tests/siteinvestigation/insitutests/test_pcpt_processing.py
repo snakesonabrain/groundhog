@@ -51,7 +51,7 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[206, "area ratio [-]"], 0.8, 1
         )
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[206, "Water pressure [kPa]"], 42.23, 2
+            self.pandas_pcpt.data.loc[206, "Hydrostatic pressure [kPa]"], 42.23, 2
         )
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 31.51, 2
@@ -80,7 +80,7 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[206, "area ratio [-]"], 0.8, 1
         )
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[206, "Water pressure [kPa]"], 42.23, 2
+            self.pandas_pcpt.data.loc[206, "Hydrostatic pressure [kPa]"], 42.23, 2
         )
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 31.51, 2
@@ -115,7 +115,7 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[206, "area ratio [-]"], 0.8, 1
         )
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[206, "Water pressure [kPa]"], 42.23, 2
+            self.pandas_pcpt.data.loc[206, "Hydrostatic pressure [kPa]"], 42.23, 2
         )
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[210, "Vertical effective stress [kPa]"], 131.51, 2

@@ -9,6 +9,9 @@ v0.6.0, TBC -- 2021 3rd release
     - Added code for hiding of all legends in plot_with_log
     - Refactored code for shared functionality between CPT and SPT tests (InsituTestProcessing base class)
     - Added notebooks for gINT data import for Windows and Mac/Linux
+    - Added method convert_depth_reference to SoilProfile to allow converting between depth units quickly (e.g. ft to m)
+    - Refactored overburden calculation for in-situ tests to always make use of soil profiles
+    - Added method for application of correlations to SPTProcessing class
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

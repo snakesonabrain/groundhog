@@ -354,7 +354,7 @@ class DeBeerCalculation(object):
 
         calc['A qp [MPa]'] = list(map(lambda _qp, _po, _gamma, _qc: min(_qc, self.stress_correction(
             qc=_qp, po=_po, diameter_pile=pile_diameter, diameter_cone=self.diameter_cone, gamma=_gamma, hcrit=hcrit)),
-                           calc['qp [MPa]'], calc['Effective vertical stress [kPa]'], calc['Effective unit weight [kN/m3]'], calc['qc [MPa]']))
+                           calc['qp [MPa]'], calc['Vertical effective stress [kPa]'], calc['Effective unit weight [kN/m3]'], calc['qc [MPa]']))
 
         # --------------------------------------------------------------------
         # Step 3: Corrections for transition from weaker to stronger layers

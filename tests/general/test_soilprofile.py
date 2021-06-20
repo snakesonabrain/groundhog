@@ -90,6 +90,16 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertEqual(self.profile.layer_transitions()[0], 1)
         self.assertEqual(self.profile.layer_transitions(include_top=True)[0], 0)
 
+    def test_profile_depthreference_modification(self):
+        self.profile.convert_depth_reference(newname='Depth', newunit='ft', multiplier=1/0.3048)
+        self.assertAlmostEqual(self.profile.max_depth, 20 / 0.3048, 3)
+        self.assertEqual(self.profile.min_depth, 0)
+        self.assertAlmostEqual(self.profile.layer_transitions()[0], 1 / 0.3048, 3)
+        self.profile.convert_depth_reference(newname='Depth', newunit='m', multiplier=0.3048)
+        self.assertAlmostEqual(self.profile.max_depth, 20, 3)
+        self.assertEqual(self.profile.min_depth, 0)
+        self.assertAlmostEqual(self.profile.layer_transitions()[0], 1, 3)
+
     def test_soilparameter_retrieval(self):
         profile = sp.SoilProfile({
             'Depth from [m]': [0, 1, 5, 10],
@@ -288,8 +298,8 @@ class Test_SoilProfile(unittest.TestCase):
             'qc to [MPa]': [2, 4, 20, 50]
         })
         profile.calculate_overburden(waterlevel=4)
-        self.assertEqual(profile['Total vertical stress to [kPa]'].iloc[-1], 376)
-        self.assertEqual(profile['Effective vertical stress to [kPa]'].iloc[-1], 216)
+        self.assertEqual(profile['Vertical total stress to [kPa]'].iloc[-1], 376)
+        self.assertEqual(profile['Vertical effective stress to [kPa]'].iloc[-1], 216)
         self.assertEqual(profile['Hydrostatic pressure to [kPa]'].iloc[-1], 160)
 
     def test_applyfunction(self):

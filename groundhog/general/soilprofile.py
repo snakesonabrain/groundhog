@@ -42,6 +42,23 @@ class SoilProfile(pd.DataFrame):
         self.depth_from_col = "%s from [%s]" % (name, unit)
         self.depth_to_col = "%s to [%s]" % (name, unit)
 
+    def convert_depth_reference(self, newname="Depth", newunit='m', multiplier=1):
+        """
+        Converts the depth reference for a soil profile between one set of units (e.g. ft) to another (e.g. m)
+        :param newname: New name for the depth reference (default='Depth')
+        :param newunit: Name of the new unit (default=m)
+        :param multiplier: Multiplier to go from old to new depth unit (e.g. 0.3 to go from ft to m)
+        :return:
+        """
+        self[self.depth_from_col] = self[self.depth_from_col] * multiplier
+        self[self.depth_to_col] = self[self.depth_to_col] * multiplier
+        self.rename(columns={
+            self.depth_from_col: "%s from [%s]" % (newname, newunit),
+            self.depth_to_col: "%s to [%s]" % (newname, newunit)
+        }, inplace=True)
+        self.depth_from_col = "%s from [%s]" % (newname, newunit)
+        self.depth_to_col = "%s to [%s]" % (newname, newunit)
+
     def check_profile(self):
         """
         Check if the SoilProfile meets the requirements for calculations
@@ -702,11 +719,12 @@ class SoilProfile(pd.DataFrame):
                 self.loc[i, outputparameter.replace(' [', ' from [')] + \
                 row[parameter] * (row[self.depth_to_col] - row[self.depth_from_col])
 
-    def calculate_overburden(self, waterlevel=0, waterunitweight=10, totalunitweightcolumn="Total unit weight [kN/m3]",
+    def calculate_overburden(self, waterlevel=0, waterunitweight=10, initial_vertical_total_stress=0,
+                             totalunitweightcolumn="Total unit weight [kN/m3]",
                              effectiveunitweightcolumn="Effective unit weight [kN/m3]",
                              waterunitweightcolumn="Water unit weight [kN/m3]",
-                             totalverticalstresscolumn="Total vertical stress [kPa]",
-                             effectiveverticalstresscolumn="Effective vertical stress [kPa]",
+                             totalverticalstresscolumn="Vertical total stress [kPa]",
+                             effectiveverticalstresscolumn="Vertical effective stress [kPa]",
                              hydrostaticpressurecolumn="Hydrostatic pressure [kPa]"):
         """
         Calculates the overburden pressure (total and effective) for a ``SoilProfile`` object.
@@ -719,13 +737,16 @@ class SoilProfile(pd.DataFrame):
         Note that vertical stress calculations in other units are possible, but the water unit weight then needs
         to be specified in consistent units.
 
+        An initial value can be added to the total vertical stress to simulate the effect of e.g. surcharging.
+
         :param waterlevel: Water level [m] (default 0m)
         :param waterunitweight: Unit weight of the pore water [kN/m3] (default=10kN/m3)
+        :param initial_vertical_total_stress: Initial value of vertical total stress [kPa] (default=0kPa)
         :param totalunitweightcolumn: Column name containing total unit weights (default='Total unit weight [kN/m3]'
         :param waterunitweightcolumn: Output column with the effective unit weight (default='Effective unit weight [kN/m3]')
         :param waterunitweightcolumn: Output column with the water unit weight (default='Water unit weight [kN/m3]')
         :param totalverticalstresscolumn: Total vertical stress column name (default='Total vertical stress [kPa]')
-        :param effectiveverticalstresscolumn: Effective vertical stress column name (default='Effective vertical stress [kPa]')
+        :param effectiveverticalstresscolumn: Effective vertical stress column name (default='Vertical effective stress [kPa]')
         :param hydrostaticpressurecolumn: Hydrostatic pressure column name (default='Hydrostatic pressure [kPa]')
         :return: Adds the column names from ``totalverticalstresscolumn``, ``effectiveverticalstresscolumn`` and ``hydrostaticpressurecolumn`` to the ``SoilProfile`` object
         """
@@ -766,10 +787,12 @@ class SoilProfile(pd.DataFrame):
         self.depth_integration(parameter=waterunitweightcolumn, outputparameter=hydrostaticpressurecolumn)
 
         # Calculate effective vertical stress
-        self.depth_integration(parameter=effectiveunitweightcolumn, outputparameter=effectiveverticalstresscolumn)
+        self.depth_integration(parameter=effectiveunitweightcolumn, outputparameter=effectiveverticalstresscolumn,
+                               start_value=initial_vertical_total_stress)
 
         # Calculate total vertical stress
-        self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn)
+        self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn,
+                               start_value=initial_vertical_total_stress)
 
 
     def applyfunction(self, function, resultkey, outputkey, parametermapping=dict(), **kwargs):
@@ -816,7 +839,7 @@ class SoilProfile(pd.DataFrame):
                         function(**{**function_dict, **kwargs})[resultkey]
 
 
-def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, **kwargs):
+def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, depth_multiplier=1, **kwargs):
     """
     The method to read from Excel needs to be redefined for SoilProfile objects.
     The method allows for different depth keys (using the 'depth_key' and 'unit' keyword arguments

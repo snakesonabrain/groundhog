@@ -157,6 +157,12 @@ class InsituTestProcessing(object):
                     self.data['z [m]'].min(), self.data['z [m]'].max()
                 ))
 
+        # Calculation of total and effective vertical stress
+        self.layerdata.calculate_overburden(
+            waterlevel=waterlevel,
+            waterunitweight=self.waterunitweight,
+            initial_vertical_total_stress=initial_vertical_total_stress)
+
         # Map layer properties
         for i, row in layer_profile.iterrows():
             layer_profile.loc[i, "Layer no"] = i+1
@@ -165,22 +171,13 @@ class InsituTestProcessing(object):
         # Join values to the CPT data
         self.data = self.data.join(_mapped_layer_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
 
-        # Calculation of total and effective vertical stress
         if vertical_total_stress is None:
-            # Calculate vertical total stress
-            self.data["Vertical total stress [kPa]"] = np.append(
-                initial_vertical_total_stress,
-                (np.array(self.data["z [m]"].diff()[1:]) *
-                 np.array(self.data["Total unit weight [kN/m3]"][0:-1])).cumsum() + initial_vertical_total_stress)
+            pass # Accept overburden calculated from soil profile
         else:
             self.data["Vertical total stress [kPa]"] = vertical_total_stress
 
         if vertical_effective_stress is None:
-            # Calculation of vertical effective stress based on waterlevel
-            self.data["Water pressure [kPa]"] = np.array(
-                self.waterunitweight * (self.data["z [m]"] - self.waterlevel)).clip(min=0)
-            self.data["Vertical effective stress [kPa]"] = self.data["Vertical total stress [kPa]"] - \
-                                                           self.data["Water pressure [kPa]"]
+            pass # Accept overburden calculated from soil profile
         else:
             self.data["Vertical effective stress [kPa]"] = vertical_effective_stress
 
@@ -1095,7 +1092,7 @@ class PCPTProcessing(InsituTestProcessing):
         """
         try:
             self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
-            self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Water pressure [kPa]"]
+            self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Hydrostatic pressure [kPa]"]
             if qc_for_rf:
                 self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qc [MPa]']
             else:
@@ -1799,6 +1796,7 @@ class PCPTProcessing(InsituTestProcessing):
         # Close the Pandas Excel writer and output the Excel file.
         writer.save()
     # endregion
+
 
 def plot_longitudinal_profile(
     cpts=[],

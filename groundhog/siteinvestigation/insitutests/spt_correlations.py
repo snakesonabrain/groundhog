@@ -13,9 +13,14 @@ from groundhog.general.validation import Validator
 
 SPT_KEY_MAPPING = {
     'Borehole diameter [mm]': 'borehole_diameter',
+    'Rod length [m]': 'rod_length',
     'Country': 'country',
     'Hammer type': 'hammertype',
+    'Hammer release': 'hammerrelease',
     'Sampler type': 'samplertype',
+    'Vertical total stress [kPa]': 'sigma_vo',
+    'Vertical effective stress [kPa]': 'sigma_vo_eff',
+    'N [-]': 'N',
     'eta H [-]': 'eta_H',
     'eta B [-]': 'eta_B',
     'eta S [-]': 'eta_S',
@@ -35,7 +40,7 @@ OVERBURDENCORRECTION_SPT_LIAOWHITMAN_ERRORRETURN = {
 
 @Validator(OVERBURDENCORRECTION_SPT_LIAOWHITMAN, OVERBURDENCORRECTION_SPT_LIAOWHITMAN_ERRORRETURN)
 def overburdencorrection_spt_liaowhitman(
-        N,sigma_vo_eff,
+        N, sigma_vo_eff,
         atmospheric_pressure=100.0, **kwargs):
 
     """
@@ -288,3 +293,8 @@ def spt_N60_correction(
         'eta_S [-]': _eta_S,
         'eta_R [-]': _eta_R,
     }
+
+CORRELATIONS = {
+    'Overburden correction Liao and Whitman (1986)': overburdencorrection_spt_liaowhitman,
+    'N60 correction': spt_N60_correction,
+}

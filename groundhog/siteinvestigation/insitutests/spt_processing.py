@@ -260,3 +260,143 @@ class SPTProcessing(InsituTestProcessing):
                 self.data.loc[i, outkey] = np.nan
         self.data.rename(columns=reverse_dict(SPT_KEY_MAPPING), inplace=True)
     # endregion
+
+    def plot_raw_spt(self, n_range=(0, 100), n_tick=10, z_range=None, z_tick=2,
+                      plot_height=700, plot_width=700, return_fig=False,
+                      plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,
+                      markersize=5,
+                      plot_layers=True):
+        """
+        Plots the raw SPT data using the Plotly package. This generates an interactive plot.
+
+        :param n_range: Range for the SPT N number (default=(0, 100))
+        :param n_tick: Tick interval for the SPT N number (default=10)
+        :param z_range: Range for the depth (default=None for plotting from zero to maximum SPT depth)
+        :param z_tick: Tick interval for depth (default=2m)
+        :param plot_height: Height for the plot (default=700px)
+        :param plot_width: Width for the plot (default=700)
+        :param return_fig: Boolean determining whether the figure needs to be returned (True) or plotted (False)
+        :param plot_title: Plot for the title (default=None)
+        :param plot_margin: Margin for the plot (default=dict(t=100, l=50, b=50))
+        :param color: Color to be used for plotting (default=None for default plotly colors)
+        :param markersize: Size of the markers to be used (default=5)
+        :param plot_layers: Boolean determining whether to show the layers (if available)
+        :return:
+        """
+
+        if z_range is None:
+            z_range = (self.data['z [m]'].max(), 0)
+        if color is None:
+            color = DEFAULT_PLOTLY_COLORS[0]
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False, shared_yaxes=True)
+
+        trace1 = go.Scatter(
+            x=self.data['N [-]'],
+            y=self.data['z [m]'],
+            marker=dict(size=markersize,color=color,line=dict(width=1,color='black')),
+            showlegend=False, mode='markers', name=r'$ N $')
+        fig.append_trace(trace1, 1, 1)
+
+        # Plot layers
+        try:
+            for i, row in self.layerdata.iterrows():
+                if i > 0:
+                    layer_trace_qc = go.Scatter(
+                        x=n_range,
+                        y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
+                        line=dict(color='black', dash='dot'),
+                        showlegend=False, mode='lines')
+                    fig.append_trace(layer_trace_qc, 1, 1)
+        except:
+            pass
+        fig['layout']['xaxis1'].update(
+            title=r'$ N \ [\text{-}] $', side='top', anchor='y',
+            range=n_range, dtick=n_tick)
+        fig['layout']['yaxis1'].update(
+            title=r'$ z \ [\text{m}]$', range=z_range, dtick=z_tick)
+        fig['layout'].update(
+            title=plot_title, hovermode='closest',
+            height=plot_height, width=plot_width,
+            margin=plot_margin)
+        if return_fig:
+            return fig
+        else:
+            iplot(fig, filename='sptrawplot', config=GROUNDHOG_PLOTTING_CONFIG)
+
+    def plot_properties_withlog(self, prop_keys, plot_ranges, plot_ticks,
+                                legend_titles=None, axis_titles=None, showfig=True, showlayers=True, **kwargs):
+        """
+        Plots SPT properties vs depth and includes a mini-log on the left-hand side.
+        The minilog is composed based on the entries in the ``Soil type`` column of the layering
+        :param prop_keys: Tuple of tuples with the keys to be plotted. Keys in the same tuple are plotted on the same panel
+        :param plot_ranges: Tuple of tuples with ranges for the panels of the plot
+        :param plot_ticks: Tuple with tick intervals for the plot panels
+        :param z_range: Range for depths (optional, default is (0, maximum SPT depth)
+        :param z_tick: Tick mark distance for SPT depth (optional, default=2)
+        :param legend_titles: Tuple with entries to be used in the legend. If left blank, the keys are used
+        :param axis_titles: Tuple with entries to be used as axis labels. If left blank, the keys are used
+        :param showfig: Boolean determining whether the figure needs to be shown in the notebook (default=True)
+        :param showlayers: Boolean determining whether layer positions need to be plotted (default=True)
+        :param **kwargs: Specify keyword arguments for the ``general.plotting.plot_with_log`` function
+        :return: Plotly figure with mini-log
+        """
+        # Validate if 'Soil type' column is present in the layering
+        if 'Soil type' not in self.layerdata.columns:
+            raise ValueError("Layering should contain the column 'Soil type'")
+
+        if legend_titles is None:
+            legend_titles = prop_keys
+        if axis_titles is None:
+            axis_titles = prop_keys
+
+        _x = []
+        _z = []
+        _modes = []
+
+        for _panel in prop_keys:
+            _x_panel = []
+            _z_panel = []
+            _modes_panel = []
+            for _prop in _panel:
+                _x_data = self.data[_prop]
+                _z_data = self.data['z [m]']
+                _x_panel.append(_x_data)
+                _z_panel.append(_z_data)
+                _modes_panel.append('markers')
+            _x.append(_x_panel)
+            _z.append(_z_panel)
+            _modes.append(_modes_panel)
+
+        fig = plot_with_log(
+            x=_x,
+            z=_z,
+            modes=_modes,
+            names=legend_titles,
+            soildata=self.layerdata,
+            xtitles=axis_titles,
+            xranges=plot_ranges,
+            dticks=plot_ticks,
+            showfig=False,
+            **kwargs
+        )
+
+        # Plot layers
+        if showlayers:
+            try:
+                for i, row in self.layerdata.iterrows():
+                    if i > 0:
+                        for j, _range in enumerate(plot_ranges):
+                            layer_trace = go.Scatter(
+                                x=_range,
+                                y=(row[self.layerdata.depth_from_col], row[self.layerdata.depth_from_col]),
+                                line=dict(color='black', dash='dot'),
+                                showlegend=False, mode='lines')
+                            fig.append_trace(layer_trace, 1, j + 2)
+            except Exception as err:
+                pass
+        else:
+            pass
+
+        if showfig:
+            iplot(fig, filename='logplot')
+        return fig

@@ -115,3 +115,6 @@ class Test_offsets(unittest.TestCase):
         self.assertAlmostEqual(result['offset to start projected'], np.sqrt(8) + np.sqrt(0.5), 5)
         self.assertAlmostEqual(result['offset to end projected'], -np.sqrt(0.5), 5)
 
+    def test_offset_latlon(self):
+        distance = parameter_mapping.latlon_distance(lat1=51.215431, lon1=2.928656, lat2=51.315090, lon2=3.130940)
+        self.assertAlmostEqual(distance, 17952, 0)

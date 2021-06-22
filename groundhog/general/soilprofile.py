@@ -18,7 +18,7 @@ from plotly.offline import iplot
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
-from groundhog.general.parameter_mapping import offsets
+from groundhog.general.parameter_mapping import offsets, latlon_distance
 
 
 class SoilProfile(pd.DataFrame):
@@ -874,22 +874,23 @@ def profile_from_dataframe(df, title='', depth_key='Depth', unit='m', column_map
 
 
 def plot_fence_diagram(
-    profiles=[],
+    profiles=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
     opacity=1, logwidth=1, distance_unit='m', return_layers=False,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None,
     show_annotations=True):
     """
-    Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
-    to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
+    Creates a longitudinal profile along selected soil profiles. A line is drawn from the first (smallest distance from origin)
+    to the last location (greatest distance from origin) and the plot of the mini-logs with soil types
     is projected onto this line.
 
     :param profiles: List with SoilProfile objects for which a log needs to be plotted
+    :param latlon: Boolean defining whether coordinates are specified in latitude and longitude (defaulte=False). If this is the case, offsets are calculated using the ``pyproj`` package
     :param option: Determines whether soil profile names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
-    :param start: Soil profile name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
-    :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
-    :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param start: Soil profile name for the starting point or tuple of coordinates. If a SoilProfile name is used, the selected SoilProfile must be contained in ``profiles``.
+    :param end: Soil profile name for the end point or tuple of coordinates. If a SoilProfile name is used, the selected SoilProfile must be contained in ``profiles``.
+    :param band: Offset from the line connecting start and end points in which soil profiles are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
     :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
@@ -955,13 +956,17 @@ def plot_fence_diagram(
             profile_df.loc[i, "Behind end"] = False
         elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
             profile_df.loc[i, "Offset"] = 0
-            profile_df.loc[i, "Projected offset"] = np.sqrt(
-                (start_point[0] - end_point[0]) ** 2 +
-                (start_point[1] - end_point[1]) ** 2)
+            if latlon:
+                profile_df.loc[i, "Projected offset"] = latlon_distance(
+                    start_point[0], start_point[1], end_point[0], end_point[1])
+            else:
+                profile_df.loc[i, "Projected offset"] = np.sqrt(
+                    (start_point[0] - end_point[0]) ** 2 +
+                    (start_point[1] - end_point[1]) ** 2)
             profile_df.loc[i, "Before start"] = False
             profile_df.loc[i, "Behind end"] = False
         else:
-            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            result = offsets(start_point, end_point, (row['X'], row['Y']), latlon=latlon)
             profile_df.loc[i, "Offset"] = result['offset to line']
             profile_df.loc[i, "Projected offset"] = result['offset to start projected']
             profile_df.loc[i, "Before start"] = result['before start']

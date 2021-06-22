@@ -1,4 +1,10 @@
-v0.6.0, TBC -- 2021 3rd release
+v0.7.0, TBC -- 2021 4th release
+    - TODO: Add general functionality for gridded calculations
+    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+
+v0.6.0, 30/06/2021 -- SPT release
     - Bugfix for relativedensity categories (relativedensity_categories)
     - Added correlation between liquid limit and cv (cv_liquidlimit_usnavy)
     - Started implementing SPT corrections and correlations (overburden correction and N60 correction)
@@ -12,11 +18,8 @@ v0.6.0, TBC -- 2021 3rd release
     - Added method convert_depth_reference to SoilProfile to allow converting between depth units quickly (e.g. ft to m)
     - Refactored overburden calculation for in-situ tests to always make use of soil profiles
     - Added method for application of correlations to SPTProcessing class
-    - TODO: Add general functionality for gridded calculations
-    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-
+    - Added boolean to allow profile plots using lat/lon coordinates + necessary functionality to calculate offsets using pyproj
+    - Added correlations for relative density and undrained shear strength to spt_correlations
 
 v0.5.0, 12 April 2021 -- CGS webinar release
     - Added extension of soil profile and cone properties to CPT maximum depth by default in map_properties

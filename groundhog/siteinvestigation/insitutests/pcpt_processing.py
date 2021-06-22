@@ -29,7 +29,7 @@ from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
-from groundhog.general.parameter_mapping import offsets
+from groundhog.general.parameter_mapping import offsets, latlon_distance
 from groundhog.general.agsconversion import AGSConverter
 
 DEFAULT_CONE_PROPERTIES = SoilProfile({
@@ -1799,8 +1799,9 @@ class PCPTProcessing(InsituTestProcessing):
 
 
 def plot_longitudinal_profile(
-    cpts=[],
+    cpts=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
+    uniformcolor=None,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None, legend_layout=None,
@@ -1811,11 +1812,13 @@ def plot_longitudinal_profile(
     is projected onto this line.
 
     :param cpts: List with PCPTProcessing objects to be plotted
+    :param latlon: Boolean determining whether latitude and longitude are used or easting and northing in m (default=False for easting and northing in m)
     :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
     :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param prop: Selected property for plotting (default='qc [MPa]')
     :param distance_unit: Unit for coordinates and elevation (default='m')
     :param scale_factor: Scale factor for the property (default=0.001)
@@ -1856,7 +1859,6 @@ def plot_longitudinal_profile(
     else:
         raise ValueError("option should be 'name' or 'coords'")
 
-
     cpt_df = pd.DataFrame({
         'CPT objects': cpts,
         'CPT titles': cpt_names,
@@ -1872,13 +1874,17 @@ def plot_longitudinal_profile(
             cpt_df.loc[i, "Behind end"] = False
         elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
             cpt_df.loc[i, "Offset"] = 0
-            cpt_df.loc[i, "Projected offset"] = np.sqrt(
-                (start_point[0] - end_point[0]) ** 2 +
-                (start_point[1] - end_point[1]) ** 2)
+            if latlon:
+                cpt_df.loc[i, "Projected offset"] = latlon_distance(
+                    start_point[0], start_point[1], end_point[0], end_point[1])
+            else:
+                cpt_df.loc[i, "Projected offset"] = np.sqrt(
+                    (start_point[0] - end_point[0]) ** 2 +
+                    (start_point[1] - end_point[1]) ** 2)
             cpt_df.loc[i, "Before start"] = False
             cpt_df.loc[i, "Behind end"] = False
         else:
-            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            result = offsets(start_point, end_point, (row['X'], row['Y']), latlon=latlon)
             cpt_df.loc[i, "Offset"] = result['offset to line']
             cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
             cpt_df.loc[i, "Before start"] = result['before start']
@@ -1902,13 +1908,17 @@ def plot_longitudinal_profile(
 
     for i, row in selected_cpts.iterrows():
         try:
+            if uniformcolor is None:
+                _tracecolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            else:
+                _tracecolor = uniformcolor
             for _push in row['CPT objects'].data["Push"].unique():
 
                 push_data = row['CPT objects'].data[row['CPT objects'].data["Push"] == _push]
                 _push_trace = go.Scatter(
                     x=scale_factor * np.array(push_data[prop]) + row['Projected offset'],
                     y=-np.array(push_data['z [m]']) + row['Z'],
-                    line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10]),
+                    line=dict(color=_tracecolor),
                     showlegend=False,
                     mode='lines',
                     name='qc')
@@ -1920,7 +1930,7 @@ def plot_longitudinal_profile(
                    (-np.array(row['CPT objects'].data['z [m]']) + row['Z']).max()],
                 showlegend=True,
                 mode='lines',
-                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10], dash='dot'),
+                line=dict(color=_tracecolor, dash='dot'),
                 name="%s - %.0f%s offset" % (row['CPT titles'], row['Offset'], distance_unit)
             )
             fig.append_trace(_backbone, 1, 1)
@@ -1976,9 +1986,10 @@ def plot_longitudinal_profile(
 
 def plot_combined_longitudinal_profile(
     cpts=[],
-    profiles=[],
+    profiles=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
+    uniformcolor=None,
     opacity=1, logwidth=1,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
@@ -1992,6 +2003,7 @@ def plot_combined_longitudinal_profile(
     This function also adds ``SoilProfile`` objects to the plot through mini-logs.
 
     :param cpts: List with PCPTProcessing objects to be plotted
+    :param latlon: Boolean determining whether latitude and longitude are used or easting and northing in m (default=False for easting and northing in m)
     :param profiles: List with SoilProfile objects for which a log needs to be plotted
     :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
     :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
@@ -1999,6 +2011,7 @@ def plot_combined_longitudinal_profile(
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
+    :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
     :param logwidth: Width of the soil logs as an absolute value (default = 1)
     :param prop: Selected property for plotting (default='qc [MPa]')
@@ -2043,6 +2056,7 @@ def plot_combined_longitudinal_profile(
 
     _layers_profile, _annotations_profile, _backbone_profile_traces, _soilcolors = plot_fence_diagram(
         profiles=profiles,
+        latlon=latlon,
         option='coords',
         start=start_point,
         end=end_point,
@@ -2075,7 +2089,7 @@ def plot_combined_longitudinal_profile(
             cpt_df.loc[i, "Before start"] = False
             cpt_df.loc[i, "Behind end"] = False
         else:
-            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            result = offsets(start_point, end_point, (row['X'], row['Y']), latlon=latlon)
             cpt_df.loc[i, "Offset"] = result['offset to line']
             cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
             cpt_df.loc[i, "Before start"] = result['before start']
@@ -2105,12 +2119,16 @@ def plot_combined_longitudinal_profile(
 
     for i, row in selected_cpts.iterrows():
         try:
+            if uniformcolor is None:
+                _tracecolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            else:
+                _tracecolor = uniformcolor
             for _push in row['CPT objects'].data["Push"].unique():
                 push_data = row['CPT objects'].data[row['CPT objects'].data["Push"] == _push]
                 _push_trace = go.Scatter(
                     x=scale_factor * np.array(push_data[prop]) + row['Projected offset'],
                     y=-np.array(push_data['z [m]']) + row['Z'],
-                    line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10]),
+                    line=dict(color=_tracecolor),
                     showlegend=False, mode='lines', name=r'$ q_c $')
                 fig.append_trace(_push_trace, 1, 1)
 
@@ -2120,7 +2138,7 @@ def plot_combined_longitudinal_profile(
                    (-np.array(row['CPT objects'].data['z [m]']) + row['Z']).max()],
                 showlegend=False,
                 mode='lines',
-                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10], dash='dot')
+                line=dict(color=_tracecolor, dash='dot')
             )
             fig.append_trace(_backbone, 1, 1)
 

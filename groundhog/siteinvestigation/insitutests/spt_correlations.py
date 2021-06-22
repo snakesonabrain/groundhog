@@ -294,7 +294,163 @@ def spt_N60_correction(
         'eta_R [-]': _eta_R,
     }
 
+
+RELATIVEDENSITY_SPT_KULHAWYMAYNE = {
+    'N_1_60': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'd_50': {'type': 'float', 'min_value': 0.002, 'max_value': 20.0},
+    'calibration_factor_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'time_since_deposition': {'type': 'float', 'min_value': 1.0, 'max_value': None},
+    'ocr': {'type': 'float', 'min_value': 1.0, 'max_value': 50.0},
+    'ca_override': {'type': 'float', 'min_value': 1.0, 'max_value': None},
+    'cocr_override': {'type': 'float', 'min_value': 1.0, 'max_value': None},
+}
+
+RELATIVEDENSITY_SPT_KULHAWYMAYNE_ERRORRETURN = {
+    'Dr [-]': np.nan,
+    'Dr [pct]': np.nan,
+    'C_A [-]': np.nan,
+    'C_OCR [-]': np.nan,
+}
+
+@Validator(RELATIVEDENSITY_SPT_KULHAWYMAYNE, RELATIVEDENSITY_SPT_KULHAWYMAYNE_ERRORRETURN)
+def relativedensity_spt_kulhawymayne(
+        N_1_60, d_50,
+        calibration_factor_1=60.0,
+        calibration_factor_2=25.0,
+        time_since_deposition=1.0,
+        ocr=1.0, ca_override=np.nan, cocr_override=np.nan, **kwargs):
+
+    """
+    Estimates relative density from SPT test. Although initially proposed based on the results of tests on non-aged, normally consolidated sands, the correlation can account for the effect of ageing and overconsolidation through correction factors. The parameters for these correction factors are not always easy to estimate.
+
+    Note that stress and energy corrections need to be applied to the raw SPT data before applying the correlation.
+
+    :param N_1_60: SPT number corrected for overburden stress and energy (:math:`(N_1)_{60}`) [:math:`-`] - Suggested range: 0.0 <= N_1_60 <= 100.0
+    :param d_50: Median grain size (:math:`d_{50}`) [:math:`mm`] - Suggested range: 0.002 <= d_50 <= 20.0
+    :param calibration_factor_1: First calibration factor (:math:``) [:math:`-`] (optional, default= 60.0)
+    :param calibration_factor_2: Second calibration factor (:math:``) [:math:`-`] (optional, default= 25.0)
+    :param time_since_deposition: Time since deposition (:math:`t`) [:math:`years`] - Suggested range: time_since_deposition >= 1.0 (optional, default= 1.0)
+    :param ocr: Overconsolidation ratio (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= ocr <= 50.0 (optional, default= 1.0)
+    :param ca_override: Direct specification of factor CA (:math:`C_A`) [:math:`-`] - Suggested range: ca_override >= 1.0 (optional, default= np.nan)
+    :param cocr_override: Direct specification of factor COCR (:math:`C_{OCR}`) [:math:`-`] - Suggested range: cocr_override >= 1.0 (optional, default= np.nan)
+
+    .. math::
+        \\text{Unaged, normally consolidated sand}
+
+        D_r = \\sqrt{\\frac{(N_1)_{60}}{60 + 25 \\cdot \\log_{10} ( d_{50} )}}
+
+        \\text{With corrections for overconsolidation and ageing}
+
+        D_r = \\sqrt{\\frac{(N_1)_{60}}{\\left( 60 + 25 \\cdot \\log d_{50} \\right) \\cdot C_A \\cdot C_{OCR}}}
+
+        C_A = 1.2 + 0.05 \\cdot \\log_{10} \\left( \\frac{t}{100} \\right)
+
+        C_{OCR} = (OCR)^{0.18}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Dr [-]': Relative density (unitless) (:math:`D_r`)  [:math:`-`]
+        - 'Dr [pct]': Relative density (percent) (:math:`D_r`)  [:math:`pct`]
+        - 'C_A [-]': Correction factor for ageing (:math:`C_A`)  [:math:`-`]
+        - 'C_OCR [-]': Correction factor for overconsolidation (:math:`C_{OCR}`)  [:math:`-`]
+
+    Reference - Kulhawy FH, Mayne PW (1990) Manual on estimating soil properties for foundation design. Electric Power Research Institute, Palo Alto
+
+    """
+    if np.math.isnan(ca_override):
+        if time_since_deposition == 1:
+            _C_A = 1
+        else:
+            _C_A = 1.2 + 0.05 * np.log10(time_since_deposition / 100)
+    else:
+        _C_A = ca_override
+    if np.math.isnan(cocr_override):
+        _C_OCR = ocr ** 0.18
+    else:
+        _C_OCR = cocr_override
+    _Dr = np.sqrt(N_1_60 / ((calibration_factor_1 + calibration_factor_2 * np.log10(d_50)) * _C_A * _C_OCR))
+    _Dr_pct = 100 * _Dr
+
+
+    return {
+        'Dr [-]': _Dr,
+        'Dr [pct]': _Dr_pct,
+        'C_A [-]': _C_A,
+        'C_OCR [-]': _C_OCR,
+    }
+
+
+UNDRAINEDSHEARSTRENGTH_SPT_SALGADO = {
+    'plasticity_index': {'type': 'float', 'min_value': 15.0, 'max_value': 60.0},
+    'N_60': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    'alpha_prime_override': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+}
+
+UNDRAINEDSHEARSTRENGTH_SPT_SALGADO_ERRORRETURN = {
+    'alpha_prime [-]': np.nan,
+    'Su [kPa]': np.nan,
+}
+
+@Validator(UNDRAINEDSHEARSTRENGTH_SPT_SALGADO, UNDRAINEDSHEARSTRENGTH_SPT_SALGADO_ERRORRETURN)
+def undrainedshearstrength_spt_salgado(
+        plasticity_index, N_60,
+        atmospheric_pressure=100.0,alpha_prime_override=np.nan, **kwargs):
+
+    """
+    Calculates undrained shear strength based on plasticity index and SPT number (corrected to 60% energy ratio).
+
+    +--------+-------------------------------+
+    | PI [%] | :math:`\\alpha^{\\prime}` [-] |
+    +========+===============================+
+    |   15   |             0.068             |
+    +--------+-------------------------------+
+    |   20   |             0.055             |
+    +--------+-------------------------------+
+    |   25   |             0.048             |
+    +--------+-------------------------------+
+    |   30   |             0.045             |
+    +--------+-------------------------------+
+    |   40   |             0.044             |
+    +--------+-------------------------------+
+    |   60   |             0.043             |
+    +--------+-------------------------------+
+
+    :param plasticity_index: Plasticity index (difference between liquid and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 15.0 <= plasticity_index <= 60.0
+    :param N_60: SPT number corrected to 60% energy ratio (:math:`N_{60}`) [:math:`-`] - Suggested range: 0.0 <= N_60 <= 100.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+    :param alpha_prime_override: Override for direct specification of the alpha prime factor (:math:`\\alpha^{\\prime}`) [:math:`-`] - Suggested range: alpha_prime_override >= 0.0 (optional, default= np.nan)
+
+    .. math::
+        \\frac{S_u}{P_a} = \\alpha^{\\prime} \\cdot N_{60}
+
+    :returns: Dictionary with the following keys:
+
+        - 'alpha_prime [-]': Factor based on plasticity index (:math:`\\alpha^{\\prime}`)  [:math:`-`]
+        - 'Su [kPa]': Undrained shear strength (:math:`S_u`)  [:math:`kPa`]
+
+    Reference - Salgado R (2008) The engineering of foundations. McGraw-Hill, New York
+
+    """
+    if np.math.isnan(alpha_prime_override):
+        PI = [15, 20, 25, 30, 40, 60]
+        alpha = [0.068,  0.055, 0.048, 0.045, 0.044, 0.043]
+        _alpha_prime = np.interp(plasticity_index, PI, alpha)
+    else:
+        _alpha_prime = alpha_prime_override
+
+    _Su = atmospheric_pressure * _alpha_prime * N_60
+
+    return {
+        'alpha_prime [-]': _alpha_prime,
+        'Su [kPa]': _Su,
+    }
+
+
 CORRELATIONS = {
     'Overburden correction Liao and Whitman (1986)': overburdencorrection_spt_liaowhitman,
     'N60 correction': spt_N60_correction,
+    'Relative density Kulhawy and Mayne (1990)': relativedensity_spt_kulhawymayne,
+    'Undrained shear strength Salgado (2008)': undrainedshearstrength_spt_salgado
 }

@@ -438,6 +438,8 @@ class SoilProfile(pd.DataFrame):
             soildata=self,
             xtitles=x_titles,
             ztitle=z_title,
+            depth_from_key=self.depth_from_col,
+            depth_to_key=self.depth_to_col,
             **kwargs
         )
 

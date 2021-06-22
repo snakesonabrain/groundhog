@@ -21,10 +21,14 @@ SPT_KEY_MAPPING = {
     'Vertical total stress [kPa]': 'sigma_vo',
     'Vertical effective stress [kPa]': 'sigma_vo_eff',
     'N [-]': 'N',
+    'N_1_60 [-]': 'N_1_60',
     'eta H [-]': 'eta_H',
     'eta B [-]': 'eta_B',
     'eta S [-]': 'eta_S',
-    'eta R [-]': 'eta_R'
+    'eta R [-]': 'eta_R',
+    'd50 [mm]': 'd_50',
+    'PI [%]': 'plasticity_index',
+    'N60 [-]': 'N_60'
 }
 
 OVERBURDENCORRECTION_SPT_LIAOWHITMAN = {

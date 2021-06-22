@@ -420,6 +420,7 @@ def generate_html(outpath, figures, titles, drawnby, report,
 def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None, hide_all_legends=False,
                   modes=None, markerformats=None,
                   soildata=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
+                  depth_from_key="Depth from [m]", depth_to_key="Depth to [m]",
                   colors=None, logwidth=0.05,
                   xtitles=[], ztitle=None, xranges=None, zrange=None, ztick=None, dticks=None,
                   layout=dict(),
@@ -439,6 +440,8 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None, hide_all_lege
     :param markerformats: List of formats for the markers (see Plotly docs for more info)
     :param soildata: Pandas dataframe with keys 'Soil type': Array with soil type for each layer, 'Depth from [m]': Array with start depth for each layer, 'Depth to [m]': Array with bottom depth for each layer
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
+    :param depth_from_key: Key for the column with start depths of each layer
+    :param depth_to_key: Key for the column with end depths of each layer
     :param colors: List of colours to be used for plotting (default = default Plotly colours)
     :param logwidth: Width of the soil width as a ratio of the total plot with (default = 0.05)
     :param xtitles: Array with X-axis titles for the panels
@@ -513,8 +516,8 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None, hide_all_lege
     _layers = []
     for i, row in soildata.iterrows():
         _fillcolor = fillcolordict[row['Soil type']]
-        _y0 = row['Depth from [m]']
-        _y1 = row['Depth to [m]']
+        _y0 = row[depth_from_key]
+        _y1 = row[depth_to_key]
         _layers.append(
             dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
 

@@ -9,6 +9,7 @@ __author__ = 'Bruno Stuyts'
 # 3rd party packages
 import numpy as np
 import pandas as pd
+from pyproj import Geod
 
 # Project imports
 
@@ -101,7 +102,6 @@ def map_depth_properties(target_df, layering_df, target_z_key=None,
 
     return target_df
 
-
 def merge_two_dicts(x, y):
     """
     Merges two dictionaries
@@ -121,8 +121,39 @@ def reverse_dict(input_dict):
     """
     return {y:x for x,y in input_dict.items()}
 
+def latlon_distance(lon1, lat1, lon2, lat2):
+    """
+    Calculates the offset in meters from two pairs of coordinates specified in longitude and latitude (WGS84)
 
-def offsets(startpoint, endpoint, point):
+    :param lon1: Longitude (easting) of the first point
+    :param lat1: Latitude (northing) of the first point
+    :param lon2: Longitude (easting) of the second point
+    :param lat2: Latitude (northing) of the second point
+    :return: distance in meters
+    """
+    wgs84_geod = Geod(ellps='WGS84')
+    az12,az21,dist = wgs84_geod.inv(lon1, lat1, lon2, lat2)
+    return dist
+
+def get_projected_point(lon1, lat1, lon2, lat2, lon3, lat3):
+    """
+    Finds the coordinates of a point on projected onto a line
+
+    Purpose - lon1,lat1,lon2,lat2 = Two points representing the ends of the line segment in lat/lon
+              lon3,lat3 = The lat/lon of the point for which the offset needs to be known
+    Returns - lon4,lat4, outsidebounds = Returns the Point on the line perpendicular to the offset and whether the projection is outside the line
+    """
+    xx = lon2 - lon1
+    yy = lat2 - lat1
+    shortestlength = ((xx * (lon3 - lon1)) + (yy * (lat3 - lat1))) / ((xx * yy) + (yy * yy))
+    lon4 = lon1 + xx * shortestlength
+    lat4 = lat1 + yy * shortestlength
+    if lon4 <= lon2 and lon4 >= lon1 and lat4 <= lat2 and lat4 >= lat1:
+        return lon4, lat4, False
+    else:
+        return lon4, lat4, True
+
+def offsets(startpoint, endpoint, point, latlon=False):
     """
     Calculates the offset between a point and a line joining a given start- and endpoint.
     The offset from the projected point to the start and end point is also calculated.
@@ -131,6 +162,7 @@ def offsets(startpoint, endpoint, point):
     :param startpoint: Tuple with x and y coordinates of the starting point
     :param endpoint: Tuple with x and y coordinates of the end point
     :param point: Point for which the offset to the section needs to be computed
+    :param latlon: Boolean defining whether coordinates are specified in latitude/longitude (default=False)
 
     :returns: Dictionary with the following keys:
 
@@ -145,46 +177,72 @@ def offsets(startpoint, endpoint, point):
         - 'behind end': Boolean determining if point lies behind the end point
 
     """
-
-    if endpoint[0] != startpoint[0]:
-        a = (endpoint[1] - startpoint[1]) / (endpoint[0] - startpoint[0])
+    if latlon:
+        offset_start = latlon_distance(lon1=startpoint[0], lat1=startpoint[1],
+                                       lon2=point[0], lat2=point[1])
+        offset_end = latlon_distance(lon1=endpoint[0], lat1=endpoint[1],
+                                     lon2=point[0], lat2=point[1])
+        projected_point_lon, projected_point_lat, outsidebounds = get_projected_point(
+            lon1=startpoint[0], lat1=startpoint[1],
+            lon2=endpoint[0], lat2=endpoint[1],
+            lon3=point[0], lat3=point[1]
+        )
+        offset_to_line = latlon_distance(
+            lon1=point[0], lat1=point[1],
+            lon2=projected_point_lon, lat2=projected_point_lat
+        )
+        offset_to_start = latlon_distance(
+            lon1=projected_point_lon, lat1=projected_point_lat,
+            lon2=startpoint[0], lat2=startpoint[1]
+        )
+        offset_to_end = latlon_distance(
+            lon1=projected_point_lon, lat1=projected_point_lat,
+            lon2=endpoint[0], lat2=endpoint[1]
+        )
+        angle_start = np.nan
+        angle_end = np.nan
+        before_start = outsidebounds
+        behind_end = outsidebounds
     else:
-        a = 1e9
-    b = -1
-    c = startpoint[1] - a * startpoint[0]
+        if endpoint[0] != startpoint[0]:
+            a = (endpoint[1] - startpoint[1]) / (endpoint[0] - startpoint[0])
+        else:
+            a = 1e9
+        b = -1
+        c = startpoint[1] - a * startpoint[0]
 
-    vector_1 = np.array([endpoint[0] - startpoint[0], endpoint[1] - startpoint[1]])
-    vector_2 = np.array([point[0] - startpoint[0], point[1] - startpoint[1]])
-    vector_3 = np.array([point[0] - endpoint[0], point[1] - endpoint[1]])
+        vector_1 = np.array([endpoint[0] - startpoint[0], endpoint[1] - startpoint[1]])
+        vector_2 = np.array([point[0] - startpoint[0], point[1] - startpoint[1]])
+        vector_3 = np.array([point[0] - endpoint[0], point[1] - endpoint[1]])
 
-    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
-    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
-    unit_vector_3 = vector_3 / np.linalg.norm(vector_3)
+        unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+        unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+        unit_vector_3 = vector_3 / np.linalg.norm(vector_3)
 
-    dot_product_start = np.dot(unit_vector_1, unit_vector_2)
-    dot_product_end = np.dot(unit_vector_1, unit_vector_3)
-    angle_start = np.degrees(np.arccos(dot_product_start))
-    angle_end = np.degrees(np.arccos(dot_product_end))
-    if angle_start > 90:
-        before_start = True
-    else:
-        before_start = False
+        dot_product_start = np.dot(unit_vector_1, unit_vector_2)
+        dot_product_end = np.dot(unit_vector_1, unit_vector_3)
+        angle_start = np.degrees(np.arccos(dot_product_start))
+        angle_end = np.degrees(np.arccos(dot_product_end))
+        if angle_start > 90:
+            before_start = True
+        else:
+            before_start = False
 
-    if angle_end > 90:
-        behind_end = False
-    else:
-        behind_end = True
+        if angle_end > 90:
+            behind_end = False
+        else:
+            behind_end = True
 
-    offset_start = np.linalg.norm(vector_2)
-    offset_end = np.linalg.norm(vector_3)
-    offset_to_line = np.abs(a * point[0] + b * point[1] + c) / np.sqrt(a ** 2 + b ** 2)
-    offset_to_start = np.sqrt(offset_start ** 2 - offset_to_line ** 2)
-    offset_to_end = np.sqrt(offset_end ** 2 - offset_to_line ** 2)
+        offset_start = np.linalg.norm(vector_2)
+        offset_end = np.linalg.norm(vector_3)
+        offset_to_line = np.abs(a * point[0] + b * point[1] + c) / np.sqrt(a ** 2 + b ** 2)
+        offset_to_start = np.sqrt(offset_start ** 2 - offset_to_line ** 2)
+        offset_to_end = np.sqrt(offset_end ** 2 - offset_to_line ** 2)
 
-    if before_start:
-        offset_to_start = -1 * offset_to_start
-    if behind_end:
-        offset_to_end = -1 * offset_to_end
+        if before_start:
+            offset_to_start = -1 * offset_to_start
+        if behind_end:
+            offset_to_end = -1 * offset_to_end
 
     return {
         'offset start to point': offset_start,

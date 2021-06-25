@@ -29,7 +29,7 @@ from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
-from groundhog.general.parameter_mapping import offsets
+from groundhog.general.parameter_mapping import offsets, latlon_distance
 from groundhog.general.agsconversion import AGSConverter
 
 DEFAULT_CONE_PROPERTIES = SoilProfile({
@@ -66,7 +66,123 @@ GEF_COLINFO = {
     '20': 'sigma_vo_eff [MPa]'
 }
 
-class PCPTProcessing(object):
+
+class InsituTestProcessing(object):
+    """
+    Abstract base class for the processing of in-situ tests.
+    Encodes shared functionality between different types of in-situ tests
+    """
+    def __init__(self, title, waterunitweight=10.25):
+        """
+        Initialises an in-situ test object
+        """
+        self.title = title
+        self.data = pd.DataFrame()
+        self.downhole_corrected = False
+        self.waterunitweight=waterunitweight
+        self.waterlevel = None
+        self.layerdata = pd.DataFrame()
+        self.additionaldata = dict()
+        self.easting = np.nan
+        self.northing = np.nan
+        self.elevation = np.nan
+        self.srid = None
+        self.datum = None
+        self.designprofile = None
+
+    def set_position(self, easting, northing, elevation, srid=4326, datum='mLAT'):
+        """
+        Sets the position of an SPT test in a given coordinate system.
+
+        By default, srid 4326 is used which means easting is longitude and northing is latitude.
+
+        The elevation is referenced to a chart datum for which mLAT (Lowest Astronomical Tide) is the default.
+
+        :param easting: X-coordinate of the SPT position
+        :param northing: Y-coordinate of the SPT position
+        :param elevation: Elevation of the SPT position
+        :param srid: SRID of the coordinate system (see http://epsg.io)
+        :param datum: Chart datum used for the elevation
+        :return: Sets the corresponding attributes of the ```SPTProcessing``` object
+        """
+        self.easting = easting
+        self.northing = northing
+        self.elevation = elevation
+        self.srid = srid
+        self.datum = datum
+
+    def map_properties(self, layer_profile,
+                       initial_vertical_total_stress=0,
+                       vertical_total_stress=None,
+                       vertical_effective_stress=None, waterlevel=0,
+                       extend_layer_profile=True):
+        """
+        Maps the soil properties defined in the layering to the grid
+        defined by the cone data. The procedure also calculates the total and effective vertical stress.
+        Note that pre-calculated arrays with total and effective vertical stress can also be supplied to the routine.
+        These needs to have the same length as the array with in-situ test depth data.
+
+        :param layer_profile: ``SoilProfile`` object with the layer properties (need to contain the soil parameter ``Total unit weight [kN/m3]``
+        :param initial_vertical_total_stress: Initial vertical total stress at the highest point of the soil profile
+        :param vertical_total_stress: Pre-calculated total vertical stress at in-situ test depth nodes (default=None which will lead to calculation of total stress inside the routine)
+        :param vertical_effective_stress: Pre-calculated effective vertical stress at in-situ test depth nodes (default=None which will lead to calculation of total stress inside the routine)
+        :param waterlevel: Waterlevel [m] in the soil (measured from soil surface), default = 0m
+        :param extend_layer_profile: Boolean determining whether the layer profile needs to be extended to the bottom of the CPT (default = True)
+        :return: Expands the dataframe `.data` with additional columns for the cone and soil properties
+        """
+        self.waterlevel = waterlevel
+        self.layerdata = layer_profile
+
+        # Validation
+        if 'Total unit weight [kN/m3]' not in layer_profile.numerical_soil_parameters():
+            raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
+
+        # Validate that cone property boundaries fully contain the CPT info
+
+        if extend_layer_profile:
+            if layer_profile[layer_profile.depth_to_col].max() < self.data['z [m]'].max():
+                warnings.warn("Layering extended to bottom of CPT")
+                layer_profile[layer_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
+
+        if layer_profile.min_depth > self.data['z [m]'].min():
+            raise ValueError(
+                "Layering starts below minimum in-situ test depth. " +
+                "Ensure that layering fully contains in-situ test data (%.2fm - %.2fm)" % (
+                    self.data['z [m]'].min(), self.data['z [m]'].max()
+                ))
+        if layer_profile.max_depth < self.data['z [m]'].max():
+            raise ValueError(
+                "Layering ends above minimum in-situ test depth. " +
+                "Ensure that layering fully contains in-situ test data (%.2fm - %.2fm)" % (
+                    self.data['z [m]'].min(), self.data['z [m]'].max()
+                ))
+
+        # Calculation of total and effective vertical stress
+        self.layerdata.calculate_overburden(
+            waterlevel=waterlevel,
+            waterunitweight=self.waterunitweight,
+            initial_vertical_total_stress=initial_vertical_total_stress)
+
+        # Map layer properties
+        for i, row in layer_profile.iterrows():
+            layer_profile.loc[i, "Layer no"] = i+1
+        _mapped_layer_props = layer_profile.map_soilprofile(self.data['z [m]'])
+
+        # Join values to the CPT data
+        self.data = self.data.join(_mapped_layer_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
+
+        if vertical_total_stress is None:
+            pass # Accept overburden calculated from soil profile
+        else:
+            self.data["Vertical total stress [kPa]"] = vertical_total_stress
+
+        if vertical_effective_stress is None:
+            pass # Accept overburden calculated from soil profile
+        else:
+            self.data["Vertical effective stress [kPa]"] = vertical_effective_stress
+
+
+class PCPTProcessing(InsituTestProcessing):
     """
     The PCPTProcessing class implements methods for reading, processing and presentation of PCPT data.
     Common correlations are also encoded.
@@ -82,19 +198,9 @@ class PCPTProcessing(object):
         :param waterunitweight: Unit weight of water used for effective stress calculations (default=10.25kN/m3 for seawater)
 
         """
-        self.title = title
-        self.data = pd.DataFrame()
+        super().__init__(title, waterunitweight)
         self.downhole_corrected = False
-        self.waterunitweight=waterunitweight
-        self.waterlevel = None
         self.coneprofile = pd.DataFrame()
-        self.layerdata = pd.DataFrame()
-        self.additionaldata = dict()
-        self.easting = np.nan
-        self.northing = np.nan
-        self.elevation = np.nan
-        self.srid = None
-        self.datum = None
 
     # region Utility functions
 
@@ -776,7 +882,7 @@ class PCPTProcessing(object):
         self.data = sondering.search(query=query)
         if push_key is None:
             self.data.loc[:, "Push"] = 1
-        self.rename_columns(z_key='z', qc_key='qc', fs_key='fs', u2_key='u')
+        self.rename_columns(z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u')
         self.convert_columns(qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001)
 
         try:
@@ -853,27 +959,6 @@ class PCPTProcessing(object):
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
 
-    def set_position(self, easting, northing, elevation, srid=4326, datum='mLAT'):
-        """
-        Sets the position of a CPT in a given coordinate system.
-
-        By default, srid 4326 is used which means easting is longitude and northing is latitude.
-
-        The elevation is referenced to a chart datum for which mLAT (Lowest Astronomical Tide) is the default.
-
-        :param easting: X-coordinate of the CPT position
-        :param northing: Y-coordinate of the CPT position
-        :param elevation: Elevation of the CPT position
-        :param srid: SRID of the coordinate system (see http://epsg.io)
-        :param datum: Chart datum used for the elevation
-        :return: Sets the corresponding attributes of the ```PCPTProcessing``` object
-        """
-        self.easting = easting
-        self.northing = northing
-        self.elevation = elevation
-        self.srid = srid
-        self.datum = datum
-
     # endregion
 
     # region Layer-based processing and correction
@@ -899,21 +984,12 @@ class PCPTProcessing(object):
         :param extend_layer_profile: Boolean determining whether the layer profile needs to be extended to the bottom of the CPT (default = True)
         :return: Expands the dataframe `.data` with additional columns for the cone and soil properties
         """
-        self.waterlevel = waterlevel
-        self.layerdata = layer_profile
-
-
-        # Validation
-        if 'Total unit weight [kN/m3]' not in layer_profile.numerical_soil_parameters():
-            raise ValueError("Soil layering profile needs to contain the parameter 'Total unit weight [kN/m3]'")
+        super().map_properties(
+            layer_profile=layer_profile, initial_vertical_total_stress=initial_vertical_total_stress,
+            vertical_total_stress=vertical_total_stress, vertical_effective_stress=vertical_effective_stress,
+            waterlevel=waterlevel, extend_layer_profile=extend_layer_profile)
 
         # Validate that cone property boundaries fully contain the CPT info
-
-        if extend_layer_profile:
-            if layer_profile[layer_profile.depth_to_col].max() < self.data['z [m]'].max():
-                warnings.warn("Layering extended to bottom of CPT")
-                layer_profile[layer_profile.depth_to_col].iloc[-1] = self.data['z [m]'].max()
-
         if extend_cone_profile:
             if cone_profile[cone_profile.depth_to_col].max() < self.data['z [m]'].max():
                 warnings.warn("Cone properties extended to bottom of CPT")
@@ -921,51 +997,24 @@ class PCPTProcessing(object):
 
         self.coneprofile = cone_profile
 
-        for _profiletype, _profile in zip(("Layering", "Cone properties"), (layer_profile, cone_profile)):
-            # Validate that layer boundaries fully contain the CPT info
-            if _profile.min_depth > self.data['z [m]'].min():
-                raise ValueError(
-                    "%s starts below minimum CPT depth. " % _profiletype +
-                    "Ensure that layering fully contains CPT data (%.2fm - %.2fm)" % (
-                        self.data['z [m]'].min(), self.data['z [m]'].max()
-                    ))
-            if _profile.max_depth < self.data['z [m]'].max():
-                raise ValueError(
-                    "%s ends above minimum CPT depth. " % _profiletype +
-                    "Ensure that layering fully contains CPT data (%.2fm - %.2fm)" % (
-                        self.data['z [m]'].min(), self.data['z [m]'].max()
-                    ))
+        if cone_profile.min_depth > self.data['z [m]'].min():
+            raise ValueError(
+                "Cone properties starts below minimum CPT depth. " +
+                "Ensure that cone profile fully contains CPT data (%.2fm - %.2fm)" % (
+                    self.data['z [m]'].min(), self.data['z [m]'].max()
+                ))
+        if cone_profile.max_depth < self.data['z [m]'].max():
+            raise ValueError(
+                "Cone profile ends above minimum CPT depth. " +
+                "Ensure that cone profile fully contains CPT data (%.2fm - %.2fm)" % (
+                    self.data['z [m]'].min(), self.data['z [m]'].max()
+                ))
 
         # Map cone properties
         _mapped_cone_props = cone_profile.map_soilprofile(self.data['z [m]'])
 
-        # Map layer properties
-        for i, row in layer_profile.iterrows():
-            layer_profile.loc[i, "Layer no"] = i+1
-        _mapped_layer_props = layer_profile.map_soilprofile(self.data['z [m]'])
-
         # Join values to the CPT data
-        self.data = self.data.join(_mapped_layer_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
         self.data = self.data.join(_mapped_cone_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
-
-        # Calculation of total and effective vertical stress
-        if vertical_total_stress is None:
-            # Calculate vertical total stress
-            self.data["Vertical total stress [kPa]"] = np.append(
-                initial_vertical_total_stress,
-                (np.array(self.data["z [m]"].diff()[1:]) *
-                 np.array(self.data["Total unit weight [kN/m3]"][0:-1])).cumsum() + initial_vertical_total_stress)
-        else:
-            self.data["Vertical total stress [kPa]"] = vertical_total_stress
-
-        if vertical_effective_stress is None:
-            # Calculation of vertical effective stress based on waterlevel
-            self.data["Water pressure [kPa]"] = np.array(
-                self.waterunitweight * (self.data["z [m]"] - self.waterlevel)).clip(min=0)
-            self.data["Vertical effective stress [kPa]"] = self.data["Vertical total stress [kPa]"] - \
-                                                           self.data["Water pressure [kPa]"]
-        else:
-            self.data["Vertical effective stress [kPa]"] = vertical_effective_stress
 
     def downhole_pcpt_corrections(self, area_ratio_override=np.nan):
         """
@@ -1002,7 +1051,7 @@ class PCPTProcessing(object):
         else:
             warnings.warn("Downhole corrections have already been applied")
 
-    def normalise_pcpt(self):
+    def normalise_pcpt(self, qc_for_rf=False):
         """
         Carries out the necessary normalisation and correction on PCPT data to allow calculation of derived parameters and soil type classification.
 
@@ -1037,12 +1086,17 @@ class PCPTProcessing(object):
 
             f_t = f_s - u_2 \\frac{A_{sb} - A_{st}}{A_s}
 
+        :param qc_for_rf: Boolean determining whether cone resistance instead of total cone resistance should be used for CPTs where pore pressures are not measured (default=False). If True, :math:`q_t` is replaced by :math:`q_c` in the formula for :math:`R_f`.
+
         :return: Supplements the PCPT data (`.data`) with the normalised properties (column keys 'qt [MPa]', 'Delta u2 [MPa]', 'Rf [%]', 'Bq [-]', 'Qt [-]', 'Fr [%]', 'qnet [MPa]', 'ft [MPa]'
         """
         try:
             self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
-            self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Water pressure [kPa]"]
-            self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qt [MPa]']
+            self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Hydrostatic pressure [kPa]"]
+            if qc_for_rf:
+                self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qc [MPa]']
+            else:
+                self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qt [MPa]']
             self.data['Bq [-]'] = self.data['Delta u2 [MPa]'] / (
                     self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
             self.data['Qt [-]'] = (self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]) / (
@@ -1743,9 +1797,11 @@ class PCPTProcessing(object):
         writer.save()
     # endregion
 
+
 def plot_longitudinal_profile(
-    cpts=[],
+    cpts=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
+    uniformcolor=None,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None, legend_layout=None,
@@ -1756,11 +1812,13 @@ def plot_longitudinal_profile(
     is projected onto this line.
 
     :param cpts: List with PCPTProcessing objects to be plotted
+    :param latlon: Boolean determining whether latitude and longitude are used or easting and northing in m (default=False for easting and northing in m)
     :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
     :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param prop: Selected property for plotting (default='qc [MPa]')
     :param distance_unit: Unit for coordinates and elevation (default='m')
     :param scale_factor: Scale factor for the property (default=0.001)
@@ -1801,7 +1859,6 @@ def plot_longitudinal_profile(
     else:
         raise ValueError("option should be 'name' or 'coords'")
 
-
     cpt_df = pd.DataFrame({
         'CPT objects': cpts,
         'CPT titles': cpt_names,
@@ -1817,13 +1874,17 @@ def plot_longitudinal_profile(
             cpt_df.loc[i, "Behind end"] = False
         elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
             cpt_df.loc[i, "Offset"] = 0
-            cpt_df.loc[i, "Projected offset"] = np.sqrt(
-                (start_point[0] - end_point[0]) ** 2 +
-                (start_point[1] - end_point[1]) ** 2)
+            if latlon:
+                cpt_df.loc[i, "Projected offset"] = latlon_distance(
+                    start_point[0], start_point[1], end_point[0], end_point[1])
+            else:
+                cpt_df.loc[i, "Projected offset"] = np.sqrt(
+                    (start_point[0] - end_point[0]) ** 2 +
+                    (start_point[1] - end_point[1]) ** 2)
             cpt_df.loc[i, "Before start"] = False
             cpt_df.loc[i, "Behind end"] = False
         else:
-            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            result = offsets(start_point, end_point, (row['X'], row['Y']), latlon=latlon)
             cpt_df.loc[i, "Offset"] = result['offset to line']
             cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
             cpt_df.loc[i, "Before start"] = result['before start']
@@ -1847,13 +1908,17 @@ def plot_longitudinal_profile(
 
     for i, row in selected_cpts.iterrows():
         try:
+            if uniformcolor is None:
+                _tracecolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            else:
+                _tracecolor = uniformcolor
             for _push in row['CPT objects'].data["Push"].unique():
 
                 push_data = row['CPT objects'].data[row['CPT objects'].data["Push"] == _push]
                 _push_trace = go.Scatter(
                     x=scale_factor * np.array(push_data[prop]) + row['Projected offset'],
                     y=-np.array(push_data['z [m]']) + row['Z'],
-                    line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10]),
+                    line=dict(color=_tracecolor),
                     showlegend=False,
                     mode='lines',
                     name='qc')
@@ -1865,7 +1930,7 @@ def plot_longitudinal_profile(
                    (-np.array(row['CPT objects'].data['z [m]']) + row['Z']).max()],
                 showlegend=True,
                 mode='lines',
-                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10], dash='dot'),
+                line=dict(color=_tracecolor, dash='dot'),
                 name="%s - %.0f%s offset" % (row['CPT titles'], row['Offset'], distance_unit)
             )
             fig.append_trace(_backbone, 1, 1)
@@ -1921,9 +1986,10 @@ def plot_longitudinal_profile(
 
 def plot_combined_longitudinal_profile(
     cpts=[],
-    profiles=[],
+    profiles=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
+    uniformcolor=None,
     opacity=1, logwidth=1,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
@@ -1937,6 +2003,7 @@ def plot_combined_longitudinal_profile(
     This function also adds ``SoilProfile`` objects to the plot through mini-logs.
 
     :param cpts: List with PCPTProcessing objects to be plotted
+    :param latlon: Boolean determining whether latitude and longitude are used or easting and northing in m (default=False for easting and northing in m)
     :param profiles: List with SoilProfile objects for which a log needs to be plotted
     :param option: Determines whether CPT names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
     :param start: CPT name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
@@ -1944,6 +2011,7 @@ def plot_combined_longitudinal_profile(
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
+    :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
     :param logwidth: Width of the soil logs as an absolute value (default = 1)
     :param prop: Selected property for plotting (default='qc [MPa]')
@@ -1988,6 +2056,7 @@ def plot_combined_longitudinal_profile(
 
     _layers_profile, _annotations_profile, _backbone_profile_traces, _soilcolors = plot_fence_diagram(
         profiles=profiles,
+        latlon=latlon,
         option='coords',
         start=start_point,
         end=end_point,
@@ -2020,7 +2089,7 @@ def plot_combined_longitudinal_profile(
             cpt_df.loc[i, "Before start"] = False
             cpt_df.loc[i, "Behind end"] = False
         else:
-            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            result = offsets(start_point, end_point, (row['X'], row['Y']), latlon=latlon)
             cpt_df.loc[i, "Offset"] = result['offset to line']
             cpt_df.loc[i, "Projected offset"] = result['offset to start projected']
             cpt_df.loc[i, "Before start"] = result['before start']
@@ -2050,12 +2119,16 @@ def plot_combined_longitudinal_profile(
 
     for i, row in selected_cpts.iterrows():
         try:
+            if uniformcolor is None:
+                _tracecolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            else:
+                _tracecolor = uniformcolor
             for _push in row['CPT objects'].data["Push"].unique():
                 push_data = row['CPT objects'].data[row['CPT objects'].data["Push"] == _push]
                 _push_trace = go.Scatter(
                     x=scale_factor * np.array(push_data[prop]) + row['Projected offset'],
                     y=-np.array(push_data['z [m]']) + row['Z'],
-                    line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10]),
+                    line=dict(color=_tracecolor),
                     showlegend=False, mode='lines', name=r'$ q_c $')
                 fig.append_trace(_push_trace, 1, 1)
 
@@ -2065,7 +2138,7 @@ def plot_combined_longitudinal_profile(
                    (-np.array(row['CPT objects'].data['z [m]']) + row['Z']).max()],
                 showlegend=False,
                 mode='lines',
-                line=dict(color=DEFAULT_PLOTLY_COLORS[i % 10], dash='dot')
+                line=dict(color=_tracecolor, dash='dot')
             )
             fig.append_trace(_backbone, 1, 1)
 

@@ -101,3 +101,108 @@ def permeability_d10_hazen(
     return {
         'k [m/s]': _k,
     }
+
+
+HSSMALL_PARAMETERS_SAND = {
+    'relative_density': {'type': 'float', 'min_value': 10.0, 'max_value': 100.0},
+}
+
+HSSMALL_PARAMETERS_SAND_ERRORRETURN = {
+    'gamma_unsat [kN/m3]': np.nan,
+    'gamma_sat [kN/m3]': np.nan,
+    'E50_ref [kPa]': np.nan,
+    'Eoed_ref [kPa]': np.nan,
+    'Eur_ref [kPa]': np.nan,
+    'G0_ref [kPa]': np.nan,
+    'm [-]': np.nan,
+    'gamma_07 [-]': np.nan,
+    'phi_eff [deg]': np.nan,
+    'psi [deg]': np.nan,
+    'Rf [-]': np.nan,
+}
+
+@Validator(HSSMALL_PARAMETERS_SAND, HSSMALL_PARAMETERS_SAND_ERRORRETURN)
+def hssmall_parameters_sand(
+        relative_density,
+        **kwargs):
+
+    """
+    Calculates the constitutive parameters for the HS Small model in PLAXIS as a function of relative density.
+
+    The formulae were calibrated against a high-quality laboratory testing dataset on Toyoura, Ham River, Hostun and Ticino sand.
+
+    :param relative_density: Relative density of sand (:math:`D_r`) [:math:`pct`] - Suggested range: 10.0 <= relative_density <= 100.0
+
+    .. math::
+        \\gamma_{unsat} = 15 + 4 \\cdot \\frac{D_r}{100}
+
+        \\gamma_{sat} = 19 + 1.6 \\cdot \\frac{D_r}{100}
+
+        E_{50}^{ref} = 6e4 \\cdot \\frac{D_r}{100}
+
+        E_{oed}^{ref} = 6e4 \\cdot \\frac{D_r}{100}
+
+        E_{ur}^{ref} = 18e4 \\cdot \\frac{D_r}{100}
+
+        G_0^{ref} = 6e4 + 6.8e4 \\frac{D_r}{100}
+
+        m = 0.7 - \\frac{D_r}{320}
+
+        \\gamma_{0.7}= 10^{-4} \\cdot \\left( 2 - \\frac{D_r}{100} \\right)
+
+        \\varphi^{\\prime} = 28 + 12.5 \\cdot \\frac{D_r}{100}
+
+        \\psi = -2 + 12.5 \\cdot \\frac{D_r}{100}
+
+        R_f = 1 - \\frac{D_r}{800}
+
+    :returns: Dictionary with the following keys:
+
+        - 'gamma_unsat [kN/m3]': Unsaturated unit weight (:math:`\\gamma_{unsat}`)  [:math:`kN/m3`]
+        - 'gamma_sat [kN/m3]': Saturated unit weight (:math:`\\gamma_{sat}`)  [:math:`kN/m3`]
+        - 'E50_ref [kPa]': Reference secant stiffness (:math:`E_{50}^{ref}`)  [:math:`kPa`]
+        - 'Eoed_ref [kPa]': Reference oedometric stiffness (:math:`E_{oed}^{ref}`)  [:math:`kPa`]
+        - 'Eur_ref [kPa]': Reference unloading-reloading stiffness (:math:`E_{ur}^{ref}`)  [:math:`kPa`]
+        - 'G0_ref [kPa]': Reference small-strain shear modulus (:math:`G_{0}^{ref}`)  [:math:`kPa`]
+        - 'm [-]': Stiffness exponent (:math:`m`)  [:math:`-`]
+        - 'gamma_07 [-]': Strain level where shear modulus has reduced to  70 percent of Gmax (:math:`\\gamma_{0.7}`)  [:math:`-`]
+        - 'phi_eff [deg]': Effective friction angle (:math:`\\varphi^{\\prime}`)  [:math:`deg`]
+        - 'psi [deg]': Dilation angle (:math:`\\psi`)  [:math:`deg`]
+        - 'Rf [-]': Failure ratio (:math:`-`)  [:math:`-`]
+
+    .. figure:: images/hssmall_parameters_sand_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        HS Small parameters as a function of relative density
+
+    Reference - Brinkgreve, R. B. J., Engin, E., & Engin, H. K. (2010). Validation of empirical formulas to derive model parameters for sands. Numerical methods in geotechnical engineering, 137- 142.
+
+    """
+
+    _gamma_unsat = 15 + 4 * (relative_density / 100)
+    _gamma_sat = 19 + 1.6 * (relative_density / 100)
+    _E50_ref = 6e4 * (relative_density / 100)
+    _Eoed_ref = 6e4 * (relative_density / 100)
+    _Eur_ref = 18e4 * (relative_density / 100)
+    _G0_ref = 6e4 + 6.8e4 * (relative_density / 100)
+    _m = 0.7 - (relative_density / 320)
+    _gamma_07 = 1e-4 * (2 - (relative_density / 100))
+    _phi_eff = 28 + 12.5 * (relative_density / 100)
+    _psi = -2 + 12.5 * (relative_density / 100)
+    _Rf = 1 - (relative_density / 800)
+
+    return {
+        'gamma_unsat [kN/m3]': _gamma_unsat,
+        'gamma_sat [kN/m3]': _gamma_sat,
+        'E50_ref [kPa]': _E50_ref,
+        'Eoed_ref [kPa]': _Eoed_ref,
+        'Eur_ref [kPa]': _Eur_ref,
+        'G0_ref [kPa]': _G0_ref,
+        'm [-]': _m,
+        'gamma_07 [-]': _gamma_07,
+        'phi_eff [deg]': _phi_eff,
+        'psi [deg]': _psi,
+        'Rf [-]': _Rf,
+    }

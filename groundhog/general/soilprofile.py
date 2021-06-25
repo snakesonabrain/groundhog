@@ -18,7 +18,7 @@ from plotly.offline import iplot
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
-from groundhog.general.parameter_mapping import offsets
+from groundhog.general.parameter_mapping import offsets, latlon_distance
 
 
 class SoilProfile(pd.DataFrame):
@@ -41,6 +41,23 @@ class SoilProfile(pd.DataFrame):
     def set_depthcolumn_name(self, name="Depth", unit='m'):
         self.depth_from_col = "%s from [%s]" % (name, unit)
         self.depth_to_col = "%s to [%s]" % (name, unit)
+
+    def convert_depth_reference(self, newname="Depth", newunit='m', multiplier=1):
+        """
+        Converts the depth reference for a soil profile between one set of units (e.g. ft) to another (e.g. m)
+        :param newname: New name for the depth reference (default='Depth')
+        :param newunit: Name of the new unit (default=m)
+        :param multiplier: Multiplier to go from old to new depth unit (e.g. 0.3 to go from ft to m)
+        :return:
+        """
+        self[self.depth_from_col] = self[self.depth_from_col] * multiplier
+        self[self.depth_to_col] = self[self.depth_to_col] * multiplier
+        self.rename(columns={
+            self.depth_from_col: "%s from [%s]" % (newname, newunit),
+            self.depth_to_col: "%s to [%s]" % (newname, newunit)
+        }, inplace=True)
+        self.depth_from_col = "%s from [%s]" % (newname, newunit)
+        self.depth_to_col = "%s to [%s]" % (newname, newunit)
 
     def check_profile(self):
         """
@@ -421,6 +438,8 @@ class SoilProfile(pd.DataFrame):
             soildata=self,
             xtitles=x_titles,
             ztitle=z_title,
+            depth_from_key=self.depth_from_col,
+            depth_to_key=self.depth_to_col,
             **kwargs
         )
 
@@ -702,11 +721,12 @@ class SoilProfile(pd.DataFrame):
                 self.loc[i, outputparameter.replace(' [', ' from [')] + \
                 row[parameter] * (row[self.depth_to_col] - row[self.depth_from_col])
 
-    def calculate_overburden(self, waterlevel=0, waterunitweight=10, totalunitweightcolumn="Total unit weight [kN/m3]",
+    def calculate_overburden(self, waterlevel=0, waterunitweight=10, initial_vertical_total_stress=0,
+                             totalunitweightcolumn="Total unit weight [kN/m3]",
                              effectiveunitweightcolumn="Effective unit weight [kN/m3]",
                              waterunitweightcolumn="Water unit weight [kN/m3]",
-                             totalverticalstresscolumn="Total vertical stress [kPa]",
-                             effectiveverticalstresscolumn="Effective vertical stress [kPa]",
+                             totalverticalstresscolumn="Vertical total stress [kPa]",
+                             effectiveverticalstresscolumn="Vertical effective stress [kPa]",
                              hydrostaticpressurecolumn="Hydrostatic pressure [kPa]"):
         """
         Calculates the overburden pressure (total and effective) for a ``SoilProfile`` object.
@@ -719,13 +739,16 @@ class SoilProfile(pd.DataFrame):
         Note that vertical stress calculations in other units are possible, but the water unit weight then needs
         to be specified in consistent units.
 
+        An initial value can be added to the total vertical stress to simulate the effect of e.g. surcharging.
+
         :param waterlevel: Water level [m] (default 0m)
         :param waterunitweight: Unit weight of the pore water [kN/m3] (default=10kN/m3)
+        :param initial_vertical_total_stress: Initial value of vertical total stress [kPa] (default=0kPa)
         :param totalunitweightcolumn: Column name containing total unit weights (default='Total unit weight [kN/m3]'
         :param waterunitweightcolumn: Output column with the effective unit weight (default='Effective unit weight [kN/m3]')
         :param waterunitweightcolumn: Output column with the water unit weight (default='Water unit weight [kN/m3]')
         :param totalverticalstresscolumn: Total vertical stress column name (default='Total vertical stress [kPa]')
-        :param effectiveverticalstresscolumn: Effective vertical stress column name (default='Effective vertical stress [kPa]')
+        :param effectiveverticalstresscolumn: Effective vertical stress column name (default='Vertical effective stress [kPa]')
         :param hydrostaticpressurecolumn: Hydrostatic pressure column name (default='Hydrostatic pressure [kPa]')
         :return: Adds the column names from ``totalverticalstresscolumn``, ``effectiveverticalstresscolumn`` and ``hydrostaticpressurecolumn`` to the ``SoilProfile`` object
         """
@@ -766,10 +789,12 @@ class SoilProfile(pd.DataFrame):
         self.depth_integration(parameter=waterunitweightcolumn, outputparameter=hydrostaticpressurecolumn)
 
         # Calculate effective vertical stress
-        self.depth_integration(parameter=effectiveunitweightcolumn, outputparameter=effectiveverticalstresscolumn)
+        self.depth_integration(parameter=effectiveunitweightcolumn, outputparameter=effectiveverticalstresscolumn,
+                               start_value=initial_vertical_total_stress)
 
         # Calculate total vertical stress
-        self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn)
+        self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn,
+                               start_value=initial_vertical_total_stress)
 
 
     def applyfunction(self, function, resultkey, outputkey, parametermapping=dict(), **kwargs):
@@ -816,7 +841,7 @@ class SoilProfile(pd.DataFrame):
                         function(**{**function_dict, **kwargs})[resultkey]
 
 
-def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, **kwargs):
+def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, depth_multiplier=1, **kwargs):
     """
     The method to read from Excel needs to be redefined for SoilProfile objects.
     The method allows for different depth keys (using the 'depth_key' and 'unit' keyword arguments
@@ -851,22 +876,23 @@ def profile_from_dataframe(df, title='', depth_key='Depth', unit='m', column_map
 
 
 def plot_fence_diagram(
-    profiles=[],
+    profiles=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
     opacity=1, logwidth=1, distance_unit='m', return_layers=False,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None,
     show_annotations=True):
     """
-    Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
-    to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
+    Creates a longitudinal profile along selected soil profiles. A line is drawn from the first (smallest distance from origin)
+    to the last location (greatest distance from origin) and the plot of the mini-logs with soil types
     is projected onto this line.
 
     :param profiles: List with SoilProfile objects for which a log needs to be plotted
+    :param latlon: Boolean defining whether coordinates are specified in latitude and longitude (defaulte=False). If this is the case, offsets are calculated using the ``pyproj`` package
     :param option: Determines whether soil profile names (``option='name'``) or tuples with coordinates (``option='coords'``) are used for the ``start`` and ``end`` arguments
-    :param start: Soil profile name for the starting point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
-    :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
-    :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
+    :param start: Soil profile name for the starting point or tuple of coordinates. If a SoilProfile name is used, the selected SoilProfile must be contained in ``profiles``.
+    :param end: Soil profile name for the end point or tuple of coordinates. If a SoilProfile name is used, the selected SoilProfile must be contained in ``profiles``.
+    :param band: Offset from the line connecting start and end points in which soil profiles are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
     :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
@@ -932,13 +958,17 @@ def plot_fence_diagram(
             profile_df.loc[i, "Behind end"] = False
         elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
             profile_df.loc[i, "Offset"] = 0
-            profile_df.loc[i, "Projected offset"] = np.sqrt(
-                (start_point[0] - end_point[0]) ** 2 +
-                (start_point[1] - end_point[1]) ** 2)
+            if latlon:
+                profile_df.loc[i, "Projected offset"] = latlon_distance(
+                    start_point[0], start_point[1], end_point[0], end_point[1])
+            else:
+                profile_df.loc[i, "Projected offset"] = np.sqrt(
+                    (start_point[0] - end_point[0]) ** 2 +
+                    (start_point[1] - end_point[1]) ** 2)
             profile_df.loc[i, "Before start"] = False
             profile_df.loc[i, "Behind end"] = False
         else:
-            result = offsets(start_point, end_point, (row['X'], row['Y']))
+            result = offsets(start_point, end_point, (row['X'], row['Y']), latlon=latlon)
             profile_df.loc[i, "Offset"] = result['offset to line']
             profile_df.loc[i, "Projected offset"] = result['offset to start projected']
             profile_df.loc[i, "Before start"] = result['before start']

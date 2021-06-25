@@ -1,9 +1,25 @@
-v0.6.0, TBC -- 2021 3rd release
+v0.7.0, TBC -- 2021 4th release
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine
 
+v0.6.0, 30/06/2021 -- SPT release
+    - Bugfix for relativedensity categories (relativedensity_categories)
+    - Added correlation between liquid limit and cv (cv_liquidlimit_usnavy)
+    - Started implementing SPT corrections and correlations (overburden correction and N60 correction)
+    - Started implementing an SPTProcessing class
+    - Added correlation between relative density and HS Small parameters in sand (hssmall_parameters_sand)
+    - Updated load_pydov for using pydov 2.1.0 (different key for depth)
+    - Updated normalise_pcpt function to allow Rf calculation as fs/qc for CPTs without pore pressure measurements
+    - Added code for hiding of all legends in plot_with_log
+    - Refactored code for shared functionality between CPT and SPT tests (InsituTestProcessing base class)
+    - Added notebooks for gINT data import for Windows and Mac/Linux
+    - Added method convert_depth_reference to SoilProfile to allow converting between depth units quickly (e.g. ft to m)
+    - Refactored overburden calculation for in-situ tests to always make use of soil profiles
+    - Added method for application of correlations to SPTProcessing class
+    - Added boolean to allow profile plots using lat/lon coordinates + necessary functionality to calculate offsets using pyproj
+    - Added correlations for relative density and undrained shear strength to spt_correlations
 
 v0.5.0, 12 April 2021 -- CGS webinar release
     - Added extension of soil profile and cone properties to CPT maximum depth by default in map_properties
@@ -19,7 +35,7 @@ v0.5.0, 12 April 2021 -- CGS webinar release
     - Modification to plot_properties method for CPTs to allows showing/hiding of legends and plotting of layer interfaces
     - Added inverse correlation for cone resistance from relative density for OC sand according to Baldi et al
     - Include standard PSD plot and Plasticity chart
-    - TODO: Excel export of CPT with data, cone properties, layering and location info
+    - Excel export of CPT with data, cone properties, layering and location info
 
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release

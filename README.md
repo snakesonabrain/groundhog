@@ -53,7 +53,7 @@ License and copyright
 
 groundhog is provided under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Please check the license terms below and in the license file.
 
-Commercial use is permitted for project Patrons: <a href="https://www.patreon.com/bePatron?u=55907777" data-patreon-widget-type="become-patron-button">Become a Patron!</a><script async src="https://c6.patreon.com/becomePatronButton.bundle.js"></script>
+Commercial use is permitted for project Patrons: <a href="https://www.patreon.com/bePatron?u=55907777">Become a Patron!</a>
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:

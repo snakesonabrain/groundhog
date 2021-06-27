@@ -405,8 +405,9 @@ def undrainedshearstrength_spt_salgado(
     """
     Calculates undrained shear strength based on plasticity index and SPT number (corrected to 60% energy ratio).
 
+
     +--------+-------------------------------+
-    | PI [%] | :math:`\\alpha^{\\prime}` [-] |
+    | PI [%] | :math:`\\alpha^{\prime}` [-]   |
     +========+===============================+
     |   15   |             0.068             |
     +--------+-------------------------------+
@@ -420,6 +421,7 @@ def undrainedshearstrength_spt_salgado(
     +--------+-------------------------------+
     |   60   |             0.043             |
     +--------+-------------------------------+
+
 
     :param plasticity_index: Plasticity index (difference between liquid and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 15.0 <= plasticity_index <= 60.0
     :param N_60: SPT number corrected to 60% energy ratio (:math:`N_{60}`) [:math:`-`] - Suggested range: 0.0 <= N_60 <= 100.0

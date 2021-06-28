@@ -23,7 +23,7 @@ groundhog bundles a large amount of knowledge and provides it to end users throu
 groundhog is developed using a set of 10 Golden rules which are reflected in the groundhog function
 architecture and should also be followed by any contributors to the project.
 
-For more information, consult the [documentation](http://snakesonabrain.com/docs/groundhog/index.html) or get started using the [tutorial notebooks](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master). [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master)
+For more information, consult the [documentation](https://groundhog.readthedocs.io/en/master/) or get started using the [tutorial notebooks](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master). [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master)
 
 Installation requirements
 -------------------------
@@ -42,11 +42,12 @@ pip install groundhog
 Support groundhog
 -------------------
 
-You can support the development of groundhog by buying me a coffee
+Commercial use is permitted if you buy a license through <a href="https://www.patreon.com/bePatron?u=55907777">Patreon</a>. All license revenues are invested back in the package development.
+
+You can also support the development of groundhog by buying me a coffee
 
 <a href="https://www.buymeacoffee.com/groundhog"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
 
-You can also support groundhog through <a href="https://www.patreon.com/bePatron?u=55907777">Patreon</a> and obtain a license for commercial use.
 
 License and copyright
 -----------------------

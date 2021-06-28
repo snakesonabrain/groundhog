@@ -13,6 +13,8 @@ Welcome to GroundHog Geotechnical Libraries documentation!
 
 This Python package contains useful functionality for supporting automated geotechnical calculations.
 
+``groundhog`` is first and foremost aimed at education on geotechnical engineering automation with Python. It aims to support students and educators with well-developed examples of geotechnical analysis in Python.
+
 Functionality for onshore and offshore geotechnical problems is included. This package is under constant
 development so any request for additional functionality can always be submitted to the package author.
 
@@ -55,9 +57,14 @@ A more comprehensive Getting Started section with detailed installation instruct
 Support groundhog
 ------------------
 
+Commercial use is permitted if you buy a license through `Patreon <https://www.patreon.com/groundhogpython>`_. All license revenues are invested back in the package development.
+
+You can also support the development of groundhog by buying me a coffee.
+
 .. raw:: html
 
    <a href="https://www.buymeacoffee.com/groundhog"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
+
 
 Tutorials
 ----------
@@ -115,6 +122,9 @@ This package is distributed under a Creative Commons Attribution-NonCommercial-S
 (`CC BY-NC-SA 4.0 <https://creativecommons.org/licenses/by-nc-sa/4.0/>`_) license.
 Any commercial usage is strictly prohibited. Contact the authors for other licensing options if you plan to use the package
 for commercial work.
+
+Commercial use is permitted for project `Patrons <https://www.patreon.com/groundhogpython/>`_.
+
 
 Indices and tables
 ==================

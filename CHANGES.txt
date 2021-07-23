@@ -1,8 +1,12 @@
 v0.7.0, TBC -- 2021 4th release
+    - Update to Readme to fix up formatting on Pypi (thanks to Thomas van der Linden for highlighting)
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+
+v0.6.1, 23/07/2021 -- Bugfix release
+    - Fixed bug in offset calculation for fence diagrams
 
 v0.6.0, 30/06/2021 -- SPT release
     - Bugfix for relativedensity categories (relativedensity_categories)

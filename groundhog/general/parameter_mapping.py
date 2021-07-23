@@ -137,7 +137,7 @@ def latlon_distance(lon1, lat1, lon2, lat2):
 
 def get_projected_point(lon1, lat1, lon2, lat2, lon3, lat3):
     """
-    Finds the coordinates of a point on projected onto a line
+    Finds the coordinates of a point projected onto a line
 
     Purpose - lon1,lat1,lon2,lat2 = Two points representing the ends of the line segment in lat/lon
               lon3,lat3 = The lat/lon of the point for which the offset needs to be known
@@ -145,7 +145,7 @@ def get_projected_point(lon1, lat1, lon2, lat2, lon3, lat3):
     """
     xx = lon2 - lon1
     yy = lat2 - lat1
-    shortestlength = ((xx * (lon3 - lon1)) + (yy * (lat3 - lat1))) / ((xx * yy) + (yy * yy))
+    shortestlength = ((xx * (lon3 - lon1)) + (yy * (lat3 - lat1))) / ((xx * xx) + (yy * yy))
     lon4 = lon1 + xx * shortestlength
     lat4 = lat1 + yy * shortestlength
     if lon4 <= lon2 and lon4 >= lon1 and lat4 <= lat2 and lat4 >= lat1:

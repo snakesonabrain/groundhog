@@ -2083,9 +2083,13 @@ def plot_combined_longitudinal_profile(
             cpt_df.loc[i, "Behind end"] = False
         elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
             cpt_df.loc[i, "Offset"] = 0
-            cpt_df.loc[i, "Projected offset"] = np.sqrt(
-                (start_point[0] - end_point[0]) ** 2 +
-                (start_point[1] - end_point[1]) ** 2)
+            if latlon:
+                cpt_df.loc[i, "Projected offset"] = latlon_distance(
+                    start_point[0], start_point[1], end_point[0], end_point[1])
+            else:
+                cpt_df.loc[i, "Projected offset"] = np.sqrt(
+                    (start_point[0] - end_point[0]) ** 2 +
+                    (start_point[1] - end_point[1]) ** 2)
             cpt_df.loc[i, "Before start"] = False
             cpt_df.loc[i, "Behind end"] = False
         else:

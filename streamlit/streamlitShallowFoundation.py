@@ -1,3 +1,5 @@
+# How to run: Open the cmd, cd to the folder of the Python file. "streamlit run streamlitShallowFoundation.py"
+
 import streamlit as st
 
 from groundhog.shallowfoundations.capacity import (

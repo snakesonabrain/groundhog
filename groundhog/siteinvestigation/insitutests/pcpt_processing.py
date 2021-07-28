@@ -1123,7 +1123,7 @@ class PCPTProcessing(InsituTestProcessing):
     # region Data plotting
 
     def plot_raw_pcpt(self, qc_range=(0, 100), qc_tick=10, fs_range=(0, 1), fs_tick=0.1,
-                      u2_range=(-0.1, 0.5), u2_tick=0.05, z_range=None, z_tick=2,
+                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2,
                       show_hydrostatic=True,
                       plot_height=700, plot_width=1000, return_fig=False,
                       plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,

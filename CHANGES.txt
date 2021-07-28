@@ -1,5 +1,7 @@
 v0.7.0, TBC -- 2021 4th release
     - Update to Readme to fix up formatting on Pypi (thanks to Thomas van der Linden for highlighting)
+    - Updated plotting ranges for pore pressure panel on CPT raw data plot
+    - Started with streamlit apps (authored by Berk Demir)
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

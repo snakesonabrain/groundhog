@@ -7,7 +7,7 @@ Information about the current version of the py-package-template package.
 
 __title__ = 'groundhog'
 __description__ = 'Groundhog - A general-purpose geotechnical package'
-__version__ = '0.6.1'
+__version__ = '0.7.0'
 __author__ = 'Bruno Stuyts'
 __author_email__ = 'bruno@pro-found.be'
 __license__ = 'Creative Commons NC-BY-SA 4.0'

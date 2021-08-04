@@ -1,12 +1,15 @@
 import streamlit as st
 from PIL import Image
+import os
 
 # Import Tools
 from streamlitIntroduction import streamlitIntroduction
 from streamlitShallowFoundation import streamlitShallowFoundation
 
 # Load favicon.
-favicon = Image.open("images/favicon.ico")
+images_path = os.path.join(os.path.dirname(__file__), 'images')
+
+favicon = Image.open("%s/favicon.ico" % images_path)
 
 # Page setup
 st.set_page_config(
@@ -18,7 +21,7 @@ st.set_page_config(
 
 # Create sidebar and load logo.
 SIDEBAR = st.sidebar
-LOGO = Image.open("images/logo.png")
+LOGO = Image.open("%s/logo.png" % images_path)
 SIDEBAR.image(
     LOGO,
     use_column_width=True,

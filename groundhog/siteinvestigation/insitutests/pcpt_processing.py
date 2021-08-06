@@ -246,7 +246,7 @@ class PCPTProcessing(InsituTestProcessing):
 
     # region Data loading
 
-    def load_excel(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+    def load_excel(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                    qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Loads PCPT data from an Excel file. Specific column keys have to be provided for z, qc, fs and u2.
@@ -277,7 +277,8 @@ class PCPTProcessing(InsituTestProcessing):
 
         try:
             self.data = pd.read_excel(path, **kwargs)
-            if push_key is None:
+            if push_key not in self.data.columns:
+                # No push detected
                 self.data.loc[:, "Push"] = 1
             self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
             self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -300,7 +301,7 @@ class PCPTProcessing(InsituTestProcessing):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-    def load_pandas(self, df, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+    def load_pandas(self, df, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                     qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, ):
         """
         Loads PCPT from a Pandas dataframe. Specific column keys have to be provided for z, qc, fs and u2.
@@ -328,7 +329,7 @@ class PCPTProcessing(InsituTestProcessing):
 
         try:
             self.data = df
-            if push_key is None:
+            if push_key not in self.data.columns:
                 self.data.loc[:, "Push"] = 1
             self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
             self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -351,7 +352,7 @@ class PCPTProcessing(InsituTestProcessing):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-    def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+    def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
                  ags_group="SCPT", verbose_keys=False, use_shorthands=False, **kwargs):
         """
@@ -407,7 +408,7 @@ class PCPTProcessing(InsituTestProcessing):
 
 
     def load_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Reads PCPT data from a Uniplot .asc file
@@ -461,7 +462,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data = self.data.drop([0])
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
         self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -479,7 +480,7 @@ class PCPTProcessing(InsituTestProcessing):
                 err))
 
     def load_gef(self, path, inverse_depths=False, override_title=True,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Reads PCPT data from a Geotechnical Exchange Format (.gef) file.
@@ -648,7 +649,7 @@ class PCPTProcessing(InsituTestProcessing):
 
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         try:
             self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
@@ -674,7 +675,7 @@ class PCPTProcessing(InsituTestProcessing):
                 err))
 
     def load_multi_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
                  start_string='Data table', end_string='UNICAS data file', **kwargs):
         """
@@ -755,7 +756,7 @@ class PCPTProcessing(InsituTestProcessing):
 
 
     def load_a00(self, path, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Reads PCPT data from a Uniplot .a00 file
@@ -809,7 +810,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data = self.data.drop([0, 1])
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
         self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -827,7 +828,7 @@ class PCPTProcessing(InsituTestProcessing):
                 err))
 
     def load_multiple_asc(self, folder, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, **kwargs):
         """
         A PCPT can be provided as multiple .asc files in one folder. This method loops over the individual
@@ -870,7 +871,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
 
-    def load_pydov(self, name, push_key=None, add_zero_row=True, **kwargs):
+    def load_pydov(self, name, push_key='Push', add_zero_row=True, **kwargs):
         """
         Load CPT data from Databank Ondergrond Vlaanderen based on the unique CPT name which can be found in DOV
         :param name: Unique identifier of the CPT in pydov
@@ -880,7 +881,7 @@ class PCPTProcessing(InsituTestProcessing):
         query = PropertyIsEqualTo(propertyname='sondeernummer',
                                   literal=name)
         self.data = sondering.search(query=query)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u')
         self.convert_columns(qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001)

@@ -3,6 +3,7 @@ v0.7.0, TBC -- 2021 4th release
     - Updated plotting ranges for pore pressure panel on CPT raw data plot
     - Started with streamlit apps (authored by Berk Demir)
     - Updated handling of pushing in PCPTProcessing ('Push' is the default column name for Push number)
+    - Added function failuremechanism_prandtl for calculating and plotting the Prandtl failure mechanism
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

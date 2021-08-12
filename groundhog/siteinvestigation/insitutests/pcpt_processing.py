@@ -166,10 +166,12 @@ class InsituTestProcessing(object):
         # Map layer properties
         for i, row in layer_profile.iterrows():
             layer_profile.loc[i, "Layer no"] = i+1
-        _mapped_layer_props = layer_profile.map_soilprofile(self.data['z [m]'])
+        _mapped_layer_props = layer_profile.map_soilprofile(
+            self.data['z [m]'])
 
         # Join values to the CPT data
-        self.data = self.data.join(_mapped_layer_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
+        for _key in _mapped_layer_props.columns:
+            self.data[_key] = _mapped_layer_props[_key]
 
         if vertical_total_stress is None:
             pass # Accept overburden calculated from soil profile
@@ -1012,7 +1014,8 @@ class PCPTProcessing(InsituTestProcessing):
                 ))
 
         # Map cone properties
-        _mapped_cone_props = cone_profile.map_soilprofile(self.data['z [m]'])
+        _mapped_cone_props = cone_profile.map_soilprofile(
+            self.data['z [m]'], keys_to_map=['area ratio [-]',])
 
         # Join values to the CPT data
         self.data = self.data.join(_mapped_cone_props.set_index('z [m]'), on='z [m]', lsuffix='_left')

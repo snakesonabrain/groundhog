@@ -320,7 +320,7 @@ class SoilProfile(pd.DataFrame):
         x = np.insert(second_array_x, np.arange(len(first_array_x)), first_array_x)
         return z, x
 
-    def map_soilprofile(self, nodalcoords, target_depthkey='z [m]', invert_sign=False, offset=0):
+    def map_soilprofile(self, nodalcoords, target_depthkey='z [m]', keys_to_map=None, invert_sign=False, offset=0):
         """
         Maps the soilprofile to a grid. The depth coordinates to the grid are specified
         in a list or Numpy array (``nodalcoords``).
@@ -329,6 +329,7 @@ class SoilProfile(pd.DataFrame):
         All soil parameters are interpolated onto this grid.
         :param nodalcoords: List or Numpy array with the nodal coordinates of the grid
         :param target_depthkey: Name of the depth key in the resulting dataframe
+        :param keys_to_map: List with the soilprofile keys to map
         :param invert_sign: Boolean determining whether to invert the sign after interpolation
         :param offset: Offset by which the depth is shifted (added to the depth after sign conversion)
         :return: Returns a dataframe with the full grid with soil parameters
@@ -349,15 +350,33 @@ class SoilProfile(pd.DataFrame):
         else:
             raise ValueError("Nodal coordinates are not ascending. Please check ")
 
+        if keys_to_map is None:
+            # Map all keys
+            string_params = self.string_soil_parameters()
+            numerical_params = self.numerical_soil_parameters()
+        else:
+            # Map only specific keys
+            string_params = []
+            numerical_params = []
+            for _key in keys_to_map:
+                if _key in self.string_soil_parameters():
+                    string_params.append(_key)
+                elif _key in self.numerical_soil_parameters():
+                    numerical_params.append(_key)
+                else:
+                    raise ValueError(
+                        "Key %s is not present in the numerical or string parameters of the soil profile" % _key)
+
         # 3. Map string parameters
-        for _param in self.string_soil_parameters():
+        for _param in string_params:
             target_df[_param] = list(map(lambda _z: self[
                 (self[self.depth_from_col] <= _z) & (self[self.depth_to_col] >= _z)][_param].iloc[-1],
                                       target_df[target_depthkey]))
 
         # 4. Map numerical parameters
-        for _param in self.numerical_soil_parameters():
+        for _param in numerical_params:
             z, x = self.soilparameter_series(_param)
+
             target_df[_param] = np.interp(target_df[target_depthkey], z, x)
 
         # 5. Convert sign and apply offset

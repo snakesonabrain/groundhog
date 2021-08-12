@@ -226,7 +226,7 @@ class Test_PCPTProcessing(unittest.TestCase):
         self.pandas_pcpt.normalise_pcpt()
 
         self.assertAlmostEqual(
-           self.pandas_pcpt.data.loc[2, 'ft [MPa]'], 0.003 - 0.004 * ((1 - 0.8) / 150), 5
+           self.pandas_pcpt.data.loc[2, 'ft [MPa]'], 0.003 - 0.004 * ((1 - 0.8) / 150), 4
         )
 
     def test_pcpt_normalisation_nosleevedata(self):

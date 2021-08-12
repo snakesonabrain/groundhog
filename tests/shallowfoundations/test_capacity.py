@@ -13,7 +13,7 @@ import numpy as np
 
 # Project imports
 from groundhog.shallowfoundations.capacity import ShallowFoundationCapacityUndrained, \
-    ShallowFoundationCapacityDrained
+    ShallowFoundationCapacityDrained, failuremechanism_prandtl
 
 
 class Test_UndrainedCapacity(unittest.TestCase):
@@ -386,3 +386,9 @@ class Test_DrainedCapacity(unittest.TestCase):
             self.rectangle_analysis.envelope_V_factored.max(),
             3
         )
+
+    def test_failuremechanism_prandtl(self):
+        result = failuremechanism_prandtl(
+            friction_angle=0, width=5)
+
+        self.assertEqual(result['X [m]'].max(), 1.5 * 5)

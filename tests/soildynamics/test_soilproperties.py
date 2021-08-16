@@ -74,3 +74,21 @@ class Test_SoilProperties(unittest.TestCase):
             result['D BE [pct]'], 5.4, 2)
         self.assertAlmostEqual(
             result['D HE [pct]'], 10.04, 2)
+
+    def test_modulusreduction_darendeli(self):
+        result = soilproperties.modulusreduction_darendeli(
+            mean_effective_stress=100,
+            plasticity_index=15,
+            OCR=1,
+            N=10,
+            frequency=1,
+            soiltype='all'
+        )
+        self.assertAlmostEqual(
+            np.interp(0.05, result['strains [pct]'], result['G/Gmax [-]']),
+            0.5, 1
+        )
+        self.assertAlmostEqual(
+            np.interp(0.05, result['strains [pct]'], result['D [pct]']),
+            8.8, 1
+        )

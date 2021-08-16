@@ -4,6 +4,8 @@ v0.7.0, TBC -- 2021 4th release
     - Started with streamlit apps (authored by Berk Demir)
     - Updated handling of pushing in PCPTProcessing ('Push' is the default column name for Push number)
     - Added function failuremechanism_prandtl for calculating and plotting the Prandtl failure mechanism
+    - Added function for estimation of shear modulus reduction and material damping according to Darendeli (2001)
+    - Added correlation between qc, void ratio and Gmax for clay according to Mayne and Rix (1993)
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

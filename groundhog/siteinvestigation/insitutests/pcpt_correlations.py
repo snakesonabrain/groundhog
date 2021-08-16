@@ -1559,6 +1559,63 @@ def drainedsecantmodulus_sand_bellotti(
     }
 
 
+GMAX_VOIDRATIO_MAYNERIX = {
+    'qc': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
+    'void_ratio': {'type': 'float', 'min_value': 0.2, 'max_value': 10.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_4': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+GMAX_VOIDRATIO_MAYNERIX_ERRORRETURN = {
+    'Gmax [kPa]': np.nan,
+}
+
+@Validator(GMAX_VOIDRATIO_MAYNERIX, GMAX_VOIDRATIO_MAYNERIX_ERRORRETURN)
+def gmax_voidratio_maynerix(
+        qc,void_ratio,
+        atmospheric_pressure=100.0,
+        coefficient_1=99.5,coefficient_2=0.305,coefficient_3=0.695,coefficient_4=1.13, **kwargs):
+
+    """
+    Calculates the small-strain shear modulus for clay based on the void ratio of the material. The relation between Gmax and qc presented in the CPT book (``gmax_clay_maynerix`` function) shows an inferior fit (r2 = 0.713) to the clay data than the correlation which is finally proposed by the authors (r2 = 0.901). This correlation also takes the void ratio of the material into account.
+
+    The correlation is developed based on a database of in-situ testing for Gmax at 31 sites with seismic cone, SASW, cross-hole and downhole tests. The main difficulty in applying this correlation is the requirement for companion profiles of void ratio. Void ratio can be estimated using a CPT correlation for unit weight (``unitweight_mayne``) but this correlation has a rather high uncertainty associated with it.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.1 <= qc <= 10.0
+    :param void_ratio: Void ratio of the clay determined from index tests or CPT-based correlations (:math:`e_0`) [:math:`-`] - Suggested range: 0.2 <= void_ratio <= 10.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 1.0)
+    :param coefficient_1: First calibration coefficient (:math:``) [:math:`-`] (optional, default= 99.5)
+    :param coefficient_2: Second  calibration coefficient (:math:``) [:math:`-`] (optional, default= 0.305)
+    :param coefficient_3: Third calibration coefficient (:math:``) [:math:`-`] (optional, default= 0.695)
+    :param coefficient_4: Fourth calibration coefficient (:math:``) [:math:`-`] (optional, default= 1.13)
+
+    .. math::
+        G_{max} = 99.5 \\cdot (P_a)^{0.305} \\cdot \\frac{q_c^{0.695}}{e_0^{1.130}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
+
+    .. figure:: images/gmax_voidratio_maynerix_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison of measured vs predicted Gmax
+
+    Reference - Mayne, P.W. and Rix, G.J. (1993), “Gmax-qc Relationships for Clays”, Geotechnical Testing Journal, Vol. 16, No. 1, pp. 54-60.
+
+    """
+
+    _Gmax = coefficient_1 * (atmospheric_pressure ** coefficient_2) * \
+            ((1e3 * qc) ** coefficient_3) / (void_ratio ** coefficient_4)
+
+    return {
+        'Gmax [kPa]': _Gmax,
+    }
 
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
@@ -1577,5 +1634,6 @@ CORRELATIONS = {
     'Unit weight Mayne et al (2010)': unitweight_mayne,
     'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal,
     'K0 Mayne (2007) - sand': k0_sand_mayne,
-    'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti
+    'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti,
+    'Gmax void ratio Mayne and Rix (1993)': gmax_voidratio_maynerix
 }

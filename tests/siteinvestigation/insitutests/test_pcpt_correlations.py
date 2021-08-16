@@ -217,3 +217,12 @@ class Test_drainedsecantmodulus_sand_bellotti(unittest.TestCase):
             sandtype='OC'
         )
         self.assertAlmostEqual(result['Es_qc [-]'], 8.7, 1)
+
+class Test_gmax_voidratio_maynerix(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.gmax_voidratio_maynerix(
+            qc=5,
+            void_ratio=2, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Gmax [kPa]'], 68935.6, 1)

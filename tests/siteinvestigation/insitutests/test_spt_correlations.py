@@ -86,3 +86,17 @@ class Test_spt_correlations(unittest.TestCase):
             fail_silently=False
         )
         self.assertAlmostEqual(result['Su [kPa]'], 8.6, 1)
+
+    def test_frictionangle_spt_kulhawymayne(self):
+        result = spt_correlations.frictionangle_spt_kulhawymayne(
+            N=30,
+            sigma_vo_eff=100,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(result['Phi [deg]'], 44.2, 1)
+        result = spt_correlations.frictionangle_spt_kulhawymayne(
+            N=30,
+            sigma_vo_eff=300,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(result['Phi [deg]'], 36.5, 1)

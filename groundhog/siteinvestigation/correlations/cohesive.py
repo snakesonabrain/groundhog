@@ -225,3 +225,69 @@ def cv_liquidlimit_usnavy(
     return {
         'cv [m2/yr]': _cv,
     }
+
+
+
+GMAX_PLASTICITYOCR_ANDERSEN = {
+    'PI': {'type': 'float', 'min_value': 0.0, 'max_value': 160.0},
+    'OCR': {'type': 'float', 'min_value': 1.0, 'max_value': 40.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_4': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_5': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+GMAX_PLASTICITYOCR_ANDERSEN_ERRORRETURN = {
+    'sigma_0_ref [kPa]': np.nan,
+    'Gmax [kPa]': np.nan,
+}
+
+@Validator(GMAX_PLASTICITYOCR_ANDERSEN, GMAX_PLASTICITYOCR_ANDERSEN_ERRORRETURN)
+def gmax_plasticityocr_andersen(
+        PI,OCR,sigma_vo_eff,
+        atmospheric_pressure=100.0,coefficient_1=30.0,coefficient_2=75.0,coefficient_3=0.03,coefficient_4=0.5,coefficient_5=0.9, **kwargs):
+
+    """
+    Calculates the small-strain shear modulus for cohesive soils based on plasticity index, effective overburden pressure and OCR. The proposed relation is calibrated on a number of shear wave velocity tests on clay samples with different plasticity index and OCR.
+
+    :param PI: Plasticity index (difference between liquid limit and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 0.0 <= PI <= 160.0
+    :param OCR: Overconsolidation ratio of the clay (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= OCR <= 40.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+    :param coefficient_1: First calibration coefficient (:math:``) [:math:`-`] (optional, default= 30.0)
+    :param coefficient_2: Second calibration coefficient (:math:``) [:math:`-`] (optional, default= 75.0)
+    :param coefficient_3: Third calibration coefficient (:math:``) [:math:`-`] (optional, default= 0.03)
+    :param coefficient_4: Fourth calibration coefficient (exponent for OCR) (:math:``) [:math:`-`] (optional, default= 0.5)
+    :param coefficient_5: Fifth calibration coefficient (exponent for sigma_ref) (:math:``) [:math:`-`] (optional, default= 0.9)
+
+    .. math::
+        \\frac{G_{max}}{\\sigma_{ref}^{\\prime}} = \\left( 30 + \\frac{75}{\\frac{I_p}{100} + 0.03} \\right) \\cdot OCR^{0.5}
+
+        \\sigma_{ref}^{\\prime} = P_a \\cdot \\left( \\sigma_{0}^{\\prime}  / P_a \\right)^{0.9}
+
+    :returns: Dictionary with the following keys:
+
+        - 'sigma_0_ref [kPa]': Reference stress (:math:`\\sigma_{ref}^{\\prime}`)  [:math:`kPa`]
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
+
+    .. figure:: images/gmax_plasticityocr_andersen_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Data used for calibrating the correlation
+
+    Reference - Andersen KH. Cyclic soil parameters for offshore foundation design. The Third ISSMGE McClelland Lecture. In: Meyer V, editor. Proc. Int. Symp. Frontiers in offshore geotechnics, ISFOG 2015. London: Taylor and Francis; 2015. 5–82.
+
+    """
+
+    _sigma_0_ref = atmospheric_pressure * ((sigma_vo_eff / atmospheric_pressure) ** coefficient_5)
+    _Gmax = _sigma_0_ref * (coefficient_1 + (coefficient_2 / (0.01 * PI + coefficient_3))) * (OCR ** coefficient_4)
+
+    return {
+        'sigma_0_ref [kPa]': _sigma_0_ref,
+        'Gmax [kPa]': _Gmax,
+    }

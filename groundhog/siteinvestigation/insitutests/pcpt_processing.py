@@ -1583,7 +1583,7 @@ class PCPTProcessing(InsituTestProcessing):
     # endregion
 
     # region Correlations
-
+    
     def apply_correlation(self, name, outputs, apply_for_soiltypes='all', **kwargs):
         """
         Applies a correlation to the given PCPT data. The name of the correlation needs to be chosen from the following available correlations.
@@ -1635,7 +1635,10 @@ class PCPTProcessing(InsituTestProcessing):
                     header = outputs[resultkey]
                     self.data.loc[i, header] = results[resultkey]
             else:
-                self.data.loc[i, header] = np.nan
+                for resultkey in outputs:
+                    header = outputs[resultkey]
+                    self.data.loc[i, header] = np.nan
+                    
         self.data.rename(columns=reverse_dict(PCPT_KEY_MAPPING), inplace=True)
     # endregion
 

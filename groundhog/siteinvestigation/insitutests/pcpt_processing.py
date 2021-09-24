@@ -1625,7 +1625,7 @@ class PCPTProcessing(InsituTestProcessing):
             if header in self.data.columns:
                 self.data.drop(header, axis=1, inplace=True)
 
-            self.data.rename(columns=PCPT_KEY_MAPPING, inplace=True)
+        self.data.rename(columns=PCPT_KEY_MAPPING, inplace=True)
 
         for i, row in self.data.iterrows():
             if apply_for_soiltypes == 'all' or row['Soil type'] in apply_for_soiltypes:

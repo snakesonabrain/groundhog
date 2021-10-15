@@ -354,3 +354,48 @@ class Test_SoilProfile(unittest.TestCase):
             'Soil type': ['SAND', 'CLAY', 'SAND', 'CLAY']
         })
         sp.profile_from_dataframe(df[1:])
+
+    def test_parameter_at_depth(self):
+        """
+        Check whether the routine for selection of parameters at a given depth works
+        :return:
+        """
+        profile = sp.SoilProfile({
+            'Depth from [m]': [0, 1, 5, 10],
+            'Depth to [m]': [1, 5, 10, 20],
+            'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+            'Relative density': ['Loose', 'Medium dense', None, 'Dense'],
+            'Total unit weight [kN/m3]': [19, 18, 17, 20],
+            'Dr [%]': [40, 60, np.nan, 80],
+            'qc from [MPa]': [1, np.nan, 10, 40],
+            'qc to [MPa]': [2, np.nan, 10, 50]
+        })
+        # String parameter
+        self.assertEqual(
+            profile.parameter_at_depth(depth=0.5, parameter='Soil type'), 'SAND')
+        self.assertEqual(
+            profile.parameter_at_depth(depth=3, parameter='Soil type'), 'SILT')
+        self.assertEqual(
+            profile.parameter_at_depth(depth=5, parameter='Soil type'), 'SILT')
+        self.assertEqual(
+            profile.parameter_at_depth(depth=5, parameter='Soil type', shallowest=False), 'CLAY')
+        # Errors when out of bounds
+        self.assertRaises(
+            ValueError, profile.parameter_at_depth, -1, 'Soil type')
+        self.assertRaises(
+            ValueError, profile.parameter_at_depth, 100, 'Soil type')
+        # Errors when parameter not available
+        self.assertRaises(
+            ValueError, profile.parameter_at_depth, 12, 'Color')
+        # Test Numerical soil parameter with constant value
+        self.assertEqual(
+            profile.parameter_at_depth(depth=3, parameter='Total unit weight [kN/m3]'), 18)
+        self.assertEqual(
+            profile.parameter_at_depth(depth=13, parameter='Dr [%]'), 80)
+        # Test Numerical soil parameter with linear variation
+        self.assertEqual(
+            profile.parameter_at_depth(depth=0.5, parameter='qc [MPa]'), 1.5)
+        self.assertEqual(
+            profile.parameter_at_depth(depth=7, parameter='qc [MPa]'), 10)
+        self.assertEqual(
+            profile.parameter_at_depth(depth=15, parameter='qc [MPa]'), 45)

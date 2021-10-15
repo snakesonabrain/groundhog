@@ -859,6 +859,49 @@ class SoilProfile(pd.DataFrame):
                     self.loc[i, outputkey] = \
                         function(**{**function_dict, **kwargs})[resultkey]
 
+    def parameter_at_depth(self, depth, parameter, shallowest=True):
+        """
+        Calculates the value for one of the ``SoilProfile`` parameters at a selected depth
+        :param depth: Selected depth [m]
+        :param parameter: String or Numerical soil parameter (linear interpolation for linearly varying parameters)
+        :param shallowest: Boolean determining whether at a layer interface, the shallowest value needs to be used (default=True).
+        :return: The value of the parameter at the selected depth
+        """
+        if depth > self.max_depth:
+            raise ValueError("Selected depth is greater than the maximum depth of the soil profile")
+
+        if depth < self.min_depth:
+            raise ValueError("Selected depth is lower than the minimum depth of the soil profile")
+
+        if (not parameter in self.numerical_soil_parameters()) and \
+                (not parameter in self.string_soil_parameters()):
+            raise ValueError("Selected parameter is not in the list of available parameters")
+
+        _layers = self[
+             (self[self.depth_from_col] <= depth) &
+             (self[self.depth_to_col] >= depth)
+        ]
+
+        if shallowest:
+            _selected_layer = _layers.iloc[0]
+        else:
+            _selected_layer = _layers.iloc[-1]
+
+        if parameter in self.numerical_soil_parameters():
+            if self.check_linear_variation(parameter):
+                # Linear interpolation for a linearly varying parameter
+                return np.interp(
+                    depth,
+                    [_selected_layer[self.depth_from_col], _selected_layer[self.depth_to_col]],
+                    [_selected_layer[parameter.replace(' [', ' from [')],
+                     _selected_layer[parameter.replace(' [', ' to [')]]
+                )
+            else:
+                # Constant value for a parameter with constant value in the layer
+                return _selected_layer[parameter]
+        else:
+            # String in the selected layer
+            return _selected_layer[parameter]
 
 def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, depth_multiplier=1, **kwargs):
     """
@@ -897,6 +940,8 @@ def profile_from_dataframe(df, title='', depth_key='Depth', unit='m', column_map
 def plot_fence_diagram(
     profiles=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
+    soiltypekey="Soil type",
+    plotmap=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
     opacity=1, logwidth=1, distance_unit='m', return_layers=False,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None,
@@ -913,6 +958,8 @@ def plot_fence_diagram(
     :param end: Soil profile name for the end point or tuple of coordinates. If a SoilProfile name is used, the selected SoilProfile must be contained in ``profiles``.
     :param band: Offset from the line connecting start and end points in which soil profiles are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param plotmap: Boolean determining whether a map of locations needs to be plotted next to the profile (default=False)
+    :param soiltypekey: Key for the soil type in the dataframes with layering (default="Soil type")
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
     :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
     :param logwidth: Width of the soil logs as an absolute value (default = 1)
@@ -1011,7 +1058,7 @@ def plot_fence_diagram(
     for i, row in selected_profiles.iterrows():
 
         for j, _layer in row["Soil profiles"].iterrows():
-            _fillcolor = fillcolordict[_layer['Soil type']]
+            _fillcolor = fillcolordict[_layer[soiltypekey]]
             _y0 = row['Z'] - _layer['Depth from [m]']
             _y1 = row['Z'] - _layer['Depth to [m]']
             _x0 = row['Projected offset'] - 0.5 * logwidth
@@ -1070,13 +1117,28 @@ def plot_fence_diagram(
     if return_layers:
         return _layers, _annotations, _backbone_traces, _soilcolors
     else:
-        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+        if plotmap:
+            fig = subplots.make_subplots(rows=1, cols=2, print_grid=False, column_widths=[0.7, 0.3],
+                                         specs=[[{'type': 'xy'}, {'type': 'mapbox'},]])
+        else:
+            fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
 
         for _trace in _backbone_traces:
             fig.append_trace(_trace, 1, 1)
 
         for _trace in _soilcolors:
             fig.append_trace(_trace, 1, 1)
+
+        if plotmap:
+            mapbox_points = go.Scattermapbox(
+                lat=y_coords, lon=x_coords, showlegend=False,
+                mode='markers', name='Locations', hovertext=profile_names)
+            fig.append_trace(mapbox_points, 1, 2)
+            mapbox_profileline = go.Scattermapbox(
+                lat=[start_point[1], end_point[1]],
+                lon=[start_point[0], end_point[0]],
+                showlegend=False, mode='lines', name='Profile')
+            fig.append_trace(mapbox_profileline, 1, 2)
 
         if xaxis_layout is None:
             fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
@@ -1096,6 +1158,12 @@ def plot_fence_diagram(
             fig['layout'].update(general_layout)
 
         fig['layout'].update(shapes=_layers)
+
+        if plotmap:
+            fig.update_layout(
+                mapbox_style='open-street-map', mapbox_zoom=10,
+                mapbox_center={'lat': profile_df['Y'].mean(), 'lon': profile_df['X'].mean()}
+            )
 
         if show_annotations:
             fig['layout'].update(annotations=_annotations)

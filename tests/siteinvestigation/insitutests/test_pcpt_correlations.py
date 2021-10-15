@@ -226,3 +226,12 @@ class Test_gmax_voidratio_maynerix(unittest.TestCase):
             void_ratio=2, fail_silently=False
         )
         self.assertAlmostEqual(result['Gmax [kPa]'], 68935.6, 1)
+
+
+class Test_soilclass_robertson(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.soilclass_robertson(
+            ic_class_number=3, fail_silently=False
+        )
+        self.assertEqual(result['Soil type'], 'Clays: clay to silty clay')

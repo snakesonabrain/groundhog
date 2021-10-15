@@ -152,6 +152,57 @@ def pcpt_normalisations(
     }
 
 
+SOILCLASS_ROBERTSON = {
+    'ic_class_number': {'type': 'integer', 'min_value': 1, 'max_value': 9},
+}
+
+SOILCLASS_ROBERTSON_ERRORRETURN = {
+    'Soil type': np.nan,
+}
+
+
+@Validator(SOILCLASS_ROBERTSON, SOILCLASS_ROBERTSON_ERRORRETURN)
+def soilclass_robertson(
+        ic_class_number,
+        **kwargs):
+    """
+    Provides soil type classification according to the soil behaviour type index by Robertson and Wride.
+
+    :param ic_class_number: Soil behaviour type index class number (:math:`I_c`) [:math:`-`] - Suggested range: ic = 1 to 9
+
+    :returns: Dictionary with the following keys:
+
+        - 'Soil type': Description of the soil type in the Robertson chart
+
+    Reference - Fugro guidance on PCPT interpretation
+
+    """
+
+    if ic_class_number == 9:
+        ic_class = "Very stiff fine grained"
+    elif ic_class_number == 8:
+        ic_class = "Very stiff sand to clayey sand"
+    elif ic_class_number == 7:
+        ic_class = "Gravelly sand to sand"
+    elif ic_class_number == 6:
+        ic_class = "Sands: clean sands to silty sands"
+    elif ic_class_number == 5:
+        ic_class = "Sand mixtures: silty sand to sand silty"
+    elif ic_class_number == 4:
+        ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif ic_class_number == 3:
+        ic_class = "Clays: clay to silty clay"
+    elif ic_class_number == 2:
+        ic_class = "Organic soils-peats"
+    elif ic_class_number == 1:
+        ic_class = "Sensitive, fine-grained"
+    else:
+        raise ValueError('Soil type class not defined')
+
+    return {
+        'Soil type': ic_class,
+    }
+
 IC_SOILCLASS_ROBERTSON = {
     'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
 }
@@ -1365,6 +1416,8 @@ BEHAVIOURINDEX_PCPT_NONNORMALISED = {
 
 BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN = {
     'Isbt [-]': np.nan,
+    'Isbt class number [-]': np.nan,
+    'Isbt class': None
 }
 
 

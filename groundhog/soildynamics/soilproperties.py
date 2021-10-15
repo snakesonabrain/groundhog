@@ -490,7 +490,7 @@ def modulusreduction_darendeli(
     _D = _F * _D_masing + _Dmin
     _sigma_ND = np.exp(params['phi13']) + np.sqrt(
         (0.25 / np.exp(params['phi14'])) -
-        (((_G_Gmax - 0.5) ** 2) / np.exp(params['phi13']))
+        (((_G_Gmax - 0.5) ** 2) / np.exp(params['phi14']))
     )
     _sigma_D = np.exp(params['phi15']) + np.exp(params['phi16']) * np.sqrt(_D)
 

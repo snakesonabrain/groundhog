@@ -1805,11 +1805,12 @@ class PCPTProcessing(InsituTestProcessing):
 def plot_longitudinal_profile(
     cpts=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
+    plotmap=False,
     uniformcolor=None,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None, legend_layout=None,
-    show_annotations=True):
+    show_annotations=True, mapbox_zoom=10):
     """
     Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
     to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
@@ -1822,6 +1823,7 @@ def plot_longitudinal_profile(
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param plotmap: Boolean determining whether a map of locations needs to be plotted next to the profile (default=False)
     :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param prop: Selected property for plotting (default='qc [MPa]')
     :param distance_unit: Unit for coordinates and elevation (default='m')
@@ -1832,6 +1834,7 @@ def plot_longitudinal_profile(
     :param general_layout: Dictionary with general layout options (default=None)
     :param legend_layout: Dictionary with legend layout options (default=None)
     :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
+    :param mapbox_zoom: Zoom factor for map (if plotted, default=10)
     :return: Plotly figure object
     """
 
@@ -1904,7 +1907,11 @@ def plot_longitudinal_profile(
 
     selected_cpts.sort_values('Projected offset', inplace=True)
 
-    fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+    if plotmap:
+        fig = subplots.make_subplots(rows=1, cols=2, print_grid=False, column_widths=[0.7, 0.3],
+                                     specs=[[{'type': 'xy'}, {'type': 'mapbox'},]])
+    else:
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
 
     _annotations = []
 
@@ -1960,6 +1967,17 @@ def plot_longitudinal_profile(
         except Exception as err:
             warnings.warn("Trace not created for %s - %s" % (row['CPT titles'], str(err)))
 
+    if plotmap:
+        mapbox_points = go.Scattermapbox(
+            lat=y_coords, lon=x_coords, showlegend=False,
+            mode='markers', name='Locations', hovertext=cpt_names)
+        fig.append_trace(mapbox_points, 1, 2)
+        mapbox_profileline = go.Scattermapbox(
+            lat=[start_point[1], end_point[1]],
+            lon=[start_point[0], end_point[0]],
+            showlegend=False, mode='lines', name='Profile')
+        fig.append_trace(mapbox_profileline, 1, 2)
+
     if xaxis_layout is None:
         fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
     else:
@@ -1983,6 +2001,12 @@ def plot_longitudinal_profile(
     if show_annotations:
         fig['layout'].update(annotations=_annotations)
 
+    if plotmap:
+        fig.update_layout(
+            mapbox_style='open-street-map', mapbox_zoom=10,
+            mapbox_center={'lat': cpt_df['Y'].mean(), 'lon': cpt_df['X'].mean()}
+        )
+
     if showfig:
         iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
@@ -1992,6 +2016,7 @@ def plot_combined_longitudinal_profile(
     cpts=[],
     profiles=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
+    plotmap=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
     uniformcolor=None,
     opacity=1, logwidth=1,
@@ -2014,6 +2039,7 @@ def plot_combined_longitudinal_profile(
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param plotmap: Boolean determining whether a map of locations needs to be plotted next to the profile (default=False)
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
     :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)

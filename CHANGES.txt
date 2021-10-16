@@ -9,6 +9,7 @@ v0.7.0, TBC -- 2021 4th release
     - Added correlation between friction angle and SPT N number according to Kulhawy and Mayne (1990)
     - Added correlation between Gmax and PI, OCR and overburden stress for clays according to Andersen (2015)
     - Added the method parameter_at_depth on SoilProfile objects to retrieve the value of a specific parameter at the selected depth.
+    - Added correlation between CPT properties and Vs according to Andrus (2007)
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

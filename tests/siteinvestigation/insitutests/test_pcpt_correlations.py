@@ -235,3 +235,20 @@ class Test_soilclass_robertson(unittest.TestCase):
             ic_class_number=3, fail_silently=False
         )
         self.assertEqual(result['Soil type'], 'Clays: clay to silty clay')
+
+
+class Test_vs_cpt_andrus(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_andrus(
+            qt=10, ic=2, depth=10
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 216.1, 1)
+        result = pcpt_correlations.vs_cpt_andrus(
+            qt=10, ic=2, depth=10, age='Pleistocene'
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 249.4, 1)
+        result = pcpt_correlations.vs_cpt_andrus(
+            qt=10, ic=2, depth=10, age='Tertiary'
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 550.7, 1)

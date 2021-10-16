@@ -32,7 +32,8 @@ PCPT_KEY_MAPPING = {
     'K0 [-]': 'K0',
     'Vs [m/s]': 'Vs',
     'gamma [kN/m3]': 'gamma',
-    'OCR [-]': 'ocr'
+    'OCR [-]': 'ocr',
+    'z [m]': 'depth'
 }
 
 
@@ -1670,6 +1671,98 @@ def gmax_voidratio_maynerix(
         'Gmax [kPa]': _Gmax,
     }
 
+
+VS_CPT_ANDRUS = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+    'SF': {'type': 'float', 'min_value': 1.0, 'max_value': 3.0},
+    'age': {'type': 'string', 'options': ('Holocene', 'Pleistocene', 'Tertiary'), 'regex': None},
+    'holocene_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'holocene_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'holocene_ic_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'holocene_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_ic_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'tertiary_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'tertiary_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'tertiary_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_ANDRUS_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_ANDRUS, VS_CPT_ANDRUS_ERRORRETURN)
+def vs_cpt_andrus(
+        qt,depth,ic,
+        SF=1.0,age='Holocene',holocene_multiplier=2.27,holocene_qt_exponent=0.412,holocene_ic_exponent=0.989,holocene_z_exponent=0.033,pleistocene_multiplier=2.62,pleistocene_qt_exponent=0.395,pleistocene_ic_exponent=0.912,pleistocene_z_exponent=0.124,tertiary_multiplier=13.0,tertiary_qt_exponent=0.382,tertiary_z_exponent=0.099, **kwargs):
+
+    """
+    Calculates shear wave velocity from CPT measurements based on a relation calibrated on 229 measurements of which the majority are S-PCPT with some cross-hole tests and suspension logger measurements.
+
+    Correlations for Holocene/Pleistocene soils and Tertiary soils are developed separately but it should be noted that the only Tertiary soil used for calibration is a marl which has different mineralogy from silica soils.
+
+    :param qt: Corrected cone tip resistance (note that formula is based on qt in kPa) (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param depth: Depth below mudline (:math:`z`) [:math:`m`] - Suggested range: 0.0 <= depth <= 100.0
+    :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
+    :param SF: Scaling factor. In case of Holocene soils, this is an age scaling factor (:math:`SF, ASF`) [:math:`-`] - Suggested range: 1.0 <= SF <= 3.0 (optional, default= 1.0)
+    :param age: Age of soils (optional, default= 'Holocene') - Options: ('Holocene', 'Pleistocene', 'Tertiary')
+    :param holocene_multiplier: Multiplier on holocene equation (:math:``) [:math:`-`] (optional, default= 2.27)
+    :param holocene_qt_exponent: Exponent on qt in holocene equation (:math:``) [:math:`-`] (optional, default= 0.412)
+    :param holocene_ic_exponent: Exponent on Ic in holocene equation (:math:``) [:math:`-`] (optional, default= 0.989)
+    :param holocene_z_exponent: Exponent on depth in holocene equation (:math:``) [:math:`-`] (optional, default= 0.033)
+    :param pleistocene_multiplier: Multiplier on pleistocene equation (:math:``) [:math:`-`] (optional, default= 2.62)
+    :param pleistocene_qt_exponent: Exponent on qt in pleistocene equation (:math:``) [:math:`-`] (optional, default= 0.395)
+    :param pleistocene_ic_exponent: Exponent on Ic in pleistocene equation (:math:``) [:math:`-`] (optional, default= 0.912)
+    :param pleistocene_z_exponent: Exponent on depth in pleistocene equation (:math:``) [:math:`-`] (optional, default= 0.124)
+    :param tertiary_multiplier: Multiplier on tertiary equation (:math:``) [:math:`-`] (optional, default= 13.0)
+    :param tertiary_qt_exponent: Exponent on qt in tertiary equation (:math:``) [:math:`-`] (optional, default= 0.382)
+    :param tertiary_z_exponent: Exponent on depth in tertiary equation (:math:``) [:math:`-`] (optional, default= 0.099)
+
+    .. math::
+        \\text{Holocene}
+
+        V_s = 2.27 \\cdot q_t^{0.412} \\cdot I_c^{0.989} \\cdot z^{0.033} \\cdot ASF
+
+        \\text{Pleistocene}
+
+        V_s = 2.62 \\cdot q_t^{0.395} \\cdot I_c^{0.912} \\cdot z^{0.124} \\cdot SF
+
+        \\text{Tertiary}
+
+        V_s = 13 \\cdot q_t^{0.382} \\cdot z^{0.099}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    Reference - Andrus, R.D., Mohanan, N.P., Piratheepan, P., Ellis, B.S., Holzer, T.L., 2007. Predicting Shear-wave velocity from cone penetration resistance, in: Paper No. 1454. Presented at the 4th International Conference on Earthquake Geotechnical Engineering, Thessaloniki, Greece.
+
+    """
+    if age == 'Holocene':
+        _Vs = holocene_multiplier * \
+              (1e3 * qt) ** holocene_qt_exponent * \
+              ic ** holocene_ic_exponent * \
+              depth ** holocene_z_exponent * SF
+    elif age == 'Pleistocene':
+        _Vs = pleistocene_multiplier * \
+              (1e3 * qt) ** pleistocene_qt_exponent * \
+              ic ** pleistocene_ic_exponent * \
+              depth ** pleistocene_z_exponent * SF
+    elif age == 'Tertiary':
+        _Vs = tertiary_multiplier * \
+              (1e3 * qt) ** tertiary_qt_exponent * \
+              depth ** tertiary_z_exponent
+    else:
+        raise ValueError("Age not recognised, must be 'Holocene', 'Pleistocene' or 'Tertiary'")
+
+    return {
+        'Vs [m/s]': _Vs,
+    }
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
@@ -1688,5 +1781,6 @@ CORRELATIONS = {
     'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal,
     'K0 Mayne (2007) - sand': k0_sand_mayne,
     'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti,
-    'Gmax void ratio Mayne and Rix (1993)': gmax_voidratio_maynerix
+    'Gmax void ratio Mayne and Rix (1993)': gmax_voidratio_maynerix,
+    'Vs CPT Andrus (2007)': vs_cpt_andrus,
 }

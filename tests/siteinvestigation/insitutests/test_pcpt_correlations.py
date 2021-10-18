@@ -252,3 +252,24 @@ class Test_vs_cpt_andrus(unittest.TestCase):
             qt=10, ic=2, depth=10, age='Tertiary'
         )
         self.assertAlmostEqual(result['Vs [m/s]'], 550.7, 1)
+
+
+class Test_vs_cpt_hegazymayne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=10, fs=0.1, sigma_vo=180, sigma_vo_eff=80
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 252, 0)
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=10, fs=0.1, sigma_vo=180, sigma_vo_eff=80, zhang=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 250, 0)
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=1, fs=0.1, sigma_vo=180, sigma_vo_eff=80
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 332, 0)
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=1, fs=0.1, sigma_vo=180, sigma_vo_eff=80, zhang=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 324, 0)

@@ -288,7 +288,10 @@ def behaviourindex_pcpt_robertsonwride(
         atmospheric_pressure=100.0, ic_min=1.0, ic_max=4.0, zhang_multiplier_1=0.381, zhang_multiplier_2=0.05,
         zhang_subtraction=0.15, robertsonwride_coefficient1=3.47, robertsonwride_coefficient2=1.22, **kwargs):
     """
-    Calculates the soil behaviour index according to Robertson and Wride (1998). This index is a measure for the behaviour of soils. Soils with a value below 2.5 are generally cohesionless and coarse grained whereas a value above 2.7 indicates cohesive, fine-grained sediments. Between 2.5 and 2.7, partially drained behaviour is expected.
+    Calculates the soil behaviour index according to Robertson and Wride (1998). This index is a measure for the behaviour of soils.
+    Soils with a value below 2.5 are generally cohesionless and coarse grained whereas a value above 2.7 indicates cohesive, fine-grained sediments.
+    Between 2.5 and 2.7, partially drained behaviour is expected.
+    The exponent n in the equations is used to account for different cone resistance normalisation in non-clayey soils (lower exponent).
     Because the exponent n is defined implicitly, an iterative approach is required to calculate the soil behaviour type index.
 
     :param qt: Corrected cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
@@ -1763,6 +1766,117 @@ def vs_cpt_andrus(
         'Vs [m/s]': _Vs,
     }
 
+
+
+VS_CPT_HEGAZYMAYNE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'zhang': {'type': 'bool',},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_stress': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier_ic': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_HEGAZYMAYNE_ERRORRETURN = {
+    'Ic uncorrected [-]': np.nan,
+    'qc1N [-]': np.nan,
+    'Ic [-]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_HEGAZYMAYNE, VS_CPT_HEGAZYMAYNE_ERRORRETURN)
+def vs_cpt_hegazymayne(
+        qt,fs,sigma_vo_eff,sigma_vo,
+        atmospheric_pressure=100.0,zhang=True,multiplier=0.0831,exponent_stress=0.25,multiplier_ic=1.786, **kwargs):
+
+    """
+    The correlation between shear wave velocity and CPT properties developed by Hegazy and Mayne was based on a global databased from 73 sites with different soil conditions including sands, clays, soil mixtures and mine tailings. The correlation includes the 30 clay sites used for the Mayne and Rix (1993) correlation as well as 30 cohesive and cohesionless sites from Hegazy and Mayne (1995). 12 new sites were added in the 2006 paper. A total of 558 data points are included in the database. A coefficient of determiniaton (r2) of 0.85 is obtained using all data.
+
+    Shear wave velocity was measured using S-PCPT, downhole testing, cross-hole testing and SASW. No comment is made on the measurement uncertainty and the obtained values are used as such.
+
+    The correlation shows a good fit of the ratio of corrected Vs to normalised cone tip resistance. Note that the normalised cone tip resistance is calculated by default using the Zhang exponent (``zhang=True``). The suggested formulation in the original paper by Hegazy and Mayne is included by setting the boolean zhang to False.
+
+    Note that all stresses in the equation are given in kPa.
+
+    :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: 0.0 <= fs <= 10.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param sigma_vo: Vertical total stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 2000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param zhang: Boolean determining whether the Zhang exponent (default groundhog implementation) needs to be used (optional, default= True)
+    :param multiplier: Multiplier in Equation 6 (:math:``) [:math:`-`] (optional, default= 0.0831)
+    :param exponent_stress: Exponent on the normalised stresses (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param multiplier_ic: Multiplier on soil behaviour type index (:math:``) [:math:`-`] (optional, default= 1.786)
+
+    .. math::
+        q_{c1N} = \\frac{q_t - \\sigma_{vo}}{sigma_{vo}^{\\prime}}
+
+        I_c = \\left[ (3.47 - \\log q_{c1N} )^2 + ( \\log F_r + 1.22 )^2 \\right]^{0.5}
+
+        \\text{if } I_c \\leq 2.6
+
+        q_{c1N} = \\left( \\frac{q_t}{P_a} \\right) \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.5}
+
+        \\text{if } I_c > 2.6
+
+        q_{c1N} = \\left( \\frac{q_t}{P_a} \\right) \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.75}
+
+        V_s = 0.0831 \\cdot q_{c1N} \\cdot \\left( \\frac{\\sigma_{vo}^}{} \\right)^{0.25} \\cdot e^{1.786 \\cdot I_c}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Ic uncorrected [-]': Soil behaviour type index according to equation 2a (:math:`I_{c,uncorrected}`)  [:math:`-`]
+        - 'qc1N [-]': Corrected normalised cone tip resistance based on Ic criterion (:math:`q_{c1N}`)  [:math:`-`]
+        - 'Ic [-]': Corrected soil behaviour type index as used in Equation 6 from the paper (:math:`I_c`)  [:math:`-`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    .. figure:: images/vs_cpt_hegazy_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between proposed trend and data
+
+    Reference - Hegazy and Mayne (2006). A Global Statistical Correlation between Shear Wave Velocity and Cone Penetration Data.
+
+    """
+    if zhang:
+        _ic_result = behaviourindex_pcpt_robertsonwride(
+            qt=qt, fs=fs, sigma_vo=sigma_vo, sigma_vo_eff=sigma_vo_eff,
+            atmospheric_pressure=100.0, **kwargs
+        )
+        _Ic = _ic_result['Ic [-]']
+        _Ic_uncorrected = _Ic
+        _qc1N = _ic_result['Qtn [-]']
+    else:
+        _Qt = (1e3 * qt - sigma_vo) / sigma_vo_eff
+        _Fr = 100 * (1e3 * fs) / (1e3 * qt - sigma_vo)
+        _Ic_uncorrected = np.sqrt(
+            (3.47 - np.log10(_Qt)) ** 2 +
+            (np.log10(_Fr) + 1.22) ** 2)
+        if _Ic_uncorrected <= 2.6:
+            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * \
+                    ((atmospheric_pressure / sigma_vo_eff) ** 0.5)
+        else:
+            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * \
+                    ((atmospheric_pressure / sigma_vo_eff) ** 0.75)
+        _Ic = np.sqrt(
+            (3.47 - np.log10(_qc1N)) ** 2 +
+            (np.log10(_Fr) + 1.22) ** 2)
+
+    _Vs = multiplier * _qc1N * ((sigma_vo_eff / atmospheric_pressure) ** exponent_stress) * \
+        np.exp(multiplier_ic * _Ic)
+
+    return {
+        'Ic uncorrected [-]': _Ic_uncorrected,
+        'qc1N [-]': _qc1N,
+        'Ic [-]': _Ic,
+        'Vs [m/s]': _Vs,
+    }
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
@@ -1783,4 +1897,6 @@ CORRELATIONS = {
     'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti,
     'Gmax void ratio Mayne and Rix (1993)': gmax_voidratio_maynerix,
     'Vs CPT Andrus (2007)': vs_cpt_andrus,
+    'Vs CPT Hegazy and Mayne (2006)': vs_cpt_hegazymayne,
+
 }

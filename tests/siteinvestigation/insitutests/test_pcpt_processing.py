@@ -327,6 +327,18 @@ class Test_GEFReading(unittest.TestCase):
         self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 7.4)
         self.assertEqual(self.gef_cpt.title, 'GEO-52/1143-S3')
 
+    def test_nodxdy_reading(self):
+        """
+        Test reading a file without DX and DY (provided thovdl)
+        """
+        filename = os.path.join(TESTS_DATA_DIR, 'gef_no_dx_dy_example.gef')
+        self.gef_cpt = pcpt_processing.PCPTProcessing(title="GEF no DX DY")
+
+        self.gef_cpt.load_gef(path=filename)
+        self.assertEqual(self.gef_cpt.data.loc[2, "qc [MPa]"], 0.408)
+        self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 16.48)
+        self.assertEqual(self.gef_cpt.title, 'CPT000000011611')
+
 class Test_AGSFile_reading(unittest.TestCase):
 
     def test_loadags(self):

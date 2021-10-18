@@ -1,8 +1,31 @@
 v0.7.0, TBC -- 2021 4th release
+    - Update to Readme to fix up formatting on Pypi (thanks to Thomas van der Linden for highlighting)
+    - Updated plotting ranges for pore pressure panel on CPT raw data plot
+    - Started with streamlit apps (authored by Berk Demir)
+    - Updated handling of pushing in PCPTProcessing ('Push' is the default column name for Push number)
+    - Added function failuremechanism_prandtl for calculating and plotting the Prandtl failure mechanism
+    - Added function for estimation of shear modulus reduction and material damping according to Darendeli (2001)
+    - Added correlation between qc, void ratio and Gmax for clay according to Mayne and Rix (1993)
+    - Added correlation between friction angle and SPT N number according to Kulhawy and Mayne (1990)
+    - Added correlation between Gmax and PI, OCR and overburden stress for clays according to Andersen (2015)
+    - Added the method parameter_at_depth on SoilProfile objects to retrieve the value of a specific parameter at the selected depth.
+    - Added correlation between CPT properties and Vs according to Andrus (2007)
+    - Added correlation between CPT properties and Vs according to Hegazy and Mayne (2006)
+    - Added Vs-CPT correlation according to Long and Donohue (2010)
+    - Added soil type determination from Vs and Qt according to Long and Donohue (2010)
+    - Add Vs-CPT correlation according to Karray et al (2011)
+    - Add Vs-CPT correlation according to Wride et al (2000)
+    - Add Vs-CPT correlation according to Tonni and Simonini (2013)
+    - Add Vs-CPT correlations according to McGann et al (2018) - Both for Christchurch general soils and Banks peninsula loess soils
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+
+v0.6.1, 23/07/2021 -- Bugfix release
+    - Fixed bug in offset calculation for fence diagrams
 
 v0.6.0, 30/06/2021 -- SPT release
     - Bugfix for relativedensity categories (relativedensity_categories)

@@ -226,7 +226,7 @@ class Test_PCPTProcessing(unittest.TestCase):
         self.pandas_pcpt.normalise_pcpt()
 
         self.assertAlmostEqual(
-           self.pandas_pcpt.data.loc[2, 'ft [MPa]'], 0.003 - 0.004 * ((1 - 0.8) / 150), 5
+           self.pandas_pcpt.data.loc[2, 'ft [MPa]'], 0.003 - 0.004 * ((1 - 0.8) / 150), 4
         )
 
     def test_pcpt_normalisation_nosleevedata(self):
@@ -326,6 +326,18 @@ class Test_GEFReading(unittest.TestCase):
         self.assertEqual(self.gef_cpt.data.loc[2, "qc [MPa]"], 1.1)
         self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 7.4)
         self.assertEqual(self.gef_cpt.title, 'GEO-52/1143-S3')
+
+    def test_nodxdy_reading(self):
+        """
+        Test reading a file without DX and DY (provided thovdl)
+        """
+        filename = os.path.join(TESTS_DATA_DIR, 'gef_no_dx_dy_example.gef')
+        self.gef_cpt = pcpt_processing.PCPTProcessing(title="GEF no DX DY")
+
+        self.gef_cpt.load_gef(path=filename)
+        self.assertEqual(self.gef_cpt.data.loc[2, "qc [MPa]"], 0.408)
+        self.assertEqual(self.gef_cpt.data["z [m]"].iloc[-1], 16.48)
+        self.assertEqual(self.gef_cpt.title, 'CPT000000011611')
 
 class Test_AGSFile_reading(unittest.TestCase):
 

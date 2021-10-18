@@ -23,6 +23,14 @@ except:
 # Project imports
 from groundhog.general.plotting import GROUNDHOG_PLOTTING_CONFIG
 
+# Map Robertson soil classes to De Beer soil types
+DEBEER_SOILTYPES_MAPPING = {
+    3: "Clay",
+    4: "Sandy clay / loam (silt)",
+    5: "Clayey sand / loam (silt)",
+    6: "Sand",
+    7: "Sand"}
+
 
 class DeBeerCalculation(object):
 

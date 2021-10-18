@@ -31,7 +31,9 @@ def gmax_sand_hardinblack(
     """
     Calculates the small-strain shear modulus of sand based on the correlation proposed with initial void ratio and stress level suggested by Hardin and Black (1968).
 
-    The default calibration parameter is taken from the recent study on monopile lateral response for the PISA project (Taborda et al, 2019). This calibration applies for dense marine sand
+    The formulation was developed on a dataset of cohesive soils. However, the correlation was used in the PISA project to predict the small-strain shear modulus of sand.
+
+    The default calibration parameter is taken from the recent study on monopile lateral response for the PISA project (Taborda et al, 2019). This calibration applies for dense marine sand.
 
     :param sigma_m0: Mean effective stress (:math:`p^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_m0 <= 500.0
     :param void_ratio: In-situ void ratio of the sand (:math:`e_0`) [:math:`-`] - Suggested range: 0.0 <= void_ratio <= 4.0

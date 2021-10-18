@@ -217,3 +217,154 @@ class Test_drainedsecantmodulus_sand_bellotti(unittest.TestCase):
             sandtype='OC'
         )
         self.assertAlmostEqual(result['Es_qc [-]'], 8.7, 1)
+
+class Test_gmax_voidratio_maynerix(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.gmax_voidratio_maynerix(
+            qc=5,
+            void_ratio=2, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Gmax [kPa]'], 68935.6, 1)
+
+
+class Test_soilclass_robertson(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.soilclass_robertson(
+            ic_class_number=3, fail_silently=False
+        )
+        self.assertEqual(result['Soil type'], 'Clays: clay to silty clay')
+
+
+class Test_vs_cpt_andrus(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_andrus(
+            qt=10, ic=2, depth=10
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 216.1, 1)
+        result = pcpt_correlations.vs_cpt_andrus(
+            qt=10, ic=2, depth=10, age='Pleistocene'
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 249.4, 1)
+        result = pcpt_correlations.vs_cpt_andrus(
+            qt=10, ic=2, depth=10, age='Tertiary'
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 550.7, 1)
+
+
+class Test_vs_cpt_hegazymayne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=10, fs=0.1, sigma_vo=180, sigma_vo_eff=80
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 252, 0)
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=10, fs=0.1, sigma_vo=180, sigma_vo_eff=80, zhang=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 250, 0)
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=1, fs=0.1, sigma_vo=180, sigma_vo_eff=80
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 332, 0)
+        result = pcpt_correlations.vs_cpt_hegazymayne(
+            qt=1, fs=0.1, sigma_vo=180, sigma_vo_eff=80, zhang=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 324, 0)
+
+
+class Test_vs_cpt_longdonohue(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_longdonohue(
+            qt=1, u2=0.3, u0=100, Bq=0.4, sigma_vo_eff=60
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 160.37, 2)
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 207.04, 2)
+        self.assertEqual(result['ocr_class'], '2 < OCR <= 3')
+
+
+class Test_soiltype_vs_longodonohue(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=200, Qt=100, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 200, 2)
+        self.assertEqual(result['soiltype'], 'Sand')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=200, Qt=10, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 200, 2)
+        self.assertEqual(result['soiltype'], 'Soft clay')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=200, Qt=40, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 200, 2)
+        self.assertEqual(result['soiltype'], 'Stiff clay')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=100, Qt=20, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 100, 2)
+        self.assertEqual(result['soiltype'], 'Sand')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=100, Qt=5, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 100, 2)
+        self.assertEqual(result['soiltype'], 'Soft clay')
+
+
+class Test_vs_cpt_wrideetal(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_wrideetal(
+            qc=10, sigma_vo_eff=100, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 183.52, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 183.52, 2)
+
+        result = pcpt_correlations.vs_cpt_wrideetal(
+            qc=10, sigma_vo_eff=90, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 185.95, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 181.12, 2)
+
+
+class Test_vs_cpt_tonniandsimonini(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_tonniandsimonini(
+            qt=10, sigma_vo_eff=100, sigma_vo=200, ic=2.3, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 458.38, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 458.38, 2)
+
+        result = pcpt_correlations.vs_cpt_tonniandsimonini(
+            qt=10, sigma_vo_eff=90, sigma_vo=190, ic=2.3, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 458.85, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 446.92, 2)
+
+
+class Test_vs_cpt_mcgannetal(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_mcgannetal(
+            qt=10, fs=0.2, depth=5, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 168.31, 2)
+        self.assertAlmostEqual(result['sigma_lnVs [-]'], 0.162, 3)
+
+        result = pcpt_correlations.vs_cpt_mcgannetal(
+            qt=10, fs=0.2, depth=5, loess=True, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 331.84, 2)
+        self.assertAlmostEqual(result['sigma_lnVs [-]'], 0.2367, 2)
+
+

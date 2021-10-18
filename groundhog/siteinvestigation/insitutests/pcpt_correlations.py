@@ -32,7 +32,8 @@ PCPT_KEY_MAPPING = {
     'K0 [-]': 'K0',
     'Vs [m/s]': 'Vs',
     'gamma [kN/m3]': 'gamma',
-    'OCR [-]': 'ocr'
+    'OCR [-]': 'ocr',
+    'z [m]': 'depth'
 }
 
 
@@ -152,6 +153,57 @@ def pcpt_normalisations(
     }
 
 
+SOILCLASS_ROBERTSON = {
+    'ic_class_number': {'type': 'integer', 'min_value': 1, 'max_value': 9},
+}
+
+SOILCLASS_ROBERTSON_ERRORRETURN = {
+    'Soil type': np.nan,
+}
+
+
+@Validator(SOILCLASS_ROBERTSON, SOILCLASS_ROBERTSON_ERRORRETURN)
+def soilclass_robertson(
+        ic_class_number,
+        **kwargs):
+    """
+    Provides soil type classification according to the soil behaviour type index by Robertson and Wride.
+
+    :param ic_class_number: Soil behaviour type index class number (:math:`I_c`) [:math:`-`] - Suggested range: ic = 1 to 9
+
+    :returns: Dictionary with the following keys:
+
+        - 'Soil type': Description of the soil type in the Robertson chart
+
+    Reference - Fugro guidance on PCPT interpretation
+
+    """
+
+    if ic_class_number == 9:
+        ic_class = "Very stiff fine grained"
+    elif ic_class_number == 8:
+        ic_class = "Very stiff sand to clayey sand"
+    elif ic_class_number == 7:
+        ic_class = "Gravelly sand to sand"
+    elif ic_class_number == 6:
+        ic_class = "Sands: clean sands to silty sands"
+    elif ic_class_number == 5:
+        ic_class = "Sand mixtures: silty sand to sand silty"
+    elif ic_class_number == 4:
+        ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif ic_class_number == 3:
+        ic_class = "Clays: clay to silty clay"
+    elif ic_class_number == 2:
+        ic_class = "Organic soils-peats"
+    elif ic_class_number == 1:
+        ic_class = "Sensitive, fine-grained"
+    else:
+        raise ValueError('Soil type class not defined')
+
+    return {
+        'Soil type': ic_class,
+    }
+
 IC_SOILCLASS_ROBERTSON = {
     'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
 }
@@ -236,7 +288,10 @@ def behaviourindex_pcpt_robertsonwride(
         atmospheric_pressure=100.0, ic_min=1.0, ic_max=4.0, zhang_multiplier_1=0.381, zhang_multiplier_2=0.05,
         zhang_subtraction=0.15, robertsonwride_coefficient1=3.47, robertsonwride_coefficient2=1.22, **kwargs):
     """
-    Calculates the soil behaviour index according to Robertson and Wride (1998). This index is a measure for the behaviour of soils. Soils with a value below 2.5 are generally cohesionless and coarse grained whereas a value above 2.7 indicates cohesive, fine-grained sediments. Between 2.5 and 2.7, partially drained behaviour is expected.
+    Calculates the soil behaviour index according to Robertson and Wride (1998). This index is a measure for the behaviour of soils.
+    Soils with a value below 2.5 are generally cohesionless and coarse grained whereas a value above 2.7 indicates cohesive, fine-grained sediments.
+    Between 2.5 and 2.7, partially drained behaviour is expected.
+    The exponent n in the equations is used to account for different cone resistance normalisation in non-clayey soils (lower exponent).
     Because the exponent n is defined implicitly, an iterative approach is required to calculate the soil behaviour type index.
 
     :param qt: Corrected cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
@@ -1365,6 +1420,8 @@ BEHAVIOURINDEX_PCPT_NONNORMALISED = {
 
 BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN = {
     'Isbt [-]': np.nan,
+    'Isbt class number [-]': np.nan,
+    'Isbt class': None
 }
 
 
@@ -1559,6 +1616,744 @@ def drainedsecantmodulus_sand_bellotti(
     }
 
 
+GMAX_VOIDRATIO_MAYNERIX = {
+    'qc': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
+    'void_ratio': {'type': 'float', 'min_value': 0.2, 'max_value': 10.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_4': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+GMAX_VOIDRATIO_MAYNERIX_ERRORRETURN = {
+    'Gmax [kPa]': np.nan,
+}
+
+@Validator(GMAX_VOIDRATIO_MAYNERIX, GMAX_VOIDRATIO_MAYNERIX_ERRORRETURN)
+def gmax_voidratio_maynerix(
+        qc,void_ratio,
+        atmospheric_pressure=100.0,
+        coefficient_1=99.5,coefficient_2=0.305,coefficient_3=0.695,coefficient_4=1.13, **kwargs):
+
+    """
+    Calculates the small-strain shear modulus for clay based on the void ratio of the material. The relation between Gmax and qc presented in the CPT book (``gmax_clay_maynerix`` function) shows an inferior fit (r2 = 0.713) to the clay data than the correlation which is finally proposed by the authors (r2 = 0.901). This correlation also takes the void ratio of the material into account.
+
+    The correlation is developed based on a database of in-situ testing for Gmax at 31 sites with seismic cone, SASW, cross-hole and downhole tests. The main difficulty in applying this correlation is the requirement for companion profiles of void ratio. Void ratio can be estimated using a CPT correlation for unit weight (``unitweight_mayne``) but this correlation has a rather high uncertainty associated with it.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.1 <= qc <= 10.0
+    :param void_ratio: Void ratio of the clay determined from index tests or CPT-based correlations (:math:`e_0`) [:math:`-`] - Suggested range: 0.2 <= void_ratio <= 10.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 1.0)
+    :param coefficient_1: First calibration coefficient (:math:``) [:math:`-`] (optional, default= 99.5)
+    :param coefficient_2: Second  calibration coefficient (:math:``) [:math:`-`] (optional, default= 0.305)
+    :param coefficient_3: Third calibration coefficient (:math:``) [:math:`-`] (optional, default= 0.695)
+    :param coefficient_4: Fourth calibration coefficient (:math:``) [:math:`-`] (optional, default= 1.13)
+
+    .. math::
+        G_{max} = 99.5 \\cdot (P_a)^{0.305} \\cdot \\frac{q_c^{0.695}}{e_0^{1.130}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Gmax [kPa]': Small-strain shear modulus (:math:`G_{max}`)  [:math:`kPa`]
+
+    .. figure:: images/gmax_voidratio_maynerix_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison of measured vs predicted Gmax
+
+    Reference - Mayne, P.W. and Rix, G.J. (1993), “Gmax-qc Relationships for Clays”, Geotechnical Testing Journal, Vol. 16, No. 1, pp. 54-60.
+
+    """
+
+    _Gmax = coefficient_1 * (atmospheric_pressure ** coefficient_2) * \
+            ((1e3 * qc) ** coefficient_3) / (void_ratio ** coefficient_4)
+
+    return {
+        'Gmax [kPa]': _Gmax,
+    }
+
+
+VS_CPT_ANDRUS = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+    'SF': {'type': 'float', 'min_value': 1.0, 'max_value': 3.0},
+    'age': {'type': 'string', 'options': ('Holocene', 'Pleistocene', 'Tertiary'), 'regex': None},
+    'holocene_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'holocene_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'holocene_ic_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'holocene_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_ic_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'pleistocene_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'tertiary_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'tertiary_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    'tertiary_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_ANDRUS_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_ANDRUS, VS_CPT_ANDRUS_ERRORRETURN)
+def vs_cpt_andrus(
+        qt,depth,ic,
+        SF=1.0,age='Holocene',holocene_multiplier=2.27,holocene_qt_exponent=0.412,holocene_ic_exponent=0.989,holocene_z_exponent=0.033,pleistocene_multiplier=2.62,pleistocene_qt_exponent=0.395,pleistocene_ic_exponent=0.912,pleistocene_z_exponent=0.124,tertiary_multiplier=13.0,tertiary_qt_exponent=0.382,tertiary_z_exponent=0.099, **kwargs):
+
+    """
+    Calculates shear wave velocity from CPT measurements based on a relation calibrated on 229 measurements of which the majority are S-PCPT with some cross-hole tests and suspension logger measurements.
+
+    Correlations for Holocene/Pleistocene soils and Tertiary soils are developed separately but it should be noted that the only Tertiary soil used for calibration is a marl which has different mineralogy from silica soils.
+
+    :param qt: Corrected cone tip resistance (note that formula is based on qt in kPa) (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param depth: Depth below mudline (:math:`z`) [:math:`m`] - Suggested range: 0.0 <= depth <= 100.0
+    :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
+    :param SF: Scaling factor. In case of Holocene soils, this is an age scaling factor (:math:`SF, ASF`) [:math:`-`] - Suggested range: 1.0 <= SF <= 3.0 (optional, default= 1.0)
+    :param age: Age of soils (optional, default= 'Holocene') - Options: ('Holocene', 'Pleistocene', 'Tertiary')
+    :param holocene_multiplier: Multiplier on holocene equation (:math:``) [:math:`-`] (optional, default= 2.27)
+    :param holocene_qt_exponent: Exponent on qt in holocene equation (:math:``) [:math:`-`] (optional, default= 0.412)
+    :param holocene_ic_exponent: Exponent on Ic in holocene equation (:math:``) [:math:`-`] (optional, default= 0.989)
+    :param holocene_z_exponent: Exponent on depth in holocene equation (:math:``) [:math:`-`] (optional, default= 0.033)
+    :param pleistocene_multiplier: Multiplier on pleistocene equation (:math:``) [:math:`-`] (optional, default= 2.62)
+    :param pleistocene_qt_exponent: Exponent on qt in pleistocene equation (:math:``) [:math:`-`] (optional, default= 0.395)
+    :param pleistocene_ic_exponent: Exponent on Ic in pleistocene equation (:math:``) [:math:`-`] (optional, default= 0.912)
+    :param pleistocene_z_exponent: Exponent on depth in pleistocene equation (:math:``) [:math:`-`] (optional, default= 0.124)
+    :param tertiary_multiplier: Multiplier on tertiary equation (:math:``) [:math:`-`] (optional, default= 13.0)
+    :param tertiary_qt_exponent: Exponent on qt in tertiary equation (:math:``) [:math:`-`] (optional, default= 0.382)
+    :param tertiary_z_exponent: Exponent on depth in tertiary equation (:math:``) [:math:`-`] (optional, default= 0.099)
+
+    .. math::
+        \\text{Holocene}
+
+        V_s = 2.27 \\cdot q_t^{0.412} \\cdot I_c^{0.989} \\cdot z^{0.033} \\cdot ASF
+
+        \\text{Pleistocene}
+
+        V_s = 2.62 \\cdot q_t^{0.395} \\cdot I_c^{0.912} \\cdot z^{0.124} \\cdot SF
+
+        \\text{Tertiary}
+
+        V_s = 13 \\cdot q_t^{0.382} \\cdot z^{0.099}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    Reference - Andrus, R.D., Mohanan, N.P., Piratheepan, P., Ellis, B.S., Holzer, T.L., 2007. Predicting Shear-wave velocity from cone penetration resistance, in: Paper No. 1454. Presented at the 4th International Conference on Earthquake Geotechnical Engineering, Thessaloniki, Greece.
+
+    """
+    if age == 'Holocene':
+        _Vs = holocene_multiplier * \
+              (1e3 * qt) ** holocene_qt_exponent * \
+              ic ** holocene_ic_exponent * \
+              depth ** holocene_z_exponent * SF
+    elif age == 'Pleistocene':
+        _Vs = pleistocene_multiplier * \
+              (1e3 * qt) ** pleistocene_qt_exponent * \
+              ic ** pleistocene_ic_exponent * \
+              depth ** pleistocene_z_exponent * SF
+    elif age == 'Tertiary':
+        _Vs = tertiary_multiplier * \
+              (1e3 * qt) ** tertiary_qt_exponent * \
+              depth ** tertiary_z_exponent
+    else:
+        raise ValueError("Age not recognised, must be 'Holocene', 'Pleistocene' or 'Tertiary'")
+
+    return {
+        'Vs [m/s]': _Vs,
+    }
+
+
+
+VS_CPT_HEGAZYMAYNE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'zhang': {'type': 'bool',},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_stress': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier_ic': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_HEGAZYMAYNE_ERRORRETURN = {
+    'Ic uncorrected [-]': np.nan,
+    'qc1N [-]': np.nan,
+    'Ic [-]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_HEGAZYMAYNE, VS_CPT_HEGAZYMAYNE_ERRORRETURN)
+def vs_cpt_hegazymayne(
+        qt,fs,sigma_vo_eff,sigma_vo,
+        atmospheric_pressure=100.0,zhang=True,multiplier=0.0831,exponent_stress=0.25,multiplier_ic=1.786, **kwargs):
+
+    """
+    The correlation between shear wave velocity and CPT properties developed by Hegazy and Mayne was based on a global databased from 73 sites with different soil conditions including sands, clays, soil mixtures and mine tailings. The correlation includes the 30 clay sites used for the Mayne and Rix (1993) correlation as well as 30 cohesive and cohesionless sites from Hegazy and Mayne (1995). 12 new sites were added in the 2006 paper. A total of 558 data points are included in the database. A coefficient of determiniaton (r2) of 0.85 is obtained using all data.
+
+    Shear wave velocity was measured using S-PCPT, downhole testing, cross-hole testing and SASW. No comment is made on the measurement uncertainty and the obtained values are used as such.
+
+    The correlation shows a good fit of the ratio of corrected Vs to normalised cone tip resistance. Note that the normalised cone tip resistance is calculated by default using the Zhang exponent (``zhang=True``). The suggested formulation in the original paper by Hegazy and Mayne is included by setting the boolean zhang to False.
+
+    Note that all stresses in the equation are given in kPa.
+
+    :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: 0.0 <= fs <= 10.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param sigma_vo: Vertical total stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 2000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param zhang: Boolean determining whether the Zhang exponent (default groundhog implementation) needs to be used (optional, default= True)
+    :param multiplier: Multiplier in Equation 6 (:math:``) [:math:`-`] (optional, default= 0.0831)
+    :param exponent_stress: Exponent on the normalised stresses (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param multiplier_ic: Multiplier on soil behaviour type index (:math:``) [:math:`-`] (optional, default= 1.786)
+
+    .. math::
+        q_{c1N} = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
+
+        I_c = \\left[ (3.47 - \\log q_{c1N} )^2 + ( \\log F_r + 1.22 )^2 \\right]^{0.5}
+
+        \\text{if } I_c \\leq 2.6
+
+        q_{c1N} = \\left( \\frac{q_t}{P_a} \\right) \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.5}
+
+        \\text{if } I_c > 2.6
+
+        q_{c1N} = \\left( \\frac{q_t}{P_a} \\right) \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.75}
+
+        V_s = 0.0831 \\cdot q_{c1N} \\cdot \\left( \\frac{\\sigma_{vo}^{\\prime}}{P_a} \\right)^{0.25} \\cdot e^{1.786 \\cdot I_c}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Ic uncorrected [-]': Soil behaviour type index according to equation 2a (:math:`I_{c,uncorrected}`)  [:math:`-`]
+        - 'qc1N [-]': Corrected normalised cone tip resistance based on Ic criterion (:math:`q_{c1N}`)  [:math:`-`]
+        - 'Ic [-]': Corrected soil behaviour type index as used in Equation 6 from the paper (:math:`I_c`)  [:math:`-`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    .. figure:: images/vs_cpt_hegazy_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between proposed trend and data
+
+    Reference - Hegazy and Mayne (2006). A Global Statistical Correlation between Shear Wave Velocity and Cone Penetration Data.
+
+    """
+    if zhang:
+        _ic_result = behaviourindex_pcpt_robertsonwride(
+            qt=qt, fs=fs, sigma_vo=sigma_vo, sigma_vo_eff=sigma_vo_eff,
+            atmospheric_pressure=100.0, **kwargs
+        )
+        _Ic = _ic_result['Ic [-]']
+        _Ic_uncorrected = _Ic
+        _qc1N = _ic_result['Qtn [-]']
+    else:
+        _Qt = (1e3 * qt - sigma_vo) / sigma_vo_eff
+        _Fr = 100 * (1e3 * fs) / (1e3 * qt - sigma_vo)
+        _Ic_uncorrected = np.sqrt(
+            (3.47 - np.log10(_Qt)) ** 2 +
+            (np.log10(_Fr) + 1.22) ** 2)
+        if _Ic_uncorrected <= 2.6:
+            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * \
+                    ((atmospheric_pressure / sigma_vo_eff) ** 0.5)
+        else:
+            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * \
+                    ((atmospheric_pressure / sigma_vo_eff) ** 0.75)
+        _Ic = np.sqrt(
+            (3.47 - np.log10(_qc1N)) ** 2 +
+            (np.log10(_Fr) + 1.22) ** 2)
+
+    _Vs = multiplier * _qc1N * ((sigma_vo_eff / atmospheric_pressure) ** exponent_stress) * \
+        np.exp(multiplier_ic * _Ic)
+
+    return {
+        'Ic uncorrected [-]': _Ic_uncorrected,
+        'qc1N [-]': _qc1N,
+        'Ic [-]': _Ic,
+        'Vs [m/s]': _Vs,
+    }
+
+
+VS_CPT_LONGDONOHUE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'u2': {'type': 'float', 'min_value': -1.0, 'max_value': 1.0},
+    'u0': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'Bq': {'type': 'float', 'min_value': -0.6, 'max_value': 1.4},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_qt': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_Bq': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_LONGDONOHUE_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'ocr_class': None
+}
+
+@Validator(VS_CPT_LONGDONOHUE, VS_CPT_LONGDONOHUE_ERRORRETURN)
+def vs_cpt_longdonohue(
+        qt,u2,u0,Bq,sigma_vo_eff,
+        atmospheric_pressure=100.0,multiplier=1.961,exponent_qt=0.579,exponent_Bq=1.202, **kwargs):
+
+    """
+    The authors propose a correlation between shear wave velocity and CPT properties based on high-quality CPT tests and Gmax obtained from S-PCPT, MASW, cross-hole and block sampling.
+    The formula for Vs only applies to soft marine clays.
+
+    The overconsolidation ratio of the material can be differentiated by plotting the normalised excess pore pressure vs the normalised shear wave velocity.
+
+    Note that stresses have units of kPa in the formula.
+
+    :param qt: Corrected cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 2.0
+    :param u2: Pore pressure at the shoulder (:math:`u_2`) [:math:`MPa`] - Suggested range: -1.0 <= u2 <= 1.0
+    :param u0: Hydrostatic pressure (:math:`u_0`) [:math:`kPa`] - Suggested range: 0.0 <= u0 <= 1000.0
+    :param Bq: Pore pressure ratio (:math:`B_q`) [:math:`-`] - Suggested range: -0.6 <= Bq <= 1.4
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param multiplier: Multiplier in expression for Vs (:math:``) [:math:`-`] (optional, default= 1.961)
+    :param exponent_qt: Exponent on qt (:math:``) [:math:`-`] (optional, default= 0.579)
+    :param exponent_Bq: Exponent on 1 + Bq (:math:``) [:math:`-`] (optional, default= 1.202)
+
+    .. math::
+        V_s = 1.961 \\cdot q_t^{0.579} \\cdot \\left( 1 + B_q \\right)^{1.202}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs [m/s]': Shear wave velocity according to Equation 15 from paper (:math:`V_s`)  [:math:`m/s`]
+        - 'Vs1 [m/s]': Normalised shear wave velocity (:math:`V_{s,1}`)  [:math:`m/s`]
+        - 'ocr_class': OCR class based on Figure 9 from the paper
+
+    .. figure:: images/vs_cpt_longdonohue_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Differentiation of OCR based on shear wave velocity
+
+    Reference - Long, M. and Donohue, S. (2010). Characterisation of Norwegian marine clays with combined shear wave velocity and CPTU data. Canadian Geotechnical Journal.
+
+    """
+    # Lines bounding OCR classes
+    _ocr_2_x = [0.765793528505393, 7]
+    _ocr_2_y = [249.9606478145681, 105.03430845462307]
+
+    _ocr_3_x = [1.941448382126348, 7]
+    _ocr_3_y = [250.2599461263039, 162.589928057554]
+
+    # Vs formula according to Equation 15 from the paper
+    _Vs = multiplier * ((1e3 * qt) ** exponent_qt) * ((1 + Bq) ** exponent_Bq)
+    _Vs1 = _Vs / np.sqrt(sigma_vo_eff / atmospheric_pressure)
+
+    _deltau_ratio = (1e3 * u2 - u0) / sigma_vo_eff
+
+    _Vs1_ocr_2 = np.interp(_deltau_ratio, _ocr_2_x, _ocr_2_y)
+    _Vs1_ocr_3 = np.interp(_deltau_ratio, _ocr_3_x, _ocr_3_y)
+
+    if _Vs1 <= _Vs1_ocr_2:
+        _ocr_class = 'OCR <= 2'
+    elif _Vs1_ocr_2 < _Vs1 <= _Vs1_ocr_3:
+        _ocr_class = '2 < OCR <= 3'
+    else:
+        _ocr_class = 'OCR > 3'
+
+    return {
+        'Vs [m/s]': _Vs,
+        'Vs1 [m/s]': _Vs1,
+        'ocr_class': _ocr_class
+    }
+
+
+SOILTYPE_VS_LONGODONOHUE = {
+    'Vs': {'type': 'float', 'min_value': 0.0, 'max_value': 600.0},
+    'Qt': {'type': 'float', 'min_value': 0.0, 'max_value': 200.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+SOILTYPE_VS_LONGODONOHUE_ERRORRETURN = {
+    'Vs1 [m/s]': np.nan,
+    'soiltype': None,
+}
+
+@Validator(SOILTYPE_VS_LONGODONOHUE, SOILTYPE_VS_LONGODONOHUE_ERRORRETURN)
+def soiltype_vs_longodonohue(
+        Vs,Qt,sigma_vo_eff,
+        atmospheric_pressure=100.0, **kwargs):
+
+    """
+    Determines the soil type based on measured shear wave velocity and normalised cone resistance. The underlying dataset consists of soft clays (Long and Donohue, 2010), sands (Mayne, 2006) and stiff clays (Lunne et al, 2007).
+
+    The chart of Qt vs Vs1 allows determination of the soil type.
+
+    :param Vs: Shear wave velocity (:math:`V_s`) [:math:`m/s`] - Suggested range: 0.0 <= Vs <= 600.0
+    :param Qt: Normalised cone resistance (:math:`Q_t`) [:math:`-`] - Suggested range: 0.0 <= Qt <= 200.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+
+    .. math::
+        V_{s,1} = \\frac{V_s}{\\left( \\frac{\\sigma_{vo}^{\\prime}}{P_a} \\right)^{0.5}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs1 [m/s]': Normalised shear wave velocity (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'soiltype': Soil type class based on Figure 10 from the paper
+
+    .. figure:: images/soiltype_vs_longodonohue_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between soil types
+
+    Reference - Long and Donohue (2010). Characterisation of Norwegian marine clays with combined shear wave velocity and CPTU data.
+
+    """
+    # Bounds for soil type classes
+    _Vs1_softclay = [85.45176110260337, 288.51454823889736]
+    _Qt_softclay = [11.444921316165988, 18.31187410586554]
+
+    _Vs1_sands = [135.98774885145482, 299.5405819295559]
+    _Qt_sands = [13.447782546495034, 139.9141630901288]
+
+    # Normalised Vs for selected datapoint
+    _Vs1 = Vs / np.sqrt(sigma_vo_eff / atmospheric_pressure)
+
+    if Qt <= np.interp(_Vs1, _Vs1_softclay, _Qt_softclay):
+        _soiltype = 'Soft clay'
+    else:
+        if Qt <= np.interp(_Vs1, _Vs1_sands, _Qt_sands):
+            _soiltype = 'Stiff clay'
+        else:
+            _soiltype = 'Sand'
+
+    return {
+        'Vs1 [m/s]': _Vs1,
+        'soiltype': _soiltype,
+    }
+
+
+VS_CPTD50_KARRAYETAL = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'd50': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_vs1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_qc1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_d50': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPTD50_KARRAYETAL_ERRORRETURN = {
+    'qc1 [MPa]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPTD50_KARRAYETAL, VS_CPTD50_KARRAYETAL_ERRORRETURN)
+def vs_cptd50_karrayetal(
+        qc,sigma_vo_eff,d50,
+        atmospheric_pressure=100.0,exponent_vs1=0.25,multiplier=125.5,exponent_qc1=0.25,exponent_d50=0.115, **kwargs):
+
+    """
+    This correlation between Vs and normalised cone tip resistance takes into account the influence of median grain size. The data was obtained from the Peribonka site where vibrocompaction was performed for soil improvement. Tests before and after compaction were performed. The shear wave velocity was derived from surface wave testing. The soil type at the Peribonka site was gravelly coarse sand with an average median grain size of 1.9mm.
+
+    The correlation applies to uncemented holocene granular soils.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param d50: Median grain size (:math:`d_{50}`) [:math:`mm`] - Suggested range: 0.1 <= d50 <= 10.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param exponent_vs1: Exponent on stresses in Vs1 formula (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param multiplier: Multiplier in Equation 15 (:math:``) [:math:`-`] (optional, default= 125.5)
+    :param exponent_qc1: Exponent on qc1 in Equation 15 (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param exponent_d50: Exponent on median grain size in Equation 15 (:math:``) [:math:`-`] (optional, default= 0.115)
+
+    .. math::
+        q_{c1} = q_c \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.5}
+
+        V_{s1} = V_s \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.25}
+
+        V_{s1} = 125.5 \\cdot \\left( q_{c1} \\right)^{0.25} \\cdot d_{50}^{0.115}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc1 [MPa]': Cone tip resistance corrected for stress level (:math:`q_{c1}`)  [:math:`MPa`]
+        - 'Vs1 [m/s]': Shear wave velocity corrected for stress level (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    .. figure:: images/vs_cptd50_karrayetal_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between proposed trend and measured data
+
+    Reference - Karray, M., Lefebvre, G., Ethier, Y., Bigras, A. (2011). Influence of particle size on the correlation between shear wave velocity and cone tip resistance. Canadian Geotechnical Journal.
+
+    """
+
+    _qc1 = qc * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+    _Vs1 = multiplier * _qc1 ** exponent_qc1 * d50 ** exponent_d50
+    _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** exponent_vs1)
+
+    return {
+        'qc1 [MPa]': _qc1,
+        'Vs1 [m/s]': _Vs1,
+        'Vs [m/s]': _Vs,
+    }
+
+
+VS_CPT_WRIDEETAL = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier': {'type': 'float', 'min_value': 95.6, 'max_value': 110.8},
+    'exponent_qc1': {'type': 'float', 'min_value': 0.23, 'max_value': 0.25},
+}
+
+VS_CPT_WRIDEETAL_ERRORRETURN = {
+    'qc1 [MPa]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_WRIDEETAL, VS_CPT_WRIDEETAL_ERRORRETURN)
+def vs_cpt_wrideetal(
+        qc,sigma_vo_eff,
+        atmospheric_pressure=100.0,multiplier=103.2,exponent_qc1=0.25, **kwargs):
+
+    """
+    Calculates shear wave velocity based on normalised cone tip resistance based on test data from the CANLEX project.
+
+    The Canadian Liquefaction Experiment (CANLEX) consists of in-situ testing at six sandy sites. The sand was fine sand with median grain size ranging from 0.16 to 0.25mm. The shear wave velocity measurements were recorded predominantely from downhole testing.
+
+    A general formula was established relating stress-corrected values of the cone tip resistance and shear wave velocity. The average value of the multiplier Y proposed by Karray et al (2011) was used as a default.
+
+    The authors do not present a chart comparing the calculated shear wave velocities to the measured ones, making it impossible to make statements on the accuracy of the correlation.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param multiplier: Multiplier on corrected cone resistance (:math:`Y`) [:math:`-`] - Suggested range: 95.6 <= multiplier <= 110.8 (optional, default= 103.2)
+    :param exponent_qc1: Exponent on stress-corrected cone resistance (:math:``) [:math:`-`] - Suggested range: 0.23 <= exponent_qc1 <= 0.25 (optional, default= 0.25)
+
+    .. math::
+        q_{c1} = q_c \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.5}
+
+        V_{s1} = V_s \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.25}
+
+        V_{s1} = Y \\cdot q_{c1}^{0.25}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc1 [MPa]': Stress-corrected cone tip resistance (:math:`q_{c1}`)  [:math:`MPa`]
+        - 'Vs1 [m/s]': Stress-corrected shear wave velocity (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    Reference - C.E. (Fear) Wride, P.K. Robertson, K.W. Biggar, R.G. Campanella, B.A. Hofmann, J.M.O. Hughes, A. Küpper, and D.J. Woeller (2000). Interpretation of in situ test results from the CANLEX sites. Canadian Geotechnical Journal.
+
+    """
+
+    _qc1 = qc * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+    _Vs1 = multiplier * _qc1 ** exponent_qc1
+    _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** 0.25)
+
+    return {
+        'qc1 [MPa]': _qc1,
+        'Vs1 [m/s]': _Vs1,
+        'Vs [m/s]': _Vs,
+    }
+
+
+VS_CPT_TONNIANDSIMONINI = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_TONNIANDSIMONINI_ERRORRETURN = {
+    'Qtn [-]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_TONNIANDSIMONINI, VS_CPT_TONNIANDSIMONINI_ERRORRETURN)
+def vs_cpt_tonniandsimonini(
+        qt,ic,sigma_vo,sigma_vo_eff,
+        atmospheric_pressure=100.0,coefficient_1=0.8,coefficient_2=1.17, **kwargs):
+
+    """
+    The authors propose a correlation between CPT properties and shear wave velocity for the Treporti site near Venice, Italy which consist mostly of silty sediments.
+
+    CPT and dilatometer (DMT) tests were conducted as well as seismic CPT and DMT tests at the site of a test embankment. Testing was conducted before and after placement of the embankment.
+
+    The authors highlight the importance of using the soil behaviour type index for obtaining a correlation which performs well across the different soil types encountered at the site. The authors finally propose different forms of the general equation proposed by Robertson and Cabal but accounting for stress correction.
+
+    The authors observe that stress corrections improve the accuracy of the correlations.
+
+    :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
+    :param sigma_vo: Total vertical stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 2000.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param coefficient_1: Multiplier on Ic in Equation 12 (:math:``) [:math:`-`] (optional, default= 0.8)
+    :param coefficient_2: Value after minus sign in Equation 12 (:math:``) [:math:`-`] (optional, default= 1.17)
+
+    .. math::
+        V_{s1} = 10^{ \\left( 0.80 \\cdot I_c - 1.17 \\right) } \\cdot Q_{tn}
+
+        V_{s1} = V_s \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.25}
+
+        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Qtn [-]': Normalised cone resistance (:math:`Q_{tn}`)  [:math:`-`]
+        - 'Vs1 [m/s]': Stress-corrected shear wave velocity (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    .. figure:: images/vs_cpt_tonniandsimonini_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between predicted and measured shear wave velocity
+
+    Reference - Tonni, L., Simonini, P. (2013). Shear wave velocity as function of cone penetration test measurements in sand and silt mixtures. Engineering Geology.
+
+    """
+
+    _Qtn = (1e3 * qt - sigma_vo) / atmospheric_pressure
+    _Vs1 = (10 ** (coefficient_1 * ic - coefficient_2)) * _Qtn
+    _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** 0.25)
+
+    return {
+        'Qtn [-]': _Qtn,
+        'Vs1 [m/s]': _Vs1,
+        'Vs [m/s]': _Vs,
+    }
+
+
+VS_CPT_MCGANNETAL = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
+    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'coefficient1_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient2_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient3_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient4_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient1_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient2_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient3_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient4_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'loess': {'type': 'bool',},
+}
+
+VS_CPT_MCGANNETAL_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+    'sigma_lnVs [-]': np.nan,
+}
+
+@Validator(VS_CPT_MCGANNETAL, VS_CPT_MCGANNETAL_ERRORRETURN)
+def vs_cpt_mcgannetal(
+        qt,fs,depth,
+        coefficient1_general=18.4,coefficient2_general=0.144,coefficient3_general=0.083,coefficient4_general=0.278,coefficient1_loess=103.6,coefficient2_loess=0.0074,coefficient3_loess=0.13,coefficient4_loess=0.253,loess=False, **kwargs):
+
+    """
+    The authors develop a correlation between shear wave velocity and CPT properties based on Christchurch-specific general soils. The soils were predominantly sand and silty sand. While the original formula uses the raw cone tip resistance, the authors suggest that the corrected cone resistance can be used without changes to the formula and prediction standard deviation.
+
+    Further work on the Banks Peninsula where loess soils are present, showed a significant underprediction of the shear wave velocity. The correlation was adjusted for these soils.
+
+    Note that all stresses in the equation are given in kPa.
+
+    :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: 0.0 <= fs <= 10.0
+    :param depth: Depth below ground surface (:math:`z`) [:math:`m`] - Suggested range: 0.0 <= depth <= 100.0
+    :param coefficient1_general: First calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 18.4)
+    :param coefficient2_general: Second calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 0.144)
+    :param coefficient3_general: Third calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 0.083)
+    :param coefficient4_general: Fourth calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 0.278)
+    :param coefficient1_loess: First calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 103.6)
+    :param coefficient2_loess: Second calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 0.0074)
+    :param coefficient3_loess: Third calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 0.13)
+    :param coefficient4_loess: Fourth calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 0.253)
+    :param loess: Boolean determining whether the loess equation needs to be used (optional, default= False)
+
+    .. math::
+        \\text{Christchurch general soils}
+
+        V_s = 18.4 \\cdot q_t^{0.144} \\cdot f_s^{0.083} \\cdot z^{0.278}
+
+        \\sigma_{\\ln(V_s)} = \\begin{cases}
+        0.162 \\ \\text{for } z \\leq 5m,\\\\
+        0.216 - 0.0108 \\cdot z \\ \\text{for } 5m < z < 10m \\\\
+        0.108 \\ \\text{for } z \\geq 10m
+        \\end{cases}
+
+        \\text{Loess soils}
+
+        V_s = 103.6 \\cdot q_t^{0.0074} \\cdot f_s^{0.130} \\cdot z^{0.253}
+
+        \\sigma_{\\ln(V_s)} = 0.2367
+
+        \\epsilon = \\frac{\\ln (V_{sM}) - \\ln (V_{sP})}{\\sigma_{\\ln(V_{sP})}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+        - 'sigma_lnVs [-]': Standard deviation on natural logarithm of Vs (:math:`\\sigma_{\\ln (V_s)}`)  [:math:`-`]
+
+    .. figure:: images/vs_CPT_mcgannetal_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison of measured and calculated values for general correlation
+
+    .. figure:: images/vs_CPT_mcgannetal_2.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Residuals for loess-specific correlation
+
+    Reference - McGann, Christopher R., et al. "Development of an empirical correlation for predicting shear wave velocity of Christchurch soils from cone penetration test data." Soil Dynamics and Earthquake Engineering 75 (2015): 66-75.
+
+    McGann, Christopher R., Brendon A. Bradley, and Seokho Jeong. "Empirical correlation for estimating shear-wave velocity from cone penetration test data for banks Peninsula loess soils in Canterbury, New Zealand." Journal of Geotechnical and Geoenvironmental Engineering 144.9 (2018): 04018054.
+
+    """
+    if loess:
+        _Vs = coefficient1_loess * \
+              (1e3 * qt) ** coefficient2_loess * \
+              (1e3 * fs) ** coefficient3_loess * \
+              depth ** coefficient4_loess
+        _sigma_lnVs = 0.2367
+    else:
+        _Vs = coefficient1_general * \
+              (1e3 * qt) ** coefficient2_general * \
+              (1e3 * fs) ** coefficient3_general * \
+              depth ** coefficient4_general
+        if depth <= 5:
+            _sigma_lnVs = 0.162
+        elif 5 < depth <= 10:
+            _sigma_lnVs = 0.216 - 0.0108 * depth
+        else:
+            _sigma_lnVs = 0.108
+
+    return {
+        'Vs [m/s]': _Vs,
+        'sigma_lnVs [-]': _sigma_lnVs,
+    }
+
 
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
@@ -1577,5 +2372,13 @@ CORRELATIONS = {
     'Unit weight Mayne et al (2010)': unitweight_mayne,
     'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal,
     'K0 Mayne (2007) - sand': k0_sand_mayne,
-    'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti
+    'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti,
+    'Gmax void ratio Mayne and Rix (1993)': gmax_voidratio_maynerix,
+    'Vs CPT Andrus (2007)': vs_cpt_andrus,
+    'Vs CPT Hegazy and Mayne (2006)': vs_cpt_hegazymayne,
+    'Vs CPT Long and Donohue (2010)': vs_cpt_longdonohue,
+    'Soiltype Vs Long and Donohue (2010)': soiltype_vs_longodonohue,
+    'Vs CPT d50 Karray et al (2011)': vs_cptd50_karrayetal,
+    'Vs CPT Wride et al (2000)': vs_cpt_wrideetal,
+    'Vs CPT Tonni and Simonini (2013)': vs_cpt_tonniandsimonini,
 }

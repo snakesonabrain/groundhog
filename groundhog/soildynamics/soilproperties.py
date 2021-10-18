@@ -342,3 +342,168 @@ def dampingratio_sandgravel_seed(
         'D BE [pct]': _D_BE,
         'D HE [pct]': _D_HE,
     }
+
+
+MODULUSREDUCTION_DARENDELI = {
+    'mean_effective_stress': {'type': 'float', 'min_value': 0.0, 'max_value': 1600.0},
+    'plasticity_index': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+    'OCR': {'type': 'float', 'min_value': 1.0, 'max_value': 20.0},
+    'N': {'type': 'float', 'min_value': 1.0, 'max_value': None},
+    'frequency': {'type': 'float', 'min_value': 0.05, 'max_value': 100.0},
+    'soiltype': {'type': 'string', 'options': ('sand', 'fine sand', 'silt', 'clay', 'all'), 'regex': None},
+    'min_strain': {'type': 'float', 'min_value': None, 'max_value': None},
+    'max_strain': {'type': 'float', 'min_value': None, 'max_value': None},
+    'no_points': {'type': 'int', 'min_value': 10.0, 'max_value': None},
+}
+
+MODULUSREDUCTION_DARENDELI_ERRORRETURN = {
+    'strains [pct]': np.nan,
+    'G/Gmax [-]': np.nan,
+    'D [pct]': np.nan,
+    'sigma_ND [-]': np.nan,
+    'sigma_D [pct]': np.nan,
+}
+
+@Validator(MODULUSREDUCTION_DARENDELI, MODULUSREDUCTION_DARENDELI_ERRORRETURN)
+def modulusreduction_darendeli(
+        mean_effective_stress,plasticity_index,OCR,N,frequency,soiltype,
+        min_strain=0.0001,max_strain=1.0,no_points=250,custom_coefficients=None, **kwargs):
+
+    """
+    Darendeli (2001) proposed a comprehensive framework for estimating the modulus reduction curve and damping curve for sand, fine sand, silt and clay based on extensive laboratory testing. The framework is initially based on the work by Hardin and Drnevich but extends the formulation to include the effect of soil type, plasticity, overconsolidation ratio, stress ratio, loading frequency and number of cycles applied.
+
+    The author used a Bayesian approach to calibrate the parameters of the parametric equations and also formulated expressions to estimate the standard deviation on the estimates. Parameters for individual soil types can be used as well as parameters calibrated to the entire credible dataset (using ``'all'`` for ``soiltype``).
+
+    The formulation is based on Masing damping but takes into account the damping at small strains, which  is not zero but difficult to estimate from resonant column or cyclic DSS tests. The Masing damping at large strains is also adjusted to be in line with experimental observations (Masing damping overestimates the damping ratio at large strains).
+
+    :param mean_effective_stress: Mean effective stress at the depth under consideration (:math:`\\sigma_0^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= mean_effective_stress <= 1000.0
+    :param plasticity_index: Plasticity index (difference between liquid limit and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 0.0 <= plasticity_index <= 60.0
+    :param OCR: Overconsolidation ratio of the soil (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= OCR <= 20.0
+    :param N: Number of cycles (:math:`N`) [:math:`-`] - Suggested range: N >= 1.0
+    :param frequency: Loading frequency (:math:`f`) [:math:`Hz`] - Suggested range: 0.05 <= frequency <= 20.0
+    :param soiltype: Soil type used for calculating modulus reduction and damping curves - Options: ('sand', 'fine sand', 'silt', 'clay', 'all')
+    :param min_strain: Minimum value for the strain (:math:`\\gamma_{min}`) [:math:`pct`] (optional, default= 0.0001)
+    :param max_strain: Maximum value for the strain (:math:`\\gamma_{max}`) [:math:`pct`] (optional, default= 1.0)
+    :param no_points: Number of points used for the strain curve calculation (:math:``) [:math:`-`] - Suggested range: no_points >= 10.0 (optional, default= 250)
+    :param custom_coefficients: Dictionary with custom calibration coefficients (:math:``) [:math:`-`] (optional, default= None)- Elementtype: float, order: ascending, unique: True, empty entries allowed: False
+
+    .. math::
+        \\frac{G}{G_{max}} = \\frac{1}{1 + \\left( \\frac{\\gamma}{\\gamma_r} \\right)^a}
+
+        \\gamma_r = \\left( \\phi_1 + \\phi_2 \\cdot PI \\cdot OCR^{\\phi_3} \\right) \\cdot \\sigma_0^{\\prime \\phi_4}
+
+        a = \\phi_5
+
+        D_{\\text{adjusted}} = b \\cdot \\left( \\frac{G}{G_{max}} \\right)^{0.1} \\cdot D_{\\text{Masing}} + D_{\\text{min}}
+
+        D_{\\text{min}} = \\left( \\phi_6 + \\phi_7 \\cdot PI \\cdot OCR^{\\phi_8} \\right) \\cdot \\sigma_0^{\\prime \\phi_9} \\cdot \\left[1 + \\phi_{10} \\cdot \\ln(f) \\right]
+
+        b = \\phi_{11} + \\phi_{12} \\cdot \\ln(N)
+
+        \\sigma_{\\text{NG}} = \\exp(\\phi_{13}) + \\sqrt{\\frac{0.25}{\\exp(\\phi_{14})} - \\frac{\\left(G / G_{max} - 0.5 \\right)^2}{\\exp(\\phi_{14})}}
+
+        \\sigma_D = \\exp (\\phi_{15} ) + \\exp (\\phi_{16} ) \\cdot \\sqrt{D}
+
+        \\rho_{i,j} = \\exp \\left( \\frac{-1}{\\exp ( \\phi_{17} )} \\right) \\cdot \\exp \\left( \\frac{- | \\ln \\gamma_i - \\ln \\gamma_j |}{\\exp ( \\phi_{18} )} \\right)
+
+    :returns: Dictionary with the following keys:
+
+        - 'strains [pct]': List of strains for the modulus reduction curve (:math:`\\gamma`)  [:math:`pct`]
+        - 'G/Gmax [-]': Modulus ratio for given strains (:math:`G / G_{max}`)  [:math:`-`]
+        - 'D [pct]': Damping ratios for given strains (:math:`D`)  [:math:`pct`]
+        - 'sigma_ND [-]': Standard deviation for the modulus reduction curve (:math:`\\sigma_{ND}`)  [:math:`-`]
+        - 'sigma_D [pct]': Standard deviation for the damping curve (:math:`\\sigma_D`)  [:math:`pct`]
+
+    Reference - Darendeli, M. B. (2001). Development of a new family of normalized modulus reduction and material damping curves. The university of Texas at Austin.
+
+    """
+
+    if custom_coefficients is None:
+        parameters = {
+            'clay': {
+                'phi1': 2.58e-2, 'phi2': 1.95e-3, 'phi3': 9.92e-2,
+                'phi4': 2.26e-1, 'phi5': 9.75e-1, 'phi6': 9.58e-1,
+                'phi7': 5.65e-3, 'phi8': -1.0e-1, 'phi9': -1.96e-1,
+                'phi10': 3.68e-1, 'phi11': 4.66e-1, 'phi12': 2.23e-2,
+                'phi13': -5.65e0, 'phi14': 4.0e0, 'phi15': -5.0e0,
+                'phi16': -7.25e-1, 'phi17': 7.67e0, 'phi18': 2.16e0},
+            'silt': {
+                'phi1': 4.16e-2, 'phi2': 6.89e-4, 'phi3': 3.21e-1,
+                'phi4': 2.80e-1, 'phi5': 1.0e0, 'phi6': 7.12e-1,
+                'phi7': 3.03e-3, 'phi8': -1.0e-1, 'phi9': -1.89e-1,
+                'phi10': 2.34e-1, 'phi11': 5.92e-1, 'phi12': -7.67e-4,
+                'phi13': -5.02e0, 'phi14': 3.93e0, 'phi15': -5.2e0,
+                'phi16': -6.42e-1, 'phi17': 4.06e0, 'phi18': 1.94e0},
+            'fine sand': {
+                'phi1': 3.34e-2, 'phi2': -5.79e-5, 'phi3': 2.49e-1,
+                'phi4': 4.82e-1, 'phi5': 8.45e-1, 'phi6': 8.89e-1,
+                'phi7': 2.02e-2, 'phi8': -1.0e-1, 'phi9': -3.72e-1,
+                'phi10': 2.33e-1, 'phi11': 7.76e-1, 'phi12': -2.94e-2,
+                'phi13': -3.98e0, 'phi14': 4.32e0, 'phi15': -5.34e0,
+                'phi16': -2.66e-1, 'phi17': 4.92e0, 'phi18': 2.68e0},
+            'sand': {
+                'phi1': 4.74e-2, 'phi2': -2.34e-3, 'phi3': 2.5e-1,
+                'phi4': 2.34e-1, 'phi5': 8.95e-1, 'phi6': 6.88e-1,
+                'phi7': 1.22e-2, 'phi8': -1.0e-1, 'phi9': -1.27e-1,
+                'phi10': 2.88e-1, 'phi11': 7.67e-1, 'phi12': -2.83e-2,
+                'phi13': -4.14e0, 'phi14': 3.61e0, 'phi15': -5.15e0,
+                'phi16': -2.32e-1, 'phi17': 5.15e0, 'phi18': 3.12e0},
+            'all': {
+                'phi1': 3.52e-2, 'phi2': 1.01e-3, 'phi3': 3.25e-1,
+                'phi4': 3.48e-1, 'phi5': 9.19e-1, 'phi6': 8.01e-1,
+                'phi7': 1.29e-2, 'phi8': -1.07e-1, 'phi9': -2.89e-1,
+                'phi10': 2.92e-1, 'phi11': 6.33e-1, 'phi12': -5.66e-3,
+                'phi13': -4.23e0, 'phi14': 3.62e0, 'phi15': -5.0e0,
+                'phi16': -2.5e-1, 'phi17': 5.62e0, 'phi18': 2.78e0
+            }
+        }
+        params = parameters[soiltype]
+    else:
+        params = custom_coefficients
+
+    _gamma = np.logspace(np.log10(min_strain), np.log10(max_strain), no_points)
+
+    sigma_0_eff = mean_effective_stress / 100 # Stresses in formulae are in atm
+
+    _gamma_r = \
+        (params['phi1'] + params['phi2'] * plasticity_index * (OCR ** params['phi3'])) * (sigma_0_eff ** params['phi4'])
+    _a = params['phi5']
+    _Dmin = \
+        (params['phi6'] + params['phi7'] * plasticity_index * (OCR ** params['phi8'])) * \
+        (sigma_0_eff ** params['phi9']) * \
+        (1 + params['phi10'] * np.log(frequency))
+    _b = params['phi11'] + params['phi12'] * np.log(N)
+
+    _G_Gmax = 1 / (1 + ((_gamma / _gamma_r) ** _a))
+
+    _D_masing_a1 = (100 / np.pi) * (4 * (
+        (_gamma - _gamma_r * np.log((_gamma + _gamma_r) / _gamma_r)) /
+        ((_gamma ** 2) / (_gamma + _gamma_r))
+    ) - 2)
+
+    c_1 = -1.1143 * (_a ** 2) + 1.8618 * _a + 0.2523
+    c_2 = 0.0805 * (_a ** 2) - 0.0710 * _a - 0.0095
+    c_3 = -0.0005 * (_a ** 2) + 0.0002 * _a + 0.0003
+    _D_masing = c_1 * _D_masing_a1 + c_2 * (_D_masing_a1 ** 2) + c_3 * (_D_masing_a1 ** 3)
+    _F = _b * (_G_Gmax ** 0.1)
+
+    _D = _F * _D_masing + _Dmin
+    _sigma_ND = np.exp(params['phi13']) + np.sqrt(
+        (0.25 / np.exp(params['phi14'])) -
+        (((_G_Gmax - 0.5) ** 2) / np.exp(params['phi14']))
+    )
+    _sigma_D = np.exp(params['phi15']) + np.exp(params['phi16']) * np.sqrt(_D)
+
+    return {
+        'strains [pct]': _gamma,
+        'G/Gmax [-]': _G_Gmax,
+        'D [pct]': _D,
+        'sigma_ND [-]': _sigma_ND,
+        'sigma_D [pct]': _sigma_D,
+        'gamma_r [pct]': _gamma_r,
+        'a [-]': _a,
+        'Dmin [pct]': _Dmin,
+        'b [-]': _b,
+        'Dmasing,a=1 [pct]': _D_masing_a1,
+        'Dmasing [pct]': _D_masing
+    }

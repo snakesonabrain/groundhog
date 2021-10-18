@@ -166,10 +166,12 @@ class InsituTestProcessing(object):
         # Map layer properties
         for i, row in layer_profile.iterrows():
             layer_profile.loc[i, "Layer no"] = i+1
-        _mapped_layer_props = layer_profile.map_soilprofile(self.data['z [m]'])
+        _mapped_layer_props = layer_profile.map_soilprofile(
+            self.data['z [m]'])
 
         # Join values to the CPT data
-        self.data = self.data.join(_mapped_layer_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
+        for _key in _mapped_layer_props.columns:
+            self.data[_key] = _mapped_layer_props[_key]
 
         if vertical_total_stress is None:
             pass # Accept overburden calculated from soil profile
@@ -246,7 +248,7 @@ class PCPTProcessing(InsituTestProcessing):
 
     # region Data loading
 
-    def load_excel(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+    def load_excel(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                    qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Loads PCPT data from an Excel file. Specific column keys have to be provided for z, qc, fs and u2.
@@ -277,7 +279,8 @@ class PCPTProcessing(InsituTestProcessing):
 
         try:
             self.data = pd.read_excel(path, **kwargs)
-            if push_key is None:
+            if push_key not in self.data.columns:
+                # No push detected
                 self.data.loc[:, "Push"] = 1
             self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
             self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -300,7 +303,7 @@ class PCPTProcessing(InsituTestProcessing):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-    def load_pandas(self, df, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+    def load_pandas(self, df, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                     qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, ):
         """
         Loads PCPT from a Pandas dataframe. Specific column keys have to be provided for z, qc, fs and u2.
@@ -328,7 +331,7 @@ class PCPTProcessing(InsituTestProcessing):
 
         try:
             self.data = df
-            if push_key is None:
+            if push_key not in self.data.columns:
                 self.data.loc[:, "Push"] = 1
             self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
             self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -351,7 +354,7 @@ class PCPTProcessing(InsituTestProcessing):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-    def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+    def load_ags(self, path, z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
                  ags_group="SCPT", verbose_keys=False, use_shorthands=False, **kwargs):
         """
@@ -407,7 +410,7 @@ class PCPTProcessing(InsituTestProcessing):
 
 
     def load_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Reads PCPT data from a Uniplot .asc file
@@ -461,7 +464,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data = self.data.drop([0])
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
         self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -479,7 +482,7 @@ class PCPTProcessing(InsituTestProcessing):
                 err))
 
     def load_gef(self, path, inverse_depths=False, override_title=True,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Reads PCPT data from a Geotechnical Exchange Format (.gef) file.
@@ -513,6 +516,9 @@ class PCPTProcessing(InsituTestProcessing):
         xy_id_pattern = re.compile(
             r'#XYID\s*=\s*(?P<coordsys>\d*)\s*,\s*(?P<X>\d*.?\d*)\s*,' +
             '\s*(?P<Y>\d*.?\d*)\s*,\s*(?P<dX>\d*.?\d*)\s*,\s*(?P<dY>\d*.?\d*)\s*')
+        xy_id_pattern_nodeltas = re.compile(
+            r'#XYID\s*=\s*(?P<coordsys>\d*)\s*,\s*(?P<X>\d*.?\d*)\s*,' +
+            '\s*(?P<Y>\d*.?\d*)\s*')
         z_id_pattern = re.compile(r'#ZID\s*=\s*(?P<datum>\d*)\s*,\s*(?P<Z>\d*.?\d*)\s*,\s*(?P<dZ>\d*.?\d*)\s*')
         measurementtext_pattern = re.compile(r'#MEASUREMENTTEXT\s*=\s*(?P<number>\d*)\s*,\s*(?P<text>.*)')
         measurementvalue_pattern = re.compile(
@@ -574,12 +580,18 @@ class PCPTProcessing(InsituTestProcessing):
                 pass
 
             try:
-                match = re.search(xy_id_pattern, row['GEF lines'])
-                easting = float(match.group('X'))
-                northing = float(match.group('Y'))
-                srid = match.group('coordsys')
-                dx = float(match.group('dX'))
-                dy = float(match.group('dY'))
+                try:
+                    match = re.search(xy_id_pattern, row['GEF lines'])
+                    easting = float(match.group('X'))
+                    northing = float(match.group('Y'))
+                    srid = match.group('coordsys')
+                    dx = float(match.group('dX'))
+                    dy = float(match.group('dY'))
+                except:
+                    match = re.search(xy_id_pattern_nodeltas, row['GEF lines'])
+                    easting = float(match.group('X'))
+                    northing = float(match.group('Y'))
+                    srid = match.group('coordsys')
             except:
                 pass
 
@@ -648,7 +660,7 @@ class PCPTProcessing(InsituTestProcessing):
 
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         try:
             self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
@@ -674,7 +686,7 @@ class PCPTProcessing(InsituTestProcessing):
                 err))
 
     def load_multi_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
                  start_string='Data table', end_string='UNICAS data file', **kwargs):
         """
@@ -755,7 +767,7 @@ class PCPTProcessing(InsituTestProcessing):
 
 
     def load_a00(self, path, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
         """
         Reads PCPT data from a Uniplot .a00 file
@@ -809,7 +821,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data = self.data.drop([0, 1])
         self.data = self.data.astype('float')
         self.data.reset_index(drop=True, inplace=True)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key, push_key=push_key)
         self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
@@ -827,7 +839,7 @@ class PCPTProcessing(InsituTestProcessing):
                 err))
 
     def load_multiple_asc(self, folder, column_widths=[], skiprows=None, custom_headers=None,
-                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key=None,
+                 z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, **kwargs):
         """
         A PCPT can be provided as multiple .asc files in one folder. This method loops over the individual
@@ -870,7 +882,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
 
-    def load_pydov(self, name, push_key=None, add_zero_row=True, **kwargs):
+    def load_pydov(self, name, push_key='Push', add_zero_row=True, **kwargs):
         """
         Load CPT data from Databank Ondergrond Vlaanderen based on the unique CPT name which can be found in DOV
         :param name: Unique identifier of the CPT in pydov
@@ -880,7 +892,7 @@ class PCPTProcessing(InsituTestProcessing):
         query = PropertyIsEqualTo(propertyname='sondeernummer',
                                   literal=name)
         self.data = sondering.search(query=query)
-        if push_key is None:
+        if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u')
         self.convert_columns(qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001)
@@ -1011,7 +1023,8 @@ class PCPTProcessing(InsituTestProcessing):
                 ))
 
         # Map cone properties
-        _mapped_cone_props = cone_profile.map_soilprofile(self.data['z [m]'])
+        _mapped_cone_props = cone_profile.map_soilprofile(
+            self.data['z [m]'], keys_to_map=['area ratio [-]',])
 
         # Join values to the CPT data
         self.data = self.data.join(_mapped_cone_props.set_index('z [m]'), on='z [m]', lsuffix='_left')
@@ -1123,7 +1136,7 @@ class PCPTProcessing(InsituTestProcessing):
     # region Data plotting
 
     def plot_raw_pcpt(self, qc_range=(0, 100), qc_tick=10, fs_range=(0, 1), fs_tick=0.1,
-                      u2_range=(-0.1, 0.5), u2_tick=0.05, z_range=None, z_tick=2,
+                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2,
                       show_hydrostatic=True,
                       plot_height=700, plot_width=1000, return_fig=False,
                       plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,
@@ -1811,11 +1824,12 @@ class PCPTProcessing(InsituTestProcessing):
 def plot_longitudinal_profile(
     cpts=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
+    plotmap=False,
     uniformcolor=None,
     prop='qc [MPa]',
     distance_unit='m', scale_factor=0.001,
     showfig=True, xaxis_layout=None, yaxis_layout=None, general_layout=None, legend_layout=None,
-    show_annotations=True):
+    show_annotations=True, mapbox_zoom=10):
     """
     Creates a longitudinal profile along selected CPTs. A line is drawn from the first (smallest distance from origin)
     to the last location (greatest distance from origin) and the plot of the selected parameter (``prop``) vs depth
@@ -1828,6 +1842,7 @@ def plot_longitudinal_profile(
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param plotmap: Boolean determining whether a map of locations needs to be plotted next to the profile (default=False)
     :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param prop: Selected property for plotting (default='qc [MPa]')
     :param distance_unit: Unit for coordinates and elevation (default='m')
@@ -1838,6 +1853,7 @@ def plot_longitudinal_profile(
     :param general_layout: Dictionary with general layout options (default=None)
     :param legend_layout: Dictionary with legend layout options (default=None)
     :param show_annotations: Boolean determining whether annotations need to be shown (default=True)
+    :param mapbox_zoom: Zoom factor for map (if plotted, default=10)
     :return: Plotly figure object
     """
 
@@ -1910,7 +1926,11 @@ def plot_longitudinal_profile(
 
     selected_cpts.sort_values('Projected offset', inplace=True)
 
-    fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+    if plotmap:
+        fig = subplots.make_subplots(rows=1, cols=2, print_grid=False, column_widths=[0.7, 0.3],
+                                     specs=[[{'type': 'xy'}, {'type': 'mapbox'},]])
+    else:
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
 
     _annotations = []
 
@@ -1966,6 +1986,17 @@ def plot_longitudinal_profile(
         except Exception as err:
             warnings.warn("Trace not created for %s - %s" % (row['CPT titles'], str(err)))
 
+    if plotmap:
+        mapbox_points = go.Scattermapbox(
+            lat=y_coords, lon=x_coords, showlegend=False,
+            mode='markers', name='Locations', hovertext=cpt_names)
+        fig.append_trace(mapbox_points, 1, 2)
+        mapbox_profileline = go.Scattermapbox(
+            lat=[start_point[1], end_point[1]],
+            lon=[start_point[0], end_point[0]],
+            showlegend=False, mode='lines', name='Profile')
+        fig.append_trace(mapbox_profileline, 1, 2)
+
     if xaxis_layout is None:
         fig['layout']['xaxis1'].update(title='Projected distance [%s]' % (distance_unit))
     else:
@@ -1989,6 +2020,12 @@ def plot_longitudinal_profile(
     if show_annotations:
         fig['layout'].update(annotations=_annotations)
 
+    if plotmap:
+        fig.update_layout(
+            mapbox_style='open-street-map', mapbox_zoom=10,
+            mapbox_center={'lat': cpt_df['Y'].mean(), 'lon': cpt_df['X'].mean()}
+        )
+
     if showfig:
         iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
@@ -1998,6 +2035,7 @@ def plot_combined_longitudinal_profile(
     cpts=[],
     profiles=[], latlon=False,
     option='name', start=None, end=None, band=1000, extend_profile=False,
+    plotmap=False,
     fillcolordict={'SAND': 'yellow', 'CLAY': 'brown', 'SILT': 'green', 'ROCK': 'grey'},
     uniformcolor=None,
     opacity=1, logwidth=1,
@@ -2020,6 +2058,7 @@ def plot_combined_longitudinal_profile(
     :param end: CPT name for the end point or tuple of coordinates. If a CPT name is used, the selected CPT must be contained in ``cpts``.
     :param band: Offset from the line connecting start and end points in which CPT are considered for plotting (default=1000m)
     :param extend_profile: Boolean determining whether the profile needs to be extended beyond the start and end points (default=False)
+    :param plotmap: Boolean determining whether a map of locations needs to be plotted next to the profile (default=False)
     :param fillcolordict: Dictionary with fill colours (default yellow for 'SAND', brown from 'CLAY' and grey for 'ROCK')
     :param uniformcolor: Uniform color to use for all CPT traces (default=None for different color for each trace)
     :param opacity: Opacity of the layers (default = 1 for non-transparent behaviour)
@@ -2093,9 +2132,13 @@ def plot_combined_longitudinal_profile(
             cpt_df.loc[i, "Behind end"] = False
         elif row['X'] == end_point[0] and row['Y'] == end_point[1]:
             cpt_df.loc[i, "Offset"] = 0
-            cpt_df.loc[i, "Projected offset"] = np.sqrt(
-                (start_point[0] - end_point[0]) ** 2 +
-                (start_point[1] - end_point[1]) ** 2)
+            if latlon:
+                cpt_df.loc[i, "Projected offset"] = latlon_distance(
+                    start_point[0], start_point[1], end_point[0], end_point[1])
+            else:
+                cpt_df.loc[i, "Projected offset"] = np.sqrt(
+                    (start_point[0] - end_point[0]) ** 2 +
+                    (start_point[1] - end_point[1]) ** 2)
             cpt_df.loc[i, "Before start"] = False
             cpt_df.loc[i, "Behind end"] = False
         else:

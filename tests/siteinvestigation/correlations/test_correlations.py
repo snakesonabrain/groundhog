@@ -91,3 +91,17 @@ class Test_Correlations(unittest.TestCase):
         self.assertAlmostEqual(
             result['gamma_07 [-]'], 0.000150, 3
         )
+
+    def test_gmax_plasticityocr_andersen(self):
+        result = cohesive.gmax_plasticityocr_andersen(PI=50, OCR=1, sigma_vo_eff=100)
+        self.assertAlmostEqual(
+            result['Gmax [kPa]'], 17151, 0
+        )
+        result = cohesive.gmax_plasticityocr_andersen(PI=100, OCR=1, sigma_vo_eff=100)
+        self.assertAlmostEqual(
+            result['Gmax [kPa]'], 10282, 0
+        )
+        result = cohesive.gmax_plasticityocr_andersen(PI=50, OCR=10, sigma_vo_eff=100)
+        self.assertAlmostEqual(
+            result['Gmax [kPa]'], 54236, 0
+        )

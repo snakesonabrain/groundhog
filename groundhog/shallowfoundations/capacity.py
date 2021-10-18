@@ -1102,6 +1102,103 @@ def ngamma_frictionangle_davisbooker(
     }
 
 
+FAILUREMECHANISM_PRANDTL = {
+    'friction_angle': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'showfig': {'type': 'bool',},
+}
+
+FAILUREMECHANISM_PRANDTL_ERRORRETURN = {
+    'X [m]': np.nan,
+    'Y [m]': np.nan,
+    'fig': None
+}
+
+@Validator(FAILUREMECHANISM_PRANDTL, FAILUREMECHANISM_PRANDTL_ERRORRETURN)
+def failuremechanism_prandtl(
+        friction_angle,width,
+        showfig=True, **kwargs):
+
+    """
+    Calculates the shape of the Prandtl failure mechanism for a given friction angle. The failure mechanisms consists of a cone-shaped wedge which is pushed into the soil and a log-spiral extending from the edge of the cone to a line perpendicular to it. Another triangular wedge is formed between the log-spiral and the surface.
+
+    This procedure calculates the failure mechanism as a series of (X, Y) points. Only the outer edge for the right-hand side of the figure is taken. The left-hand side can easily be obtained by flipping the figure along the Y-axis.
+
+    A Plotly plot with fixed aspect ratio is shown by default but the generation of this plot can be disables using the showfig boolean.
+
+    :param friction_angle: Sand angle of internal friction (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 0.0 <= friction_angle <= 60.0
+    :param width: Width of the footing (full width) (:math:`B`) [:math:`m`] - Suggested range: width >= 0.0
+    :param showfig: Boolean determining whether the plot of the failure surface is shown (optional, default= True)
+
+    .. math::
+        \\theta = \\frac{\\pi}{4} + \\frac{\\varphi^{\\prime}}{2}
+
+        r = r_0 \\cdot e^{\\frac{\\pi}{2} \\tan \\varphi^{\\prime}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'X [m]': List with X-coordinates of the points forming the failure surface (:math:`X`)  [:math:`m`]
+        - 'Y [m]': List with Y-coordinates of the points forming the failure surface (:math:`Y`)  [:math:`m`]
+        - 'fig': Plotly figure showing the failure surface
+
+    .. figure:: images/failuremechanism_prandtl_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Prandtl failure surface (after Budhu, 2010)
+
+    Reference - Budhu (2010). Soil Mechanics and Foundations
+
+    """
+
+    frictionangle = np.radians(friction_angle)
+
+    theta = 0.25 * np.pi + 0.5 * frictionangle
+
+    depth_triangle = 0.5 * width * np.tan(theta)
+    r0 = 0.5 * width / np.cos(theta)
+
+    omega = np.linspace(0, 0.5 * np.pi, 250)
+
+    r = r0 * np.exp(omega * np.tan(frictionangle))
+
+    x_spiral = 0.5 * width - r * np.cos(theta + omega)
+    y_spiral = r * np.sin(theta + omega)
+
+    x_surface = x_spiral[-1] + (x_spiral[-1] - 0.5 * width)
+
+    _X = np.append(x_spiral, x_surface)
+    _Y = np.append(y_spiral, 0)
+
+    if showfig:
+        _fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+        _data = go.Scatter(
+            x=[-0.5 * width, 0.5 * width], y=[0, 0], showlegend=True, mode='lines',name='Footing',
+            line=dict(color='black'))
+        _fig.append_trace(_data, 1, 1)
+        _data = go.Scatter(
+            x=_X, y=_Y, showlegend=True, mode='lines',name='Failure surface',
+            line=dict(color='red'))
+        _fig.append_trace(_data, 1, 1)
+        _data = go.Scatter(
+            x=-_X, y=_Y, showlegend=False, mode='lines',name='Failure surface',
+            line=dict(color='red'))
+        _fig.append_trace(_data, 1, 1)
+        _fig['layout']['xaxis1'].update(title='X [m]')
+        _fig['layout']['yaxis1'].update(title='Y [m]]', scaleanchor = 'x', scaleratio = 1.0, autorange='reversed')
+        _fig['layout'].update(height=500, width=700, hovermode='closest')
+        _fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+    else:
+        _fig = None
+
+    return {
+        'X [m]': _X,
+        'Y [m]': _Y,
+        'fig': _fig
+    }
+
+
 class ShallowFoundationCapacity(object):
 
     def __init__(self, title):

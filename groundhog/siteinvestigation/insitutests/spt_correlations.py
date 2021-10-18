@@ -454,9 +454,58 @@ def undrainedshearstrength_spt_salgado(
     }
 
 
+FRICTIONANGLE_SPT_KULHAWYMAYNE = {
+    'N': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_3': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+FRICTIONANGLE_SPT_KULHAWYMAYNE_ERRORRETURN = {
+    'Phi [deg]': np.nan,
+}
+
+@Validator(FRICTIONANGLE_SPT_KULHAWYMAYNE, FRICTIONANGLE_SPT_KULHAWYMAYNE_ERRORRETURN)
+def frictionangle_spt_kulhawymayne(
+        N,sigma_vo_eff,
+        atmospheric_pressure=100.0,
+        coefficient_1=12.2,coefficient_2=20.3,coefficient_3=0.34, **kwargs):
+
+    """
+    Kulhawy and Mayne approximated the chart for friction angle selection from SPT using the formula given below. The friction angle depends on the effective overburden stress and SPT N number.
+
+    :param N: SPT N number (:math:`N`) [:math:`-`] - Suggested range: 0.0 <= N <= 60.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+    :param coefficient_1: First calibration coefficient (:math:``) [:math:`-`] (optional, default= 12.2)
+    :param coefficient_2: Second  calibration coefficient (:math:``) [:math:`-`] (optional, default= 20.3)
+    :param coefficient_3: Third calibration coefficient (:math:``) [:math:`-`] (optional, default= 0.34)
+
+    .. math::
+        \\phi = \\tan^{-1} \\left[ \\frac{N}{12.2 +20.3 \\cdot \\left( \\frac{\\sigma_{v0}^{\\prime}}{P_a} \\right)} \\right]^{0.34}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Phi [deg]': Effective internal friction angle of the soil (:math:`\\phi`)  [:math:`deg`]
+
+    Reference - Kulhawy FH, Mayne PW (1990) Manual on estimating soil properties for foundation design. Electric Power Research Institute, Palo Alto
+
+    """
+
+    _phi = np.rad2deg(np.arctan(
+        (N / (coefficient_1 + coefficient_2 * (sigma_vo_eff / atmospheric_pressure))) ** coefficient_3
+    ))
+
+    return {
+        'Phi [deg]': _phi,
+    }
+
 CORRELATIONS = {
     'Overburden correction Liao and Whitman (1986)': overburdencorrection_spt_liaowhitman,
     'N60 correction': spt_N60_correction,
     'Relative density Kulhawy and Mayne (1990)': relativedensity_spt_kulhawymayne,
-    'Undrained shear strength Salgado (2008)': undrainedshearstrength_spt_salgado
+    'Undrained shear strength Salgado (2008)': undrainedshearstrength_spt_salgado,
+    'Friction angle Kulhawy and Mayne (1990)': frictionangle_spt_kulhawymayne
 }

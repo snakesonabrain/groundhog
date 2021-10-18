@@ -1812,7 +1812,7 @@ def vs_cpt_hegazymayne(
     :param multiplier_ic: Multiplier on soil behaviour type index (:math:``) [:math:`-`] (optional, default= 1.786)
 
     .. math::
-        q_{c1N} = \\frac{q_t - \\sigma_{vo}}{sigma_{vo}^{\\prime}}
+        q_{c1N} = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
 
         I_c = \\left[ (3.47 - \\log q_{c1N} )^2 + ( \\log F_r + 1.22 )^2 \\right]^{0.5}
 
@@ -1824,7 +1824,7 @@ def vs_cpt_hegazymayne(
 
         q_{c1N} = \\left( \\frac{q_t}{P_a} \\right) \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.75}
 
-        V_s = 0.0831 \\cdot q_{c1N} \\cdot \\left( \\frac{\\sigma_{vo}^}{} \\right)^{0.25} \\cdot e^{1.786 \\cdot I_c}
+        V_s = 0.0831 \\cdot q_{c1N} \\cdot \\left( \\frac{\\sigma_{vo}^{\\prime}}{P_a} \\right)^{0.25} \\cdot e^{1.786 \\cdot I_c}
 
     :returns: Dictionary with the following keys:
 
@@ -1920,7 +1920,7 @@ def vs_cpt_longdonohue(
     :param exponent_Bq: Exponent on 1 + Bq (:math:``) [:math:`-`] (optional, default= 1.202)
 
     .. math::
-        V_s = 1.961 \\cdot q_t^{0.579} \\cdot \\left( 1 + B_q)^{1.202}
+        V_s = 1.961 \\cdot q_t^{0.579} \\cdot \\left( 1 + B_q \\right)^{1.202}
 
     :returns: Dictionary with the following keys:
 

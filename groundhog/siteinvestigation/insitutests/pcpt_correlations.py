@@ -1877,6 +1877,298 @@ def vs_cpt_hegazymayne(
         'Vs [m/s]': _Vs,
     }
 
+
+VS_CPT_LONGDONOHUE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'u2': {'type': 'float', 'min_value': -1.0, 'max_value': 1.0},
+    'u0': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'Bq': {'type': 'float', 'min_value': -0.6, 'max_value': 1.4},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_qt': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_Bq': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_LONGDONOHUE_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'ocr_class': None
+}
+
+@Validator(VS_CPT_LONGDONOHUE, VS_CPT_LONGDONOHUE_ERRORRETURN)
+def vs_cpt_longdonohue(
+        qt,u2,u0,Bq,sigma_vo_eff,
+        atmospheric_pressure=100.0,multiplier=1.961,exponent_qt=0.579,exponent_Bq=1.202, **kwargs):
+
+    """
+    The authors propose a correlation between shear wave velocity and CPT properties based on high-quality CPT tests and Gmax obtained from S-PCPT, MASW, cross-hole and block sampling.
+    The formula for Vs only applies to soft marine clays.
+
+    The overconsolidation ratio of the material can be differentiated by plotting the normalised excess pore pressure vs the normalised shear wave velocity.
+
+    Note that stresses have units of kPa in the formula.
+
+    :param qt: Corrected cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 2.0
+    :param u2: Pore pressure at the shoulder (:math:`u_2`) [:math:`MPa`] - Suggested range: -1.0 <= u2 <= 1.0
+    :param u0: Hydrostatic pressure (:math:`u_0`) [:math:`kPa`] - Suggested range: 0.0 <= u0 <= 1000.0
+    :param Bq: Pore pressure ratio (:math:`B_q`) [:math:`-`] - Suggested range: -0.6 <= Bq <= 1.4
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param multiplier: Multiplier in expression for Vs (:math:``) [:math:`-`] (optional, default= 1.961)
+    :param exponent_qt: Exponent on qt (:math:``) [:math:`-`] (optional, default= 0.579)
+    :param exponent_Bq: Exponent on 1 + Bq (:math:``) [:math:`-`] (optional, default= 1.202)
+
+    .. math::
+        V_s = 1.961 \\cdot q_t^{0.579} \\cdot \\left( 1 + B_q)^{1.202}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs [m/s]': Shear wave velocity according to Equation 15 from paper (:math:`V_s`)  [:math:`m/s`]
+        - 'Vs1 [m/s]': Normalised shear wave velocity (:math:`V_{s,1}`)  [:math:`m/s`]
+        - 'ocr_class': OCR class based on Figure 9 from the paper
+
+    .. figure:: images/vs_cpt_longdonohue_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Differentiation of OCR based on shear wave velocity
+
+    Reference - Long, M. and Donohue, S. (2010). Characterisation of Norwegian marine clays with combined shear wave velocity and CPTU data. Canadian Geotechnical Journal.
+
+    """
+    # Lines bounding OCR classes
+    _ocr_2_x = [0.765793528505393, 7]
+    _ocr_2_y = [249.9606478145681, 105.03430845462307]
+
+    _ocr_3_x = [1.941448382126348, 7]
+    _ocr_3_y = [250.2599461263039, 162.589928057554]
+
+    # Vs formula according to Equation 15 from the paper
+    _Vs = multiplier * ((1e3 * qt) ** exponent_qt) * ((1 + Bq) ** exponent_Bq)
+    _Vs1 = _Vs / np.sqrt(sigma_vo_eff / atmospheric_pressure)
+
+    _deltau_ratio = (1e3 * u2 - u0) / sigma_vo_eff
+
+    _Vs1_ocr_2 = np.interp(_deltau_ratio, _ocr_2_x, _ocr_2_y)
+    _Vs1_ocr_3 = np.interp(_deltau_ratio, _ocr_3_x, _ocr_3_y)
+
+    if _Vs1 <= _Vs1_ocr_2:
+        _ocr_class = 'OCR <= 2'
+    elif _Vs1_ocr_2 < _Vs1 <= _Vs1_ocr_3:
+        _ocr_class = '2 < OCR <= 3'
+    else:
+        _ocr_class = 'OCR > 3'
+
+    return {
+        'Vs [m/s]': _Vs,
+        'Vs1 [m/s]': _Vs1,
+        'ocr_class': _ocr_class
+    }
+
+
+SOILTYPE_VS_LONGODONOHUE = {
+    'Vs': {'type': 'float', 'min_value': 0.0, 'max_value': 600.0},
+    'Qt': {'type': 'float', 'min_value': 0.0, 'max_value': 200.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+SOILTYPE_VS_LONGODONOHUE_ERRORRETURN = {
+    'Vs1 [m/s]': np.nan,
+    'soiltype': None,
+}
+
+@Validator(SOILTYPE_VS_LONGODONOHUE, SOILTYPE_VS_LONGODONOHUE_ERRORRETURN)
+def soiltype_vs_longodonohue(
+        Vs,Qt,sigma_vo_eff,
+        atmospheric_pressure=100.0, **kwargs):
+
+    """
+    Determines the soil type based on measured shear wave velocity and normalised cone resistance. The underlying dataset consists of soft clays (Long and Donohue, 2010), sands (Mayne, 2006) and stiff clays (Lunne et al, 2007).
+
+    The chart of Qt vs Vs1 allows determination of the soil type.
+
+    :param Vs: Shear wave velocity (:math:`V_s`) [:math:`m/s`] - Suggested range: 0.0 <= Vs <= 600.0
+    :param Qt: Normalised cone resistance (:math:`Q_t`) [:math:`-`] - Suggested range: 0.0 <= Qt <= 200.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+
+    .. math::
+        V_{s,1} = \\frac{V_s}{\\left( \\frac{\\sigma_{vo}^{\\prime}}{P_a} \\right)^{0.5}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs1 [m/s]': Normalised shear wave velocity (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'soiltype': Soil type class based on Figure 10 from the paper
+
+    .. figure:: images/soiltype_vs_longodonohue_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between soil types
+
+    Reference - Long and Donohue (2010). Characterisation of Norwegian marine clays with combined shear wave velocity and CPTU data.
+
+    """
+    # Bounds for soil type classes
+    _Vs1_softclay = [85.45176110260337, 288.51454823889736]
+    _Qt_softclay = [11.444921316165988, 18.31187410586554]
+
+    _Vs1_sands = [135.98774885145482, 299.5405819295559]
+    _Qt_sands = [13.447782546495034, 139.9141630901288]
+
+    # Normalised Vs for selected datapoint
+    _Vs1 = Vs / np.sqrt(sigma_vo_eff / atmospheric_pressure)
+
+    if Qt <= np.interp(_Vs1, _Vs1_softclay, _Qt_softclay):
+        _soiltype = 'Soft clay'
+    else:
+        if Qt <= np.interp(_Vs1, _Vs1_sands, _Qt_sands):
+            _soiltype = 'Stiff clay'
+        else:
+            _soiltype = 'Sand'
+
+    return {
+        'Vs1 [m/s]': _Vs1,
+        'soiltype': _soiltype,
+    }
+
+
+VS_CPTD50_KARRAYETAL = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'd50': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_vs1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_qc1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_d50': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPTD50_KARRAYETAL_ERRORRETURN = {
+    'qc1 [MPa]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPTD50_KARRAYETAL, VS_CPTD50_KARRAYETAL_ERRORRETURN)
+def vs_cptd50_karrayetal(
+        qc,sigma_vo_eff,d50,
+        atmospheric_pressure=100.0,exponent_vs1=0.25,multiplier=125.5,exponent_qc1=0.25,exponent_d50=0.115, **kwargs):
+
+    """
+    This correlation between Vs and normalised cone tip resistance takes into account the influence of median grain size. The data was obtained from the Peribonka site where vibrocompaction was performed for soil improvement. Tests before and after compaction were performed. The shear wave velocity was derived from surface wave testing. The soil type at the Peribonka site was gravelly coarse sand with an average median grain size of 1.9mm.
+
+    The correlation applies to uncemented holocene granular soils.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param d50: Median grain size (:math:`d_{50}`) [:math:`mm`] - Suggested range: 0.1 <= d50 <= 10.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param exponent_vs1: Exponent on stresses in Vs1 formula (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param multiplier: Multiplier in Equation 15 (:math:``) [:math:`-`] (optional, default= 125.5)
+    :param exponent_qc1: Exponent on qc1 in Equation 15 (:math:``) [:math:`-`] (optional, default= 0.25)
+    :param exponent_d50: Exponent on median grain size in Equation 15 (:math:``) [:math:`-`] (optional, default= 0.115)
+
+    .. math::
+        q_{c1} = q_c \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.5}
+
+        V_{s1} = V_s \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.25}
+
+        V_{s1} = 125.5 \\cdot \\left( q_{c1} \\right)^{0.25} \\cdot d_{50}^{0.115}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc1 [MPa]': Cone tip resistance corrected for stress level (:math:`q_{c1}`)  [:math:`MPa`]
+        - 'Vs1 [m/s]': Shear wave velocity corrected for stress level (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    .. figure:: images/vs_cptd50_karrayetal_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between proposed trend and measured data
+
+    Reference - Karray, M., Lefebvre, G., Ethier, Y., Bigras, A. (2011). Influence of particle size on the correlation between shear wave velocity and cone tip resistance. Canadian Geotechnical Journal.
+
+    """
+
+    _qc1 = qc * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+    _Vs1 = multiplier * _qc1 ** exponent_qc1 * d50 ** exponent_d50
+    _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** exponent_vs1)
+
+    return {
+        'qc1 [MPa]': _qc1,
+        'Vs1 [m/s]': _Vs1,
+        'Vs [m/s]': _Vs,
+    }
+
+
+VS_CPT_WRIDEETAL = {
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier': {'type': 'float', 'min_value': 95.6, 'max_value': 110.8},
+    'exponent_qc1': {'type': 'float', 'min_value': 0.23, 'max_value': 0.25},
+}
+
+VS_CPT_WRIDEETAL_ERRORRETURN = {
+    'qc1 [MPa]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_WRIDEETAL, VS_CPT_WRIDEETAL_ERRORRETURN)
+def vs_cpt_wrideetal(
+        qc,sigma_vo_eff,
+        atmospheric_pressure=100.0,multiplier=103.2,exponent_qc1=0.25, **kwargs):
+
+    """
+    Calculates shear wave velocity based on normalised cone tip resistance based on test data from the CANLEX project.
+
+    The Canadian Liquefaction Experiment (CANLEX) consists of in-situ testing at six sandy sites. The sand was fine sand with median grain size ranging from 0.16 to 0.25mm. The shear wave velocity measurements were recorded predominantely from downhole testing.
+
+    A general formula was established relating stress-corrected values of the cone tip resistance and shear wave velocity. The average value of the multiplier Y proposed by Karray et al (2011) was used as a default.
+
+    The authors do not present a chart comparing the calculated shear wave velocities to the measured ones, making it impossible to make statements on the accuracy of the correlation.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param multiplier: Multiplier on corrected cone resistance (:math:`Y`) [:math:`-`] - Suggested range: 95.6 <= multiplier <= 110.8 (optional, default= 103.2)
+    :param exponent_qc1: Exponent on stress-corrected cone resistance (:math:``) [:math:`-`] - Suggested range: 0.23 <= exponent_qc1 <= 0.25 (optional, default= 0.25)
+
+    .. math::
+        q_{c1} = q_c \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.5}
+
+        V_{s1} = V_s \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.25}
+
+        V_{s1} = Y \\cdot q_{c1}^{0.25}
+
+    :returns: Dictionary with the following keys:
+
+        - 'qc1 [MPa]': Stress-corrected cone tip resistance (:math:`q_{c1}`)  [:math:`MPa`]
+        - 'Vs1 [m/s]': Stress-corrected shear wave velocity (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    Reference - C.E. (Fear) Wride, P.K. Robertson, K.W. Biggar, R.G. Campanella, B.A. Hofmann, J.M.O. Hughes, A. Küpper, and D.J. Woeller (2000). Interpretation of in situ test results from the CANLEX sites. Canadian Geotechnical Journal.
+
+    """
+
+    _qc1 = qc * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+    _Vs1 = multiplier * _qc1 ** exponent_qc1
+    _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** 0.25)
+
+    return {
+        'qc1 [MPa]': _qc1,
+        'Vs1 [m/s]': _Vs1,
+        'Vs [m/s]': _Vs,
+    }
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
@@ -1898,5 +2190,6 @@ CORRELATIONS = {
     'Gmax void ratio Mayne and Rix (1993)': gmax_voidratio_maynerix,
     'Vs CPT Andrus (2007)': vs_cpt_andrus,
     'Vs CPT Hegazy and Mayne (2006)': vs_cpt_hegazymayne,
-
+    'Vs CPT Long and Donohue (2010)': vs_cpt_longdonohue,
+    'Soiltype Vs Long and Donohue (2010)': soiltype_vs_longodonohue
 }

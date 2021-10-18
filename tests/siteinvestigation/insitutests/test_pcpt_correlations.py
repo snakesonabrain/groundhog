@@ -273,3 +273,66 @@ class Test_vs_cpt_hegazymayne(unittest.TestCase):
             qt=1, fs=0.1, sigma_vo=180, sigma_vo_eff=80, zhang=False
         )
         self.assertAlmostEqual(result['Vs [m/s]'], 324, 0)
+
+
+class Test_vs_cpt_longdonohue(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_longdonohue(
+            qt=1, u2=0.3, u0=100, Bq=0.4, sigma_vo_eff=60
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 160.37, 2)
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 207.04, 2)
+        self.assertEqual(result['ocr_class'], '2 < OCR <= 3')
+
+
+class Test_soiltype_vs_longodonohue(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=200, Qt=100, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 200, 2)
+        self.assertEqual(result['soiltype'], 'Sand')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=200, Qt=10, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 200, 2)
+        self.assertEqual(result['soiltype'], 'Soft clay')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=200, Qt=40, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 200, 2)
+        self.assertEqual(result['soiltype'], 'Stiff clay')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=100, Qt=20, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 100, 2)
+        self.assertEqual(result['soiltype'], 'Sand')
+
+        result = pcpt_correlations.soiltype_vs_longodonohue(
+            Vs=100, Qt=5, sigma_vo_eff=100
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 100, 2)
+        self.assertEqual(result['soiltype'], 'Soft clay')
+
+
+class Test_vs_cpt_wrideetal(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_wrideetal(
+            qc=10, sigma_vo_eff=100, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 183.52, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 183.52, 2)
+
+        result = pcpt_correlations.vs_cpt_wrideetal(
+            qc=10, sigma_vo_eff=90, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 185.95, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 181.12, 2)
+
+

@@ -336,3 +336,35 @@ class Test_vs_cpt_wrideetal(unittest.TestCase):
         self.assertAlmostEqual(result['Vs [m/s]'], 181.12, 2)
 
 
+class Test_vs_cpt_tonniandsimonini(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_tonniandsimonini(
+            qt=10, sigma_vo_eff=100, sigma_vo=200, ic=2.3, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 458.38, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 458.38, 2)
+
+        result = pcpt_correlations.vs_cpt_tonniandsimonini(
+            qt=10, sigma_vo_eff=90, sigma_vo=190, ic=2.3, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs1 [m/s]'], 458.85, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 446.92, 2)
+
+
+class Test_vs_cpt_mcgannetal(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_cpt_mcgannetal(
+            qt=10, fs=0.2, depth=5, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 168.31, 2)
+        self.assertAlmostEqual(result['sigma_lnVs [-]'], 0.162, 3)
+
+        result = pcpt_correlations.vs_cpt_mcgannetal(
+            qt=10, fs=0.2, depth=5, loess=True, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 331.84, 2)
+        self.assertAlmostEqual(result['sigma_lnVs [-]'], 0.2367, 2)
+
+

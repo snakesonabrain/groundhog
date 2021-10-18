@@ -2169,6 +2169,192 @@ def vs_cpt_wrideetal(
         'Vs [m/s]': _Vs,
     }
 
+
+VS_CPT_TONNIANDSIMONINI = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+VS_CPT_TONNIANDSIMONINI_ERRORRETURN = {
+    'Qtn [-]': np.nan,
+    'Vs1 [m/s]': np.nan,
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_CPT_TONNIANDSIMONINI, VS_CPT_TONNIANDSIMONINI_ERRORRETURN)
+def vs_cpt_tonniandsimonini(
+        qt,ic,sigma_vo,sigma_vo_eff,
+        atmospheric_pressure=100.0,coefficient_1=0.8,coefficient_2=1.17, **kwargs):
+
+    """
+    The authors propose a correlation between CPT properties and shear wave velocity for the Treporti site near Venice, Italy which consist mostly of silty sediments.
+
+    CPT and dilatometer (DMT) tests were conducted as well as seismic CPT and DMT tests at the site of a test embankment. Testing was conducted before and after placement of the embankment.
+
+    The authors highlight the importance of using the soil behaviour type index for obtaining a correlation which performs well across the different soil types encountered at the site. The authors finally propose different forms of the general equation proposed by Robertson and Cabal but accounting for stress correction.
+
+    The authors observe that stress corrections improve the accuracy of the correlations.
+
+    :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
+    :param sigma_vo: Total vertical stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 2000.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param coefficient_1: Multiplier on Ic in Equation 12 (:math:``) [:math:`-`] (optional, default= 0.8)
+    :param coefficient_2: Value after minus sign in Equation 12 (:math:``) [:math:`-`] (optional, default= 1.17)
+
+    .. math::
+        V_{s1} = 10^{ \\left( 0.80 \\cdot I_c - 1.17 \\right) } \\cdot Q_{tn}
+
+        V_{s1} = V_s \\cdot \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^{0.25}
+
+        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Qtn [-]': Normalised cone resistance (:math:`Q_{tn}`)  [:math:`-`]
+        - 'Vs1 [m/s]': Stress-corrected shear wave velocity (:math:`V_{s1}`)  [:math:`m/s`]
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+
+    .. figure:: images/vs_cpt_tonniandsimonini_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison between predicted and measured shear wave velocity
+
+    Reference - Tonni, L., Simonini, P. (2013). Shear wave velocity as function of cone penetration test measurements in sand and silt mixtures. Engineering Geology.
+
+    """
+
+    _Qtn = (1e3 * qt - sigma_vo) / atmospheric_pressure
+    _Vs1 = (10 ** (coefficient_1 * ic - coefficient_2)) * _Qtn
+    _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** 0.25)
+
+    return {
+        'Qtn [-]': _Qtn,
+        'Vs1 [m/s]': _Vs1,
+        'Vs [m/s]': _Vs,
+    }
+
+
+VS_CPT_MCGANNETAL = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
+    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'coefficient1_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient2_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient3_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient4_general': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient1_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient2_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient3_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient4_loess': {'type': 'float', 'min_value': None, 'max_value': None},
+    'loess': {'type': 'bool',},
+}
+
+VS_CPT_MCGANNETAL_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+    'sigma_lnVs [-]': np.nan,
+}
+
+@Validator(VS_CPT_MCGANNETAL, VS_CPT_MCGANNETAL_ERRORRETURN)
+def vs_cpt_mcgannetal(
+        qt,fs,depth,
+        coefficient1_general=18.4,coefficient2_general=0.144,coefficient3_general=0.083,coefficient4_general=0.278,coefficient1_loess=103.6,coefficient2_loess=0.0074,coefficient3_loess=0.13,coefficient4_loess=0.253,loess=False, **kwargs):
+
+    """
+    The authors develop a correlation between shear wave velocity and CPT properties based on Christchurch-specific general soils. The soils were predominantly sand and silty sand. While the original formula uses the raw cone tip resistance, the authors suggest that the corrected cone resistance can be used without changes to the formula and prediction standard deviation.
+
+    Further work on the Banks Peninsula where loess soils are present, showed a significant underprediction of the shear wave velocity. The correlation was adjusted for these soils.
+
+    Note that all stresses in the equation are given in kPa.
+
+    :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: 0.0 <= fs <= 10.0
+    :param depth: Depth below ground surface (:math:`z`) [:math:`m`] - Suggested range: 0.0 <= depth <= 100.0
+    :param coefficient1_general: First calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 18.4)
+    :param coefficient2_general: Second calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 0.144)
+    :param coefficient3_general: Third calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 0.083)
+    :param coefficient4_general: Fourth calibration coefficient in general equation (:math:``) [:math:`-`] (optional, default= 0.278)
+    :param coefficient1_loess: First calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 103.6)
+    :param coefficient2_loess: Second calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 0.0074)
+    :param coefficient3_loess: Third calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 0.13)
+    :param coefficient4_loess: Fourth calibration coefficient in loess equation (:math:``) [:math:`-`] (optional, default= 0.253)
+    :param loess: Boolean determining whether the loess equation needs to be used (optional, default= False)
+
+    .. math::
+        \\text{Christchurch general soils}
+
+        V_s = 18.4 \\cdot q_t^{0.144} \\cdot f_s^{0.083} \\cdot z^{0.278}
+
+        \\sigma_{\\ln(V_s)} = \\begin{cases}
+        0.162 \\ \\text{for } z \\leq 5m,\\\\
+        0.216 - 0.0108 \\cdot z \\ \\text{for } 5m < z < 10m \\\\
+        0.108 \\ \\text{for } z \\geq 10m
+        \\end{cases}
+
+        \\text{Loess soils}
+
+        V_s = 103.6 \\cdot q_t^{0.0074} \\cdot f_s^{0.130} \\cdot z^{0.253}
+
+        \\sigma_{\\ln(V_s)} = 0.2367
+
+        \\epsilon = \\frac{\\ln (V_{sM}) - \\ln (V_{sP})}{\\sigma_{\\ln(V_{sP})}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`m/s`]
+        - 'sigma_lnVs [-]': Standard deviation on natural logarithm of Vs (:math:`\\sigma_{\\ln (V_s)}`)  [:math:`-`]
+
+    .. figure:: images/vs_CPT_mcgannetal_1.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison of measured and calculated values for general correlation
+
+    .. figure:: images/vs_CPT_mcgannetal_2.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Residuals for loess-specific correlation
+
+    Reference - McGann, Christopher R., et al. "Development of an empirical correlation for predicting shear wave velocity of Christchurch soils from cone penetration test data." Soil Dynamics and Earthquake Engineering 75 (2015): 66-75.
+
+    McGann, Christopher R., Brendon A. Bradley, and Seokho Jeong. "Empirical correlation for estimating shear-wave velocity from cone penetration test data for banks Peninsula loess soils in Canterbury, New Zealand." Journal of Geotechnical and Geoenvironmental Engineering 144.9 (2018): 04018054.
+
+    """
+    if loess:
+        _Vs = coefficient1_loess * \
+              (1e3 * qt) ** coefficient2_loess * \
+              (1e3 * fs) ** coefficient3_loess * \
+              depth ** coefficient4_loess
+        _sigma_lnVs = 0.2367
+    else:
+        _Vs = coefficient1_general * \
+              (1e3 * qt) ** coefficient2_general * \
+              (1e3 * fs) ** coefficient3_general * \
+              depth ** coefficient4_general
+        if depth <= 5:
+            _sigma_lnVs = 0.162
+        elif 5 < depth <= 10:
+            _sigma_lnVs = 0.216 - 0.0108 * depth
+        else:
+            _sigma_lnVs = 0.108
+
+    return {
+        'Vs [m/s]': _Vs,
+        'sigma_lnVs [-]': _sigma_lnVs,
+    }
+
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
@@ -2191,5 +2377,8 @@ CORRELATIONS = {
     'Vs CPT Andrus (2007)': vs_cpt_andrus,
     'Vs CPT Hegazy and Mayne (2006)': vs_cpt_hegazymayne,
     'Vs CPT Long and Donohue (2010)': vs_cpt_longdonohue,
-    'Soiltype Vs Long and Donohue (2010)': soiltype_vs_longodonohue
+    'Soiltype Vs Long and Donohue (2010)': soiltype_vs_longodonohue,
+    'Vs CPT d50 Karray et al (2011)': vs_cptd50_karrayetal,
+    'Vs CPT Wride et al (2000)': vs_cpt_wrideetal,
+    'Vs CPT Tonni and Simonini (2013)': vs_cpt_tonniandsimonini,
 }

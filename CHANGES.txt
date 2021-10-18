@@ -15,14 +15,14 @@ v0.7.0, TBC -- 2021 4th release
     - Added soil type determination from Vs and Qt according to Long and Donohue (2010)
     - Add Vs-CPT correlation according to Karray et al (2011)
     - Add Vs-CPT correlation according to Wride et al (2000)
-    - TODO: Add Vs-CPT correlation according to Tonni and Simonini (2013)
-    - TODO: Add Vs-CPT correlation according to Zhang and Tong (2017)
-    - TODO: Add Vs-CPT correlation according to McGann et al (2018)
+    - Add Vs-CPT correlation according to Tonni and Simonini (2013)
+    - Add Vs-CPT correlations according to McGann et al (2018) - Both for Christchurch general soils and Banks peninsula loess soils
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine
     - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
 
 v0.6.1, 23/07/2021 -- Bugfix release
     - Fixed bug in offset calculation for fence diagrams

@@ -1583,8 +1583,8 @@ class PCPTProcessing(InsituTestProcessing):
     # endregion
 
     # region Correlations
-
-    def apply_correlation(self, name, outkey, resultkey, apply_for_soiltypes='all', **kwargs):
+    
+    def apply_correlation(self, name, outputs, apply_for_soiltypes='all', **kwargs):
         """
         Applies a correlation to the given PCPT data. The name of the correlation needs to be chosen from the following available correlations.
         Each correlation corresponds to a function in the `pcpt` module.
@@ -1612,23 +1612,33 @@ class PCPTProcessing(InsituTestProcessing):
         Note that certain correlations require either the calculation of normalised properties or application of preceding correlations
 
         :param name: Name of the correlation according to the list defined above
-        :param outkey: Key used to the output column
-        :param resultkey: Key of the output dictionary of the correlation to be used
+        :param outputs: a dict of keys and values where keys are the same as the keys in the correlation, values are the table headers you want
         :param apply_for_soiltypes: List with soil types to which the correlation needs the be applied.
         :param kwargs: Optional keyword arguments for the correlation.
         :return: Adds a column with key `outkey` to the dataframe with PCPT data
         """
+        
 
-        if outkey in self.data.columns:
-            self.data.drop(outkey, axis=1, inplace=True)
+
+        for resultkey in outputs:
+            header = outputs[resultkey]
+            if header in self.data.columns:
+                self.data.drop(header, axis=1, inplace=True)
 
         self.data.rename(columns=PCPT_KEY_MAPPING, inplace=True)
+
         for i, row in self.data.iterrows():
             if apply_for_soiltypes == 'all' or row['Soil type'] in apply_for_soiltypes:
                 params = merge_two_dicts(kwargs, dict(row))
-                self.data.loc[i, outkey] = CORRELATIONS[name](**params)[resultkey]
+                results = CORRELATIONS[name](**params)
+                for resultkey in outputs:
+                    header = outputs[resultkey]
+                    self.data.loc[i, header] = results[resultkey]
             else:
-                self.data.loc[i, outkey] = np.nan
+                for resultkey in outputs:
+                    header = outputs[resultkey]
+                    self.data.loc[i, header] = np.nan
+                    
         self.data.rename(columns=reverse_dict(PCPT_KEY_MAPPING), inplace=True)
     # endregion
 

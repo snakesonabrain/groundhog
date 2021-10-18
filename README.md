@@ -34,9 +34,7 @@ pip install groundhog
 Support groundhog
 -------------------
 
-Commercial use is permitted if you buy a license through <a href="https://www.patreon.com/bePatron?u=55907777">Patreon</a>. All license revenues are invested back in the package development.
-
-You can also support the development of groundhog by buying me a coffee
+You can support the development of groundhog by buying me a coffee
 
 <a href="https://www.buymeacoffee.com/groundhog"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
 
@@ -45,8 +43,6 @@ License and copyright
 -----------------------
 
 groundhog is provided under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Please check the license terms below and in the license file.
-
-Commercial use is permitted for project Patrons: <a href="https://www.patreon.com/bePatron?u=55907777">Become a Patron!</a>
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

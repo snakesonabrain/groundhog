@@ -57,9 +57,7 @@ A more comprehensive Getting Started section with detailed installation instruct
 Support groundhog
 ------------------
 
-Commercial use is permitted if you buy a license through `Patreon <https://www.patreon.com/groundhogpython>`_. All license revenues are invested back in the package development.
-
-You can also support the development of groundhog by buying me a coffee.
+You can support the development of groundhog by buying me a coffee.
 
 .. raw:: html
 
@@ -122,8 +120,6 @@ This package is distributed under a Creative Commons Attribution-NonCommercial-S
 (`CC BY-NC-SA 4.0 <https://creativecommons.org/licenses/by-nc-sa/4.0/>`_) license.
 Any commercial usage is strictly prohibited. Contact the authors for other licensing options if you plan to use the package
 for commercial work.
-
-Commercial use is permitted for project `Patrons <https://www.patreon.com/groundhogpython/>`_.
 
 
 Indices and tables

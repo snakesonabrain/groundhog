@@ -516,6 +516,9 @@ class PCPTProcessing(InsituTestProcessing):
         xy_id_pattern = re.compile(
             r'#XYID\s*=\s*(?P<coordsys>\d*)\s*,\s*(?P<X>\d*.?\d*)\s*,' +
             '\s*(?P<Y>\d*.?\d*)\s*,\s*(?P<dX>\d*.?\d*)\s*,\s*(?P<dY>\d*.?\d*)\s*')
+        xy_id_pattern_nodeltas = re.compile(
+            r'#XYID\s*=\s*(?P<coordsys>\d*)\s*,\s*(?P<X>\d*.?\d*)\s*,' +
+            '\s*(?P<Y>\d*.?\d*)\s*')
         z_id_pattern = re.compile(r'#ZID\s*=\s*(?P<datum>\d*)\s*,\s*(?P<Z>\d*.?\d*)\s*,\s*(?P<dZ>\d*.?\d*)\s*')
         measurementtext_pattern = re.compile(r'#MEASUREMENTTEXT\s*=\s*(?P<number>\d*)\s*,\s*(?P<text>.*)')
         measurementvalue_pattern = re.compile(
@@ -577,12 +580,18 @@ class PCPTProcessing(InsituTestProcessing):
                 pass
 
             try:
-                match = re.search(xy_id_pattern, row['GEF lines'])
-                easting = float(match.group('X'))
-                northing = float(match.group('Y'))
-                srid = match.group('coordsys')
-                dx = float(match.group('dX'))
-                dy = float(match.group('dY'))
+                try:
+                    match = re.search(xy_id_pattern, row['GEF lines'])
+                    easting = float(match.group('X'))
+                    northing = float(match.group('Y'))
+                    srid = match.group('coordsys')
+                    dx = float(match.group('dX'))
+                    dy = float(match.group('dY'))
+                except:
+                    match = re.search(xy_id_pattern_nodeltas, row['GEF lines'])
+                    easting = float(match.group('X'))
+                    northing = float(match.group('Y'))
+                    srid = match.group('coordsys')
             except:
                 pass
 

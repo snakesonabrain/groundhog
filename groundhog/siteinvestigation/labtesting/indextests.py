@@ -101,7 +101,8 @@ class PSDChart(object):
     Class for plotting of grain size distribution data
     """
 
-    def __init__(self, plot_title=None):
+    def __init__(self, plot_title=None, marginsettings=dict(l=0, r=0, b=100, t=100, pad=0),
+                 legendsettings=dict(x=0.1, y=0.9)):
         """
         Initiates a particle size distribution chart
         :param plot_height: Height of the plot in pixels
@@ -168,7 +169,14 @@ class PSDChart(object):
         ]
         self.fig['layout'].update(
             title=plot_title,
-            shapes=psd_plot_shapes, annotations=psd_plot_annotations)
+            shapes=psd_plot_shapes,
+            annotations=psd_plot_annotations,
+            autosize=False,
+            width=800,
+            height=500,
+            margin=marginsettings,
+            legend=legendsettings
+        )
 
     def add_trace(self, grainsize, pctpassing, name, **kwargs):
         """

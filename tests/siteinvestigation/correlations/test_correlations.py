@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 # Project imports
-from groundhog.siteinvestigation.correlations import cohesive, cohesionless
+from groundhog.siteinvestigation.correlations import cohesive, cohesionless, general
 
 
 class Test_Correlations(unittest.TestCase):
@@ -105,3 +105,14 @@ class Test_Correlations(unittest.TestCase):
         self.assertAlmostEqual(
             result['Gmax [kPa]'], 54236, 0
         )
+
+    def test_acousticimpedance_bulkunitweight_chen(self):
+        result = general.acousticimpedance_bulkunitweight_chen(
+            bulkunitweight=18.5)
+        self.assertAlmostEqual(result['I [(m/s).(g/cm3)]'], 3023, 0)
+        result = general.acousticimpedance_bulkunitweight_chen(
+            bulkunitweight=13.0)
+        self.assertAlmostEqual(result['I [(m/s).(g/cm3)]'], 1891, 0)
+        result = general.acousticimpedance_bulkunitweight_chen(
+            bulkunitweight=21.0)
+        self.assertAlmostEqual(result['I [(m/s).(g/cm3)]'], 3868, 0)

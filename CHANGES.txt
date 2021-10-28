@@ -1,4 +1,14 @@
-v0.7.0, TBC -- 2021 4th release
+v0.8.0, TBC - 2021 5th release
+    - Improved margin settings for PSD plots
+    - TODO: Add general functionality for gridded calculations
+    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+
+
+v0.7.0, 20/10/2021 -- Streamlit unleashed
     - Update to Readme to fix up formatting on Pypi (thanks to Thomas van der Linden for highlighting)
     - Updated plotting ranges for pore pressure panel on CPT raw data plot
     - Started with streamlit apps (authored by Berk Demir)
@@ -17,12 +27,6 @@ v0.7.0, TBC -- 2021 4th release
     - Add Vs-CPT correlation according to Wride et al (2000)
     - Add Vs-CPT correlation according to Tonni and Simonini (2013)
     - Add Vs-CPT correlations according to McGann et al (2018) - Both for Christchurch general soils and Banks peninsula loess soils
-    - TODO: Add general functionality for gridded calculations
-    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Implement soil parameter name conventions across groundhog
-    - TODO: Add soil type classification according to Schneider et al (2008)
 
 v0.6.1, 23/07/2021 -- Bugfix release
     - Fixed bug in offset calculation for fence diagrams

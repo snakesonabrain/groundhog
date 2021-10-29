@@ -1,5 +1,8 @@
 v0.8.0, TBC - 2021 5th release
     - Improved margin settings for PSD plots
+    - Added correlation between acoustic impedance and bulk unit weight from Chen et al (2021)
+    - Added common-origin approach for liquefaction assessment according to Saye et al (2021)
+    - Implemented cyclic shear stress ratio equations according to Youd et al (2001)
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

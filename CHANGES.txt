@@ -3,6 +3,8 @@ v0.8.0, TBC - 2021 5th release
     - Added correlation between acoustic impedance and bulk unit weight from Chen et al (2021)
     - Added common-origin approach for liquefaction assessment according to Saye et al (2021)
     - Implemented cyclic shear stress ratio equations according to Youd et al (2001)
+    - Small change for the plotting functionality of Prandtl's failure mechanism
+    - Error corrected in docstring of undercompaction_cohesionless_ladd, mathematical symbol for undercompaction for shallowest and deepest layers were switched.
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
@@ -66,7 +68,6 @@ v0.5.0, 12 April 2021 -- CGS webinar release
     - Added inverse correlation for cone resistance from relative density for OC sand according to Baldi et al
     - Include standard PSD plot and Plasticity chart
     - Excel export of CPT with data, cone properties, layering and location info
-
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release
     - Added a module for dynamic soil properties to soildynamics

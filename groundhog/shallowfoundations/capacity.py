@@ -1171,26 +1171,26 @@ def failuremechanism_prandtl(
     _X = np.append(x_spiral, x_surface)
     _Y = np.append(y_spiral, 0)
 
+    _fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+    _data = go.Scatter(
+        x=[-0.5 * width, 0.5 * width], y=[0, 0], showlegend=True, mode='lines',name='Footing',
+        line=dict(color='black'))
+    _fig.append_trace(_data, 1, 1)
+    _data = go.Scatter(
+        x=_X, y=_Y, showlegend=True, mode='lines',name='Failure surface',
+        line=dict(color='red'))
+    _fig.append_trace(_data, 1, 1)
+    _data = go.Scatter(
+        x=-_X, y=_Y, showlegend=False, mode='lines',name='Failure surface',
+        line=dict(color='red'))
+    _fig.append_trace(_data, 1, 1)
+    _fig['layout']['xaxis1'].update(title='X [m]')
+    _fig['layout']['yaxis1'].update(title='Y [m]]', scaleanchor = 'x', scaleratio = 1.0, autorange='reversed')
+    _fig['layout'].update(height=500, width=700, hovermode='closest')
     if showfig:
-        _fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
-        _data = go.Scatter(
-            x=[-0.5 * width, 0.5 * width], y=[0, 0], showlegend=True, mode='lines',name='Footing',
-            line=dict(color='black'))
-        _fig.append_trace(_data, 1, 1)
-        _data = go.Scatter(
-            x=_X, y=_Y, showlegend=True, mode='lines',name='Failure surface',
-            line=dict(color='red'))
-        _fig.append_trace(_data, 1, 1)
-        _data = go.Scatter(
-            x=-_X, y=_Y, showlegend=False, mode='lines',name='Failure surface',
-            line=dict(color='red'))
-        _fig.append_trace(_data, 1, 1)
-        _fig['layout']['xaxis1'].update(title='X [m]')
-        _fig['layout']['yaxis1'].update(title='Y [m]]', scaleanchor = 'x', scaleratio = 1.0, autorange='reversed')
-        _fig['layout'].update(height=500, width=700, hovermode='closest')
         _fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
     else:
-        _fig = None
+        pass
 
     return {
         'X [m]': _X,

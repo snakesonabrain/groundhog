@@ -4,15 +4,8 @@
 __author__ = 'Bruno Stuyts'
 
 # Native Python packages
-from operator import mod
-import os
-import warnings
-from copy import deepcopy
-import json
-import re
 
 # 3rd party packages
-import pandas as pd
 import numpy as np
 from scipy.stats import t
 

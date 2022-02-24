@@ -61,6 +61,18 @@ However, the following packages need to be added manually:
 
     conda install openpyxl
 
+- Since groundhog 0.7.0, pyproj is required to handle coordinate transformations. This package can also be installed using conda:
+
+.. code-block:: bash
+
+    conda install pyproj
+
+- For users of the Flemish geotechnical database pydov, a Python module for interaction with this database can be installed. This package is an optional dependency and can be installed using pip:
+
+.. code-block:: bash
+
+    pip install pydov
+
 
 1.4. Installing from source (advanced)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -81,7 +93,7 @@ and executing the following command in an Anaconda Command Prompt or terminal wi
     python setup.py install
 
 
-2. Learning Python
+1. Learning Python
 ----------------------
 
 2.1. Jupyter notebooks

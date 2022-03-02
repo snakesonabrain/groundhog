@@ -62,9 +62,9 @@ class Eurocode7_factoring_STR_GEO(object):
                 - Slopes
                     - Earth resistance
             - Correlation factors
-                - :math:`\\xi_1,\\xi_2 ` for pile design based on results from static pile load tests (SLT)
-                - :math:`\\xi_3,\\xi_4 ` for pile design based on results from geotechnical investigations
-                - :math:`\\xi_5,\\xi_6 ` for pile design based on results from dynamic pile load tests (DPLT)
+                - :math:`\\xi_1,\\xi_2` for pile design based on results from static pile load tests (SLT)
+                - :math:`\\xi_3,\\xi_4` for pile design based on results from geotechnical investigations
+                - :math:`\\xi_5,\\xi_6` for pile design based on results from dynamic pile load tests (DPLT)
 
         By default, the factors from EN 1997-1 Appendix A are adopted. If the user wants to override these using Nationally Determined Parameters,
         they need to use the overriding methods.

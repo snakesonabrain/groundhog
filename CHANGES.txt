@@ -5,7 +5,9 @@ v0.8.0, TBC - 2021 5th release
     - Implemented cyclic shear stress ratio equations according to Youd et al (2001)
     - Small change for the plotting functionality of Prandtl's failure mechanism
     - Error corrected in docstring of undercompaction_cohesionless_ladd, mathematical symbol for undercompaction for shallowest and deepest layers were switched.
+    - Added possibility for alternative depth, qc, fs and u2 keys in load_pydov
     - Added new modules for standards. Started with Eurocode 7-based parameter selection
+    - Modified Koppejan calculation to use standard 'Depth from [m]' and 'Depth to [m]' columns for the layering
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

@@ -22,8 +22,8 @@ class Test_pilecalckoppejan(unittest.TestCase):
     def setUp(self):
         self.cpt_data = pd.read_excel(os.path.join(TESTS_DATA_DIR, 'cpt_koppejan.xlsx'))
         self.layering = pd.DataFrame({
-            'z from [m]': [0, 3, 7, 14, 18.2, 21.3],
-            'z to [m]': [3, 7, 14, 18.2, 21.3, 22],
+            'Depth from [m]': [0, 3, 7, 14, 18.2, 21.3],
+            'Depth to [m]': [3, 7, 14, 18.2, 21.3, 22],
             'Total unit weight [kN/m3]': [17, 20, 18, 20, 20, 20]
         })
 

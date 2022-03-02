@@ -6,3 +6,5 @@ Eurocode 7
    :maxdepth: 2
 
    parameter_selection
+
+   factors

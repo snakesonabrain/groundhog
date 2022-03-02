@@ -1,5 +1,7 @@
 Partial factor selection
 ====================================
 
-.. automodule:: groundhog.standards.eurocode7.factors
+.. autoclass:: groundhog.standards.eurocode7.factors.Eurocode7_factoring_STR_GEO
     :members:
+
+    .. automethod:: __init__

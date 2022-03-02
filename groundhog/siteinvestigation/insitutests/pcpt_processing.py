@@ -882,7 +882,8 @@ class PCPTProcessing(InsituTestProcessing):
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
 
-    def load_pydov(self, name, push_key='Push', add_zero_row=True, **kwargs):
+    def load_pydov(self, name, push_key='Push', add_zero_row=True, z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u',
+        qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001, **kwargs):
         """
         Load CPT data from Databank Ondergrond Vlaanderen based on the unique CPT name which can be found in DOV
         :param name: Unique identifier of the CPT in pydov
@@ -894,8 +895,8 @@ class PCPTProcessing(InsituTestProcessing):
         self.data = sondering.search(query=query)
         if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
-        self.rename_columns(z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u')
-        self.convert_columns(qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001)
+        self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key)
+        self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
 
         try:
             if self.data["z [m]"].min() != 0 and add_zero_row:

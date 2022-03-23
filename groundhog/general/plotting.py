@@ -15,6 +15,7 @@ from plotly.offline import plot, iplot
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly import subplots
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Project imports
 
@@ -682,3 +683,159 @@ class LogPlot(object):
 
     def show(self):
         self.fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+
+
+class LogPlotMatplotlib(object):
+    """
+    Class for planneled plots with a minilog on the side, using the Matplotlib plotting backend
+    """
+
+    def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
+                 fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
+                 soiltypelegend=True, figheight=6,
+                 **kwargs):
+        """
+        Initializes a figure with a minilog on the side.
+        :param soilprofile: Soilprofile used for the minilog
+        :param no_panels: Number of panels
+        :param logwidth: Width of the minilog as a percentage of the total width (default=0.05)
+        :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
+        :param figheight: Figure height in inches (default=6in)
+        :param kwargs: Optional keyword arguments for the make_subplots method
+        """
+
+        # Determine the panel widths
+        panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, range(0, no_panels)))
+
+        panel_widths = list(np.append(logwidth, panel_widths))
+
+        # Set up the figure
+        self.fig, self.axes = plt.subplots(1, no_panels + 1, figsize=(4 * no_panels, figheight), sharex=False, sharey=True,
+                        constrained_layout=False, gridspec_kw={'width_ratios': panel_widths})
+        
+        self.axes[0].set_ylim([soilprofile.max_depth, soilprofile.min_depth])
+
+        # Create rectangles for the log plot
+        _layers = []
+        for i, row in soilprofile.iterrows():
+            try:
+                _fillcolor = fillcolordict[row['Soil type']]
+            except:
+                _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            _y0 = row['Depth from [m]']
+            _y1 = row['Depth to [m]']
+            self.axes[0].fill(
+                [0.0,0.0,1.0,1.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
+                label='_nolegend_', edgecolor="black")
+            
+        _legend_entries = []
+        for _soiltype in soilprofile['Soil type'].unique():
+            try:
+                _fillcolor = fillcolordict[_soiltype]
+            except:
+                soiltypelegend = False
+
+            try:
+                if soiltypelegend:
+                    _legend_entry, = self.axes[0].fill(
+                        [-11.0,-11.0,-10.0,-10.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
+                        label=_soiltype, edgecolor="black")
+                    _legend_entries.append(_legend_entry)
+            except:
+                pass
+
+        plt.legend(handles=_legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        self.axes[0].set_xlim([0, 1])
+        self.axes[0].get_xaxis().set_ticks([])
+        self.axes[0].set_ylabel('Depth below mudline [m]',size=15)
+        for i in range(0, no_panels):
+            _dummy_data = self.axes[i+1].plot([0, 100], [np.nan, np.nan], label='_nolegend_')
+            self.axes[i+1].tick_params(labelbottom=False,labeltop=True)
+            self.axes[i+1].set_xlabel('X-axis %i' % (i + 1), size=15)
+            self.axes[i+1].xaxis.set_label_position('top') 
+            self.axes[i+1].set_xlim([0, 1])
+            self.axes[i+1].set_ylim([soilprofile.max_depth, soilprofile.min_depth])
+
+    def add_trace(self, x, z, name, panel_no, resetaxisrange=True, line=True, **kwargs):
+        """
+        Adds a trace to the plot. By default, lines are added but optional keyword arguments can be added for plt.plot as ``**kwargs``
+        :param x: Array with the x-values
+        :param z: Array with the z-values
+        :param name: Label for the trace (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param panel_no: Panel to plot the trace on (1-indexed)
+        :param resetaxisrange: Boolean determining whether the axis range needs to be reset to fit this trace
+        :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
+        :return: Adds the trace to the specified panel
+        """
+        if line:
+            self.axes[panel_no].plot(x, z,label=name, **kwargs)
+        else:
+            self.axes[panel_no].scatter(x, z,label=name, **kwargs)
+
+        if resetaxisrange:
+            self.axes[panel_no].set_xlim([np.array(x).min(), np.array(x).max()])
+        self.axes[panel_no].legend()
+
+    def set_xaxis_title(self, title, panel_no, size=15, **kwargs):
+        """
+        Changes the X-axis title of a panel
+        :param title: Title to be set (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param panel_no: Panel number (1-indexed)
+        :param kwargs: Additional keyword arguments for the axis layout update function, e.g. ``range=(0, 100)``
+        :return: Adjusts the X-axis of the specified panel
+        """
+        self.axes[panel_no+1].set_xlabel(title, size=size)
+
+    def set_xaxis_range(self, min_value, max_value, panel_no, **kwargs):
+        """
+        Changes the X-axis range of a panel
+        :param min_value: Minimum value of the plot panel range
+        :param max_value: Maximum value of the plot panel range
+        :param panel_no: Panel number (1-indexed)
+        :param kwargs: Additional keyword arguments for the ``set_xlim`` method
+        :return: Adjusts the X-axis range of the specified panel
+        """
+        self.axes[panel_no].set_xlim([min_value, max_value])
+
+    def set_zaxis_title(self, title, size=15, **kwargs):
+        """
+        Changes the Z-axis
+        :param title: Title to be set (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param kwargs: Additional keyword arguments for the ``set_label`` method
+        :return: Adjusts the Z-axis title
+        """
+        self.axes[0].set_ylabel(title, size=size)
+
+    def set_zaxis_range(self, min_depth, max_depth, **kwargs):
+        """
+        Changes the Z-axis
+        :param min_depth: Minimum depth of the plot
+        :param max_depth: Maximum depth of the plot
+        :param kwargs: Additional keyword arguments for the ``set_ylim`` method
+        :return: Adjusts the Z-axis range
+        """
+        self.axes[0].set_ylim([max_depth, min_depth])
+
+    def set_size(self, width, height):
+        """
+        Adjust the size of the plot
+        :param width: Width of the plot in inches
+        :param height: Height of the plot in inches
+        :return: Adjust the height and width as specified
+        """
+        plt.gcf().set_size_inches(width, height)
+
+    def show(self):
+        plt.show()
+
+    def save_fig(self, path, dpi=250, bbox_inches='tight',pad_inches=1):
+        """
+        Exports the figure to png format
+
+        :param path: Path of the figure (filename ends in .png)
+        :param dpi: Output resolution
+        :param bbox_inches: Setting for the bounding box
+        :param pad_inches: Inches for padding
+        """
+        plt.savefig(path, dpi=dpi,bbox_inches=bbox_inches, pad_inches=pad_inches)

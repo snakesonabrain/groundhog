@@ -483,7 +483,8 @@ class PCPTProcessing(InsituTestProcessing):
 
     def load_gef(self, path, inverse_depths=False, override_title=True,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
-                 qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
+                 qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
+                 separator=' ', **kwargs):
         """
         Reads PCPT data from a Geotechnical Exchange Format (.gef) file.
         The file is parsed using regular expressions to provide the necessary data.
@@ -503,6 +504,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param fs_multiplier: Multiplier applied on sleeve friction to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param u2_multiplier: Multiplier applied on pore pressure at shoulder to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param add_zero_row: Boolean determining whether a datapoint needs to be added at zero depth.
+        :param separator: Separator used for the gef file (default is ``' '``)
         :param kwargs: Optional keyword arguments for reading the datafile (using ``read_csv`` from Pandas)
         :return:
         """
@@ -535,7 +537,7 @@ class PCPTProcessing(InsituTestProcessing):
         measurementvalue_dict = dict()
         voidvalue_dict = dict()
 
-        separator = ' '
+        separator = separator
         test_id = None
         easting = None
         northing = None

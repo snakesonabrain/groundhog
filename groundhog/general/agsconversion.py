@@ -174,7 +174,7 @@ AGS_TABLES = {
     'GEOL': {
         'LOCA_ID': 'Location identifier',
         'GEOL_TOP': 'Depth to the top of stratum',
-        'GEOL_BASE': 'Depth to the base of description',
+        'GEOL_BASE': 'Depth to the base of stratum',
         'GEOL_DESC': 'General description of stratum',
         'GEOL_LEG': 'Legend code',
         'GEOL_GEOL': 'Geology code',
@@ -839,7 +839,7 @@ AGS_TABLES_SHORTHANDS = {
 
 class AGSConverter(object):
 
-    def __init__(self, path, encoding='utf8', errors='replace', removedoublequotes=True, **kwargs):
+    def __init__(self, path, encoding='utf8', errors='replace', removedoublequotes=True, agsformat="4",**kwargs):
         """
         Initializes an AGS conversion object using the path to the AGS file.
         The AGS file needs to properly formatted with at least one blank line between each group.
@@ -853,8 +853,10 @@ class AGSConverter(object):
         :param encoding: Encoding of the file (default=utf-8)
         :param errors: Specify file reading behaviour in case of encoding errors
         :param removedoublequotes: Boolean determining whether doublequotes need to be removed after file loading (default=True)
+        :param agsformat: Format of the AGS file (default=``"4"``). AGS 3.1 (``"3.1"``) is also available
         """
         self.path = path
+        self.agsformat = agsformat
         with open(path, "r", encoding=encoding, errors=errors) as file_handle:
             self.rawtextstring = file_handle.read()
         if removedoublequotes:
@@ -880,10 +882,15 @@ class AGSConverter(object):
         Scans the AGS file and extracts all group names
         :return: Sets the attribute ``groupnames`` of the ``AGSConverter`` object
         """
-        self.groupnames = re.findall(r'"GROUP","(?P<groupname>.+)"', self.textstring)
+        if self.agsformat == "4":
+            self.groupnames = re.findall(r'"GROUP","(?P<groupname>.+)"', self.textstring)
+        elif self.agsformat == "3.1":
+            self.groupnames = re.findall('\"\*\*(?P<groupname>.+)\"', self.textstring)
+        else:
+            raise ValueError("AGS format %s not recognised. Use '4' or '3.1' for currently supported formats")
 
     @staticmethod
-    def convert_ags_headers(df):
+    def convert_ags_headers(df, agsformat):
         """
         Converts the headers of an AGS-based dataframes from the three rows in the AGS to a single column header.
         Numerical data is also converted into the correct datatype.
@@ -899,10 +906,21 @@ class AGSConverter(object):
             else:
                 new_name = "%s [%s]" % (original_header, df.loc[0, original_header])
             new_headers.append(new_name)
-            if ("DP" in df.loc[1, original_header]) or ("SF" in df.loc[1, original_header]):
-                datatypes[new_name] = 'float'
+            if agsformat == '4':
+                if ("DP" in df.loc[1, original_header]) or ("SF" in df.loc[1, original_header]):
+                    datatypes[new_name] = 'float'
         df.columns = new_headers
-        df = df[2:].reset_index(drop=True).astype(datatypes)
+        if agsformat == '4':
+            df = df[2:].reset_index(drop=True).astype(datatypes)
+        elif agsformat == "3.1":
+            df = df[1:].reset_index(drop=True)
+            for _col in df.columns:
+                try:
+                    df[_col] = pd.to_numeric(df[_col])
+                except:
+                    pass
+        else:
+            raise ValueError("AGS format %s not recognised. Use '4' or '3.1' for currently supported formats")
         return df
 
     def convert_ags_group(self, groupname, verbose_keys=False, additional_keys=dict(), use_shorthands=False,
@@ -920,8 +938,14 @@ class AGSConverter(object):
 
         # Read the textstring into a pandas dataframe
         # Define where the data for the selected group starts
-        _start_index = self.raw_dataframe[
-            self.raw_dataframe['AGS lines'].str.startswith(r'"GROUP","%s"' % groupname)].index[0]
+        if self.agsformat == "4":
+            _start_index = self.raw_dataframe[
+                self.raw_dataframe['AGS lines'].str.startswith(r'"GROUP","%s"' % groupname)].index[0]
+        elif self.agsformat == "3.1":
+            _start_index = self.raw_dataframe[
+                self.raw_dataframe['AGS lines'].str.startswith(r'"**%s' % groupname)].index[0]
+        else:
+            raise ValueError("AGS format %s not recognised. Use '4' or '3.1' for currently supported formats")
 
         # Define where the data for the selected group ends
         empty_rows = self.raw_dataframe[
@@ -942,6 +966,13 @@ class AGSConverter(object):
             nrows=_end_index - _start_index - 2,
             **kwargs)
 
+        # Remove * from header names in AGS3.1
+        if self.agsformat == "3.1":
+            coldict = dict()
+            for _col in _group_data.columns:
+                coldict[_col] = _col[1:]
+            _group_data.rename(columns=coldict, inplace=True)
+
         # Converted to verbose column keys if necessary
         if verbose_keys:
             try:
@@ -954,8 +985,8 @@ class AGSConverter(object):
             except Exception as err:
                 warnings.warn("Verbose names for group %s not found. AGS column names kept - %s" % (groupname, str(err)))
 
-        # Convert the headers using the convert_ags_headers function
-        _group_data = self.convert_ags_headers(_group_data)
+        # Convert the headers using the convert_ags_headers function (only for AGS 4.x format)
+        _group_data = self.convert_ags_headers(_group_data, agsformat=self.agsformat)
 
         # Drop the HEADING [UNIT] column if required
         if drop_heading_col:

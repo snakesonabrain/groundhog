@@ -9,6 +9,7 @@ v0.8.0, TBC - 2021 5th release
     - Added new modules for standards. Started with Eurocode 7-based parameter selection
     - Modified Koppejan calculation to use standard 'Depth from [m]' and 'Depth to [m]' columns for the layering
     - Added LogPlotMatplotlib for plotting of logs with Matplotlib
+    - Added functionality for parsing AGS3.1 files using the agsformat argument in the AGSConverter
     - TODO: Add general functionality for gridded calculations
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht

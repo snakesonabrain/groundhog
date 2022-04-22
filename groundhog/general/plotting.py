@@ -785,7 +785,7 @@ class LogPlotMatplotlib(object):
         :param kwargs: Additional keyword arguments for the axis layout update function, e.g. ``range=(0, 100)``
         :return: Adjusts the X-axis of the specified panel
         """
-        self.axes[panel_no+1].set_xlabel(title, size=size)
+        self.axes[panel_no].set_xlabel(title, size=size)
 
     def set_xaxis_range(self, min_value, max_value, panel_no, **kwargs):
         """

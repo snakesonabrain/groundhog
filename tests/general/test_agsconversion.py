@@ -55,6 +55,8 @@ class Test_ags31conversion(unittest.TestCase):
         self.ags = agsconversion.AGSConverter(path = self.agsfile, agsformat="3.1")
 
     def test_agsconversion(self):
+        self.ags.convert_ags_group('GEOL')
+
         self.ags.create_dataframes(verbose_keys=True)
         
         self.assertEqual(

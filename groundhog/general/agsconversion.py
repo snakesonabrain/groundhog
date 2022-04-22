@@ -19,6 +19,7 @@ GROUP_NAMES = {
     'TRAN': 'Data File Transmission Information / Data Status',
     'TYPE': 'Definition of Data Types',
     'UNIT': 'Definition of Units',
+    'CLSS': 'Classification tests',
     'CONG': 'Consolidation Tests - General',
     'CONS': 'Consolidation Tests - Data',
     'CORE': 'Coring Information',
@@ -40,7 +41,9 @@ GROUP_NAMES = {
     'TREG': 'Triaxial Tests - Effective Stress - General',
     'TRET': 'Triaxial Tests - Effective Stress - Data',
     'TRIG': 'Triaxial Tests - Total Stress - General',
-    'TRIT': 'Triaxial Tests - Total Stress - Data'
+    'TRIT': 'Triaxial Tests - Total Stress - Data',
+    'GRAD': 'Particle size distribution data',
+    'RELD': 'Relative density test'
 }
 
 AGS_TABLES = {
@@ -609,6 +612,56 @@ AGS_TABLES = {
         'TRIT_MODE': 'Mode of failure',
         'TRIT_REM': 'Comments',
         'FILE_FSET': 'Associated file reference (eg test result sheets)'
+    },
+    'CLSS': {
+        'HOLE_ID': 'Location identifier',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference number',
+        'SPEC_DPTH': 'Specimen depth',
+        'CLSS_NMC': 'Natural moisture content',
+        'CLSS_LL': 'Liquid limit',
+        'CLSS_PL': 'Plastic limit',
+        'CLSS_BDEN': 'Bulk density',
+        'CLSS_DDEN': 'Dry density',
+        'CLSS_PD': 'Particle density',
+        'CLSS_425': 'Percentage passing 425 micron sieve',
+        'CLSS_PREP': 'Method of preparation',
+        'CLSS_SLIM': 'Shrinkage limit',
+        'CLSS_LS': 'Linear shrinkage',
+        'CLSS_HVP': 'Hand vane undrained shear strength (peak)',
+        'CLSS_HVR': 'Hand vane undrained shear strength (remoulded)',
+        'CLSS_PPEN': 'Pocket penetrometer undrained shear strength',
+        'CLSS_VNPK': 'Laboratory vane undrained shear strength (peak)',
+        'CLSS_VNRM': 'Laboratory vane undrained shear strength (remoulded)',
+        '?CLSS_REM': 'Notes on classification testing',
+        '?FILE_FSET': 'Associated file reference'
+    },
+    'GRAD': {
+        'HOLE_ID': 'Location identifier',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Specimen Depth',
+        'GRAD_SIZE': 'Sieve or particle size',
+        'GRAD_PERP': 'Percentage passing',
+        'GRAD_TYPE': 'Grading analysis test type' 
+    },
+    'RELD': {
+        'HOLE_ID': 'Location identifier',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Specimen depth',
+        'RELD_REM': 'Method of test',
+        'RELD_DMAX': 'Maximum dry density',
+        'RELD_375': 'Percentage weight percent of sample retained on 37.5mm sieve',
+        'RELD_Ø63': 'Percentage weight percent of sample retained on 6.3mm sieve',
+        'RELD_Ø2Ø': 'Percentage weight percent of sample retained on 2mm sieve',
+        'RELD_DMIN': 'Minimum dry density' 
     }
 }
 
@@ -833,13 +886,50 @@ AGS_TABLES_SHORTHANDS = {
         'TRIT_STRN': 'epsilon_a_f',
         'TRIT_CU': 'Su',
         'TRIT_MODE': 'Failure mode'
+    },
+    'CLSS': {
+        'HOLE_ID': 'Location ID',
+        'SAMP_TOP': 'Sample top',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Depth',
+        'CLSS_NMC': 'w',
+        'CLSS_LL': 'LL',
+        'CLSS_PL': 'PL',
+        'CLSS_BDEN': 'Bulk density',
+        'CLSS_DDEN': 'Dry density',
+        'CLSS_PD': 'Particle density',
+        'CLSS_425': 'Percentage passing 425 micron sieve',
+        'CLSS_PREP': 'Preparation',
+        'CLSS_SLIM': 'Shrinkage limit',
+        'CLSS_LS': 'Linear shrinkage',
+        'CLSS_HVP': 'Hand vane Su (peak)',
+        'CLSS_HVR': 'Hand vane Su (remoulded)',
+        'CLSS_PPEN': 'PP Su',
+        'CLSS_VNPK': 'LV Su (peak)',
+        'CLSS_VNRM': 'LV Su (remoulded)',
+        'CLSS_REM': 'Notes',
+        'FILE_FSET': 'File'
+    },
+    'GRAD': {
+        'HOLE_ID': 'Location ID',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Depth',
+        'GRAD_SIZE': 'Size',
+        'GRAD_PERP': 'Percentage passing',
+        'GRAD_TYPE': 'Test type' 
     }
 }
 
 
 class AGSConverter(object):
 
-    def __init__(self, path, encoding='utf8', errors='replace', removedoublequotes=True, agsformat="4",**kwargs):
+    def __init__(self, path, encoding='utf8', errors='replace', removedoublequotes=True,
+        removeheadinglinebreaks=True, agsformat="4",**kwargs):
         """
         Initializes an AGS conversion object using the path to the AGS file.
         The AGS file needs to properly formatted with at least one blank line between each group.
@@ -849,18 +939,25 @@ class AGSConverter(object):
             - A line with the units of the values in the columns;
             - A line with the data type of the columns
 
+        The functionality is developed for AGS4.x files but support for AGS3.1 files is also available
+        using ``agsformat="3.1"`` as optional keyword argument.
+
         :param path: Path to the AGS 4.0 file
         :param encoding: Encoding of the file (default=utf-8)
         :param errors: Specify file reading behaviour in case of encoding errors
         :param removedoublequotes: Boolean determining whether doublequotes need to be removed after file loading (default=True)
+        :param removeheadinglinebreaks: Boolean determining whether line breaks in heading rows need to be removed after file loading (default=True)
         :param agsformat: Format of the AGS file (default=``"4"``). AGS 3.1 (``"3.1"``) is also available
         """
         self.path = path
         self.agsformat = agsformat
         with open(path, "r", encoding=encoding, errors=errors) as file_handle:
             self.rawtextstring = file_handle.read()
+        if removeheadinglinebreaks:
+            self.remove_heading_linebreaks()
         if removedoublequotes:
             self.remove_doublequotes(**kwargs)
+        
         self.extract_groupnames()
 
     def remove_doublequotes(self, replace_by=""):
@@ -875,7 +972,15 @@ class AGSConverter(object):
         :return:
         """
         self.textstring = re.sub(r'[^,]""', r'%s"' % replace_by, self.rawtextstring)
+
         self.raw_dataframe = pd.DataFrame(re.split(r'\n', self.textstring), columns=['AGS lines'])
+
+    def remove_heading_linebreaks(self):
+        """
+        Removes line breaks in header rows which would prevent further AGS parsing
+        If a comma is followed by a line break (``,\n``), it is replaced by a comma without line break
+        """
+        self.rawtextstring = self.rawtextstring.replace(',\n', ",")
 
     def extract_groupnames(self):
         """
@@ -900,6 +1005,11 @@ class AGSConverter(object):
         # Rename the headers
         new_headers = []
         datatypes = dict()
+        if agsformat == "3.1":
+            if df[df.columns[0]].iloc[0] == "<UNITS>":
+                pass
+            else:
+                return df
         for i, original_header in enumerate(df.columns):
             if str(df.loc[0, original_header]) == 'nan':
                 new_name = "%s" % (original_header)

@@ -294,6 +294,8 @@ def behaviourindex_pcpt_robertsonwride(
     The exponent n in the equations is used to account for different cone resistance normalisation in non-clayey soils (lower exponent).
     Because the exponent n is defined implicitly, an iterative approach is required to calculate the soil behaviour type index.
 
+    When used with ``apply_correlation``, use ``'Ic Robertson and Wride (1998)'`` as correlation name.
+
     :param qt: Corrected cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
     :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: fs >= 0.0
     :param sigma_vo: Total vertical stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: sigma_vo >= 0.0
@@ -407,6 +409,8 @@ def gmax_sand_rixstokoe(
     """
     Calculates the small-strain shear modulus for uncemented silica sand based on cone resistance and vertical effective stress. The correlation is based on calibration chamber tests compared to results from PCPT, S-PCPT and cross-hole tests reported by Baldi et al (1989).
 
+    When used with ``apply_correlation``, use ``'Gmax Rix and Stokoe (1991)'`` as correlation name.
+
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
     :param multiplier: Multiplier in the correlation equation (:math:``) [:math:`-`] (optional, default= 1634.0)
@@ -449,6 +453,8 @@ def gmax_clay_maynerix(
     """
     Mayne and Rix (1993) determined a relationship between small-strain shear modulus and cone tip resistance by studying 481 data sets from 31 sites all over the world. Gmax ranged between about 0.7 MPa and 800 MPa.
 
+    When used with ``apply_correlation``, use ``'Gmax Mayne and Rix (1993)'`` as correlation name.
+
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
     :param multiplier: Multiplier in the equation (:math:``) [:math:`-`] (optional, default= 2.78)
     :param exponent: Exponent in the equation (:math:``) [:math:`-`] (optional, default= 1.335)
@@ -490,6 +496,8 @@ def relativedensity_ncsand_baldi(
         coefficient_0=157.0, coefficient_1=0.55, coefficient_2=2.41, **kwargs):
     """
     Calculates the relative density for normally consolidated sand based on calibration chamber tests on silica sand. It should be noted that this correlation provides an approximative estimate of relative density and the sand at the site should be compared to the sands used in the calibration chamber tests. The correlation will always be sensitive to variations in compressibility and horizontal stress.
+
+    When used with ``apply_correlation``, use ``'Dr Baldi et al (1986) - NC sand'`` as correlation name.
 
     :param qc: Cone tipe resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
@@ -542,6 +550,8 @@ def relativedensity_ocsand_baldi(
         coefficient_0=181.0, coefficient_1=0.55, coefficient_2=2.61, **kwargs):
     """
     Calculates the relative density for overconsolidated sand based on calibration chamber tests on silica sand. It should be noted that this correlation provides an approximative estimate of relative density and the sand at the site should be compared to the sands used in the calibration chamber tests. The correlation will always be sensitive to variations in compressibility and horizontal stress. Note that this correlation requires an estimate of the coefficient of lateral earth pressure.
+
+    When used with ``apply_correlation``, use ``'Dr Baldi et al (1986) - OC sand'`` as correlation name.
 
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
@@ -657,6 +667,8 @@ def relativedensity_sand_jamiolkowski(
     Jamiolkowksi et al formulated a correlation for the relative density of dry sand based on calibration chamber tests. The correlation can be modified for saturated sands and results in relative densities which can be up to 10% higher.
     Note that calibration chamber testing is carried out on sands with vertical effective stress between 50kPa and 400kPa and coefficients of lateral earth pressure Ko between 0.4 and 1.5. Relative densities for stress conditions outside this range (e.g. shallow soils) should be assessed with care.
 
+    When used with ``apply_correlation``, use ``'Dr Jamiolkowski et al (2003)'`` as correlation name.
+
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 50.0 <= sigma_vo_eff <= 400.0
     :param k0: Coefficient of lateral earth pressure (:math:`K_o`) [:math:`-`] - Suggested range: 0.4 <= k0 <= 1.5
@@ -713,6 +725,8 @@ def frictionangle_sand_kulhawymayne(
     """
     Determines the friction angle for sand based on calibration chamber tests.
 
+    When used with ``apply_correlation``, use ``'Friction angle Kulhawy and Mayne (1990)'`` as correlation name.
+
     :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
     :param atmospheric_pressure: Atmospheric pressure used for normalisation (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
@@ -756,6 +770,8 @@ def undrainedshearstrength_clay_radlunne(
     """
     Calculates the undrained shear strength of clay from net cone tip resistance. The correlation is empirical and the cone factor needs to be adjusted to fit CIU or other high-quality laboratory tests for undrained shear strength.
 
+    When used with ``apply_correlation``, use ``'Su Rad and Lunne (1988)'`` as correlation name.
+
     :param qnet: Net cone resistance (corrected for area ratio and total stress at the depth of the cone) (:math:`q_{net}`) [:math:`MPa`] - Suggested range: 0.0 <= qnet <= 120.0
     :param Nk: Empirical factor (:math:`N_k`) [:math:`-`] - Suggested range: 8.0 <= Nk <= 30.0
 
@@ -795,6 +811,7 @@ def frictionangle_overburden_kleven(sigma_vo_eff, relative_density, Ko=0.5, max_
     """
     This function calculates the friction angle according to the chart proposed by Kleven (1986). The function takes into account the effective confining pressure of the sand and its relative density. The function was calibrated on North Sea sand tests with confining pressures ranging from 10 to 800kPa. Lower confinement clearly leads to higher friction angles. The fit to the data is not excellent and this function should be compared to site-specific testing or other correlations.
 
+    When used with ``apply_correlation``, use ``'Friction angle Kleven (1986)'`` as correlation name.
 
     :param sigma_vo_eff: Effective vertical stress (:math:`\\sigma \\prime _{vo}`) [:math:`kPa`]  - Suggested range: 10.0<=sigma_vo_eff<=800.0
     :param relative_density: Relative density of sand (:math:`D_r`) [:math:`Percent`]  - Suggested range: 40.0<=relative_density<=100.0
@@ -884,6 +901,8 @@ def ocr_cpt_lunne(Qt, Bq=np.nan, **kwargs):
     Both normalised cone resistance Qt and pore pressure ratio Bq can be used as inputs. If only one of the two inputs is specified, NaN is returned for the other.
 
     The implementation of the formulation is based on digitisation of the graphs.
+
+    When used with ``apply_correlation``, use ``'OCR Lunne (1989)'`` as correlation name.
 
     :param Qt: Normalised cone resistance (:math:`Q_t`) [:math:`-`] - Suggested range: 2.0 <= Qt <= 34.0
     :param Bq: Pore pressure ratio (:math:`B_q`) [:math:`-`] - Suggested range: 0.0 <= Bq <= 1.4 (optional, default=None)
@@ -1008,6 +1027,8 @@ def sensitivity_frictionratio_lunne(
     Ideally, the sleeve friction corrected for pore pressure effects should be used to calculate the friction ratio but if this is not available (when pore pressures are not measured on both ends of the friction sleeve), the ratio of sleeve friction to cone tip resistance (in percent) can be used.
 
     The function returns a low estimate, best estimate and high estimate value.
+
+    When used with ``apply_correlation``, use ``'Sensitivity Rad and Lunne (1986)'`` as correlation name.
 
     :param Rf: Friction ratio (:math:`R_f = f_t / q_t`) [:math:`percent`] - Suggested range: 0.5 <= Rf <= 2.2
 
@@ -1164,6 +1185,8 @@ def unitweight_mayne(
 
     For the sake of accuracy, the corrected total sleeve friction is used instead of the uncorrected sleeve friction. PCPT normalisation is required before applying the correlation. If sleeve dimensions are not available, the uncorrected sleeve friction will be used.
 
+    When used with ``apply_correlation``, use ``'Unit weight Mayne et al (2010)'`` as correlation name.
+
     :param ft: Total sleeve friction (:math:`f_t`) [:math:`MPa`] - Suggested range: 0.0 <= ft <= 10.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 500.0
     :param unitweight_water: Unit weight of water (:math:`\\gamma_w`) [:math:`kN/m3`] - Suggested range: 9.0 <= unitweight_water <= 11.0 (optional, default= 10.25)
@@ -1228,6 +1251,8 @@ def vs_ic_robertsoncabal(
     Since the small-strain shear modulus can be derived from the shear wave velocity and the bulk density of the soil, is it also calculated. The bulk density of the soil can be specified as an optional argument.
 
     Unfortunately, no plots on the background data to the calibrated equation are available.
+
+    When used with ``apply_correlation``, use ``'Shear wave velocity Robertson and Cabal (2015)'`` as correlation name.
 
     :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
     :param ic: Soil behaviour type index according to Robertson and Wride (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 4.0
@@ -1297,6 +1322,8 @@ def k0_sand_mayne(
     """
     Calculates the lateral coefficient of earth pressure at rest based on calibration chamber tests on clean sands.
     The values calculated from the equation need to be compared to values obtained using friction angle and OCR (see equations).
+
+    When used with ``apply_correlation``, use ``'K0 Mayne (2007) - sand'`` as correlation name.
 
     :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
@@ -1376,6 +1403,8 @@ def gmax_cpt_puechen(
 
     The calibration coefficient b has recommended values between 0.5 and 2, with a suggested best estimate of 1.
 
+    When used with ``apply_correlation``, use ``'Gmax Puechen (2020)'`` as correlation name.
+
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 70.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
     :param Bq: Pore pressure ratio (:math:`B_q`) [:math:`-`] - Suggested range: -0.2 <= Bq <= 0.5
@@ -1431,6 +1460,8 @@ def behaviourindex_pcpt_nonnormalised(
         atmospheric_pressure=100.0, **kwargs):
     """
     Calculates the non-normalised soil behaviour type index. For vertical effective stresses between 50 and 150kPa, the non-normalised index is almost equal to the normalised soil behaviour type index.
+
+    When used with ``apply_correlation``, use ``'Isbt Robertson (2010)'`` as correlation name.
 
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
     :param Rf: Friction rato (:math:`R_f`) [:math:`pct`] - Suggested range: 0.1 <= Rf <= 10.0
@@ -1492,6 +1523,8 @@ def drainedsecantmodulus_sand_bellotti(
     Bands for mean effective stress from 50kPa to 300kPa are provided. Note that the correlation will not return values outside that range.
 
     Ageing and overconsolidation are beneficial effects, leading to increased stiffness.
+
+    When used with ``apply_correlation``, use ``'Es Bellotti (1989) - sand'`` as correlation name.
 
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 50.0 <= sigma_vo_eff <= 300.0
@@ -1641,6 +1674,8 @@ def gmax_voidratio_maynerix(
 
     The correlation is developed based on a database of in-situ testing for Gmax at 31 sites with seismic cone, SASW, cross-hole and downhole tests. The main difficulty in applying this correlation is the requirement for companion profiles of void ratio. Void ratio can be estimated using a CPT correlation for unit weight (``unitweight_mayne``) but this correlation has a rather high uncertainty associated with it.
 
+    When used with ``apply_correlation``, use ``'Gmax void ratio Mayne and Rix (1993)'`` as correlation name.
+
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.1 <= qc <= 10.0
     :param void_ratio: Void ratio of the clay determined from index tests or CPT-based correlations (:math:`e_0`) [:math:`-`] - Suggested range: 0.2 <= void_ratio <= 10.0
     :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 1.0)
@@ -1707,6 +1742,8 @@ def vs_cpt_andrus(
     Calculates shear wave velocity from CPT measurements based on a relation calibrated on 229 measurements of which the majority are S-PCPT with some cross-hole tests and suspension logger measurements.
 
     Correlations for Holocene/Pleistocene soils and Tertiary soils are developed separately but it should be noted that the only Tertiary soil used for calibration is a marl which has different mineralogy from silica soils.
+
+    When used with ``apply_correlation``, use ``'Vs CPT Andrus (2007)'`` as correlation name.
 
     :param qt: Corrected cone tip resistance (note that formula is based on qt in kPa) (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
     :param depth: Depth below mudline (:math:`z`) [:math:`m`] - Suggested range: 0.0 <= depth <= 100.0
@@ -1800,6 +1837,8 @@ def vs_cpt_hegazymayne(
     The correlation shows a good fit of the ratio of corrected Vs to normalised cone tip resistance. Note that the normalised cone tip resistance is calculated by default using the Zhang exponent (``zhang=True``). The suggested formulation in the original paper by Hegazy and Mayne is included by setting the boolean zhang to False.
 
     Note that all stresses in the equation are given in kPa.
+
+    When used with ``apply_correlation``, use ``'Vs CPT Hegazy and Mayne (2006)'`` as correlation name.
 
     :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
     :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: 0.0 <= fs <= 10.0
@@ -1909,6 +1948,8 @@ def vs_cpt_longdonohue(
 
     Note that stresses have units of kPa in the formula.
 
+    When used with ``apply_correlation``, use ``'Vs CPT Long and Donohue (2010)'`` as correlation name.
+
     :param qt: Corrected cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 2.0
     :param u2: Pore pressure at the shoulder (:math:`u_2`) [:math:`MPa`] - Suggested range: -1.0 <= u2 <= 1.0
     :param u0: Hydrostatic pressure (:math:`u_0`) [:math:`kPa`] - Suggested range: 0.0 <= u0 <= 1000.0
@@ -1990,6 +2031,8 @@ def soiltype_vs_longodonohue(
 
     The chart of Qt vs Vs1 allows determination of the soil type.
 
+    When used with ``apply_correlation``, use ``'Soiltype Vs Long and Donohue (2010)'`` as correlation name.
+
     :param Vs: Shear wave velocity (:math:`V_s`) [:math:`m/s`] - Suggested range: 0.0 <= Vs <= 600.0
     :param Qt: Normalised cone resistance (:math:`Q_t`) [:math:`-`] - Suggested range: 0.0 <= Qt <= 200.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
@@ -2064,6 +2107,8 @@ def vs_cptd50_karrayetal(
 
     The correlation applies to uncemented holocene granular soils.
 
+    When used with ``apply_correlation``, use ``'Vs CPT d50 Karray et al (2011)'`` as correlation name.
+
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
     :param d50: Median grain size (:math:`d_{50}`) [:math:`mm`] - Suggested range: 0.1 <= d50 <= 10.0
@@ -2136,6 +2181,8 @@ def vs_cpt_wrideetal(
 
     The authors do not present a chart comparing the calculated shear wave velocities to the measured ones, making it impossible to make statements on the accuracy of the correlation.
 
+    When used with ``apply_correlation``, use ``'Vs CPT Wride et al (2000)'`` as correlation name.
+
     :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
     :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
@@ -2199,6 +2246,8 @@ def vs_cpt_tonniandsimonini(
     The authors highlight the importance of using the soil behaviour type index for obtaining a correlation which performs well across the different soil types encountered at the site. The authors finally propose different forms of the general equation proposed by Robertson and Cabal but accounting for stress correction.
 
     The authors observe that stress corrections improve the accuracy of the correlations.
+
+    When used with ``apply_correlation``, use ``'Vs CPT Tonni and Simonini (2013)'`` as correlation name.
 
     :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
     :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
@@ -2274,6 +2323,8 @@ def vs_cpt_mcgannetal(
     Further work on the Banks Peninsula where loess soils are present, showed a significant underprediction of the shear wave velocity. The correlation was adjusted for these soils.
 
     Note that all stresses in the equation are given in kPa.
+
+    When used with ``apply_correlation``, use ``'Vs CPT McGann et al (2018)'`` as correlation name.
 
     :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
     :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: 0.0 <= fs <= 10.0
@@ -2381,4 +2432,6 @@ CORRELATIONS = {
     'Vs CPT d50 Karray et al (2011)': vs_cptd50_karrayetal,
     'Vs CPT Wride et al (2000)': vs_cpt_wrideetal,
     'Vs CPT Tonni and Simonini (2013)': vs_cpt_tonniandsimonini,
+    'Vs CPT McGann et al (2018)': vs_cpt_mcgannetal,
+
 }

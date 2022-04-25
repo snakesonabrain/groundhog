@@ -4,6 +4,7 @@
 __author__ = 'Bruno Stuyts'
 
 # Native Python packages
+from multiprocessing.sharedctypes import Value
 import os
 import warnings
 from copy import deepcopy
@@ -1139,8 +1140,10 @@ class PCPTProcessing(InsituTestProcessing):
     # region Data plotting
 
     def plot_raw_pcpt(self, qc_range=(0, 100), qc_tick=10, fs_range=(0, 1), fs_tick=0.1,
-                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2,
+                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2, rf_range=(0, 5), rf_tick=0.5,
                       show_hydrostatic=True,
+                      plot_friction_ratio=True,
+                      friction_ratio_panel=3,
                       plot_height=700, plot_width=1000, return_fig=False,
                       plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,
                       hydrostaticcolor=None, show_hydrostatic_legend=False, plot_layers=True):
@@ -1156,6 +1159,11 @@ class PCPTProcessing(InsituTestProcessing):
         :param z_range: Range for the depth (default=None for plotting from zero to maximum cone penetration)
         :param z_tick: Tick interval for depth (default=2m)
         :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param rf_range: Range for the friction ratio, if used (default=None for plotting from zero to 5%)
+        :param rf_tick: Tick interval for friction ratio, if used (default=0.5%)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted
+        :param friction_ratio_panel: Panel for plotting friction ratio (default=3 for pore pressure panel). Only used when ``plot_friction_ratio=True``
         :param plot_height: Height for the plot (default=700px)
         :param plot_width: Width for the plot (default=1000px)
         :param return_fig: Boolean determining whether the figure needs to be returned (True) or plotted (False)
@@ -1183,26 +1191,51 @@ class PCPTProcessing(InsituTestProcessing):
                 y=push_data['z [m]'],
                 line=dict(color=color),
                 showlegend=False, mode='lines', name=r'$ q_c $')
-            fig.append_trace(trace1, 1, 1)
+            
             trace2 = go.Scatter(
                 x=push_data['fs [MPa]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
                 showlegend=False, mode='lines', name=r'$ f_s $')
-            fig.append_trace(trace2, 1, 2)
             trace3 = go.Scatter(
                 x=push_data['u2 [MPa]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
                 showlegend=False, mode='lines', name=r'$ u $')
-            fig.append_trace(trace3, 1, 3)
+            if plot_friction_ratio:
+                trace_rf = go.Scatter(
+                    x=100 * push_data['fs [MPa]'] / push_data['qc [MPa]'],
+                    y=push_data['z [m]'],
+                    line=dict(color=color),
+                    showlegend=False, mode='lines', name=r'$ R_f $')
+                if friction_ratio_panel == 1:
+                    fig.append_trace(trace_rf, 1, 1)
+                    fig.append_trace(trace2, 1, 2)
+                    fig.append_trace(trace3, 1, 3)
+                elif friction_ratio_panel == 2:
+                    fig.append_trace(trace1, 1, 1)
+                    fig.append_trace(trace_rf, 1, 2)
+                    fig.append_trace(trace3, 1, 3)
+                elif friction_ratio_panel == 3:
+                    fig.append_trace(trace1, 1, 1)
+                    fig.append_trace(trace2, 1, 2)
+                    fig.append_trace(trace_rf, 1, 3)
+                else:
+                    raise ValueError("friction_ratio_panel needs to be equal to 1, 2 or 3")
+            else:
+                fig.append_trace(trace1, 1, 1)
+                fig.append_trace(trace2, 1, 2)
+                fig.append_trace(trace3, 1, 3)
         if show_hydrostatic:
-            trace3 = go.Scatter(
-                x=0.001 * self.data['z [m]'] * self.waterunitweight,
-                y=self.data['z [m]'],
-                line=dict(color=hydrostaticcolor, dash='dot'),
-                showlegend=show_hydrostatic_legend, mode='lines', name=r'$ u_{hydrostatic} $')
-            fig.append_trace(trace3, 1, 3)
+            if plot_friction_ratio and friction_ratio_panel == 3:
+                pass
+            else:
+                trace3 = go.Scatter(
+                    x=0.001 * self.data['z [m]'] * self.waterunitweight,
+                    y=self.data['z [m]'],
+                    line=dict(color=hydrostaticcolor, dash='dot'),
+                    showlegend=show_hydrostatic_legend, mode='lines', name=r'$ u_{hydrostatic} $')
+                fig.append_trace(trace3, 1, 3)
         # Plot layers
         try:
             for i, row in self.layerdata.iterrows():
@@ -1236,8 +1269,17 @@ class PCPTProcessing(InsituTestProcessing):
         fig['layout']['xaxis3'].update(
             title=r'$ u  \ [\text{MPa}] $', side='top', anchor='y',
             range=u2_range, dtick=u2_tick)
-        fig['layout']['yaxis1'].update(
-            title=r'$ z \ [\text{m}]$', range=z_range, dtick=z_tick)
+        if plot_friction_ratio and friction_ratio_panel == 1:
+            fig['layout']['yaxis1'].update(
+                title=r'$ R_f \ [%] $', range=rf_range, dtick=rf_tick)
+        elif plot_friction_ratio and friction_ratio_panel == 2:
+            fig['layout']['yaxis2'].update(
+                title=r'$ R_f \ [%] $', range=rf_range, dtick=rf_tick)
+        elif plot_friction_ratio and friction_ratio_panel == 3:
+            fig['layout']['yaxis3'].update(
+                title=r'$ R_f \ [%] $', range=rf_range, dtick=rf_tick)
+        else:
+            raise ValueError("friction_ratio_panel needs to be equal to 1, 2 or 3")
         fig['layout'].update(
             title=plot_title, hovermode='closest',
             height=plot_height, width=plot_width,

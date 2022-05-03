@@ -320,18 +320,21 @@ class SoilProfile(pd.DataFrame):
         x = np.insert(second_array_x, np.arange(len(first_array_x)), first_array_x)
         return z, x
 
-    def map_soilprofile(self, nodalcoords, target_depthkey='z [m]', keys_to_map=None, invert_sign=False, offset=0):
+    def map_soilprofile(self, nodalcoords, target_depthkey='z [m]', keys_to_map=None, invert_sign=False, offset=0,
+        include_layertransitions=False):
         """
         Maps the soilprofile to a grid. The depth coordinates to the grid are specified
         in a list or Numpy array (``nodalcoords``).
         The depth coordinates should be strictly ascending (no duplicates) and the minimum and
         maximum should be contained inside the soil profile bounds.
+        Layer transitions can be included in the grid when ``include_layertransitions=True``.
         All soil parameters are interpolated onto this grid.
         :param nodalcoords: List or Numpy array with the nodal coordinates of the grid
         :param target_depthkey: Name of the depth key in the resulting dataframe
         :param keys_to_map: List with the soilprofile keys to map
         :param invert_sign: Boolean determining whether to invert the sign after interpolation
         :param offset: Offset by which the depth is shifted (added to the depth after sign conversion)
+        :param include_layertransitions: Boolean to determine whether the layer transitions needs to be included in the grid (default=False)
         :return: Returns a dataframe with the full grid with soil parameters
         """
         # 1. Convert nodalcoords to Numpy array
@@ -339,6 +342,12 @@ class SoilProfile(pd.DataFrame):
             z = np.array(nodalcoords)
         except Exception as err:
             raise ValueError("Could not convert nodal coords to Numpy array (%s)" % str(err))
+        # Merge layer transitions
+        if include_layertransitions:
+            z = np.unique((np.append(z, self.layer_transitions())))
+        else:
+            pass
+
         # Create a target dataframe with the depth column
         target_df = pd.DataFrame({
             target_depthkey: z,

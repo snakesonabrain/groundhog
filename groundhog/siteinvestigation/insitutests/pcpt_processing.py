@@ -1142,7 +1142,7 @@ class PCPTProcessing(InsituTestProcessing):
     def plot_raw_pcpt(self, qc_range=(0, 100), qc_tick=10, fs_range=(0, 1), fs_tick=0.1,
                       u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2, rf_range=(0, 5), rf_tick=0.5,
                       show_hydrostatic=True,
-                      plot_friction_ratio=True,
+                      plot_friction_ratio=False,
                       friction_ratio_panel=3,
                       plot_height=700, plot_width=1000, return_fig=False,
                       plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,
@@ -1162,7 +1162,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param rf_range: Range for the friction ratio, if used (default=None for plotting from zero to 5%)
         :param rf_tick: Tick interval for friction ratio, if used (default=0.5%)
         :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
-        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted
+        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted (default=False)
         :param friction_ratio_panel: Panel for plotting friction ratio (default=3 for pore pressure panel). Only used when ``plot_friction_ratio=True``
         :param plot_height: Height for the plot (default=700px)
         :param plot_width: Width for the plot (default=1000px)
@@ -1202,12 +1202,13 @@ class PCPTProcessing(InsituTestProcessing):
                 y=push_data['z [m]'],
                 line=dict(color=color),
                 showlegend=False, mode='lines', name=r'$ u $')
-            if plot_friction_ratio:
-                trace_rf = go.Scatter(
+            trace_rf = go.Scatter(
                     x=100 * push_data['fs [MPa]'] / push_data['qc [MPa]'],
                     y=push_data['z [m]'],
                     line=dict(color=color),
                     showlegend=False, mode='lines', name=r'$ R_f $')
+
+            if plot_friction_ratio:
                 if friction_ratio_panel == 1:
                     fig.append_trace(trace_rf, 1, 1)
                     fig.append_trace(trace2, 1, 2)
@@ -1260,6 +1261,7 @@ class PCPTProcessing(InsituTestProcessing):
                     fig.append_trace(layer_trace_u2, 1, 3)
         except:
             pass
+
         fig['layout']['xaxis1'].update(
             title=r'$ q_c \ [\text{MPa}] $', side='top', anchor='y',
             range=qc_range, dtick=qc_tick)
@@ -1269,17 +1271,26 @@ class PCPTProcessing(InsituTestProcessing):
         fig['layout']['xaxis3'].update(
             title=r'$ u  \ [\text{MPa}] $', side='top', anchor='y',
             range=u2_range, dtick=u2_tick)
-        if plot_friction_ratio and friction_ratio_panel == 1:
-            fig['layout']['yaxis1'].update(
-                title=r'$ R_f \ [%] $', range=rf_range, dtick=rf_tick)
-        elif plot_friction_ratio and friction_ratio_panel == 2:
-            fig['layout']['yaxis2'].update(
-                title=r'$ R_f \ [%] $', range=rf_range, dtick=rf_tick)
-        elif plot_friction_ratio and friction_ratio_panel == 3:
-            fig['layout']['yaxis3'].update(
-                title=r'$ R_f \ [%] $', range=rf_range, dtick=rf_tick)
+
+        if plot_friction_ratio:
+            if friction_ratio_panel == 1:
+                fig['layout']['xaxis1'].update(
+                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+            elif plot_friction_ratio and friction_ratio_panel == 2:
+                fig['layout']['xaxis2'].update(
+                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+            elif plot_friction_ratio and friction_ratio_panel == 3:
+                fig['layout']['xaxis3'].update(
+                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+            else:
+                raise ValueError("friction_ratio_panel needs to be equal to 1, 2 or 3")
         else:
-            raise ValueError("friction_ratio_panel needs to be equal to 1, 2 or 3")
+            pass
+        
+        fig['layout']['yaxis1'].update(
+            title=r'$ \text{Depth below mudline, } z \ [\text{m}] $', autorange='reversed',
+            range=z_range, dtick=z_tick)
+        
         fig['layout'].update(
             title=plot_title, hovermode='closest',
             height=plot_height, width=plot_width,

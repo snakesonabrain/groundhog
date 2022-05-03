@@ -43,7 +43,8 @@ GROUP_NAMES = {
     'TRIG': 'Triaxial Tests - Total Stress - General',
     'TRIT': 'Triaxial Tests - Total Stress - Data',
     'GRAD': 'Particle size distribution data',
-    'RELD': 'Relative density test'
+    'RELD': 'Relative density test',
+    'STCN': 'Static cone penetration test'
 }
 
 AGS_TABLES = {
@@ -662,6 +663,30 @@ AGS_TABLES = {
         'RELD_Ø63': 'Percentage weight percent of sample retained on 6.3mm sieve',
         'RELD_Ø2Ø': 'Percentage weight percent of sample retained on 2mm sieve',
         'RELD_DMIN': 'Minimum dry density' 
+    },
+    'STCN': {
+        'HOLE_ID': 'Location identifier',
+        'STCN_DPTH': 'Depth',
+        'STCN_TYP': 'Cone test type', 
+        'STCN_REF': 'Cone ID',
+        'STCN_FORC': 'Axial force',
+        'STCN_FRIC': 'Sleeve force',
+        'STCN_RES': 'Cone resistance',
+        'STCN_FRES': 'Sleeve friction',
+        'STCN_PWP1': 'Pore water pressure 1',
+        'STCN_PWP2': 'Pore water pressure 2',
+        'STCN_PWP3': 'Pore water pressure 3',
+        'STCN_CON': 'Conductivity',
+        'STCN_TEMP': 'Temperature',
+        'STCN_PH': 'pH',
+        'STCN_SLP1': 'Slope indicator 1',
+        'STCN_SLP2': 'Slope indicator 2',
+        'STCN_REDX': 'Redox potential',
+        'STCN_FFD': 'Fluorescense',
+        'STCN_PMT': 'Photo-multiplier tube reading',
+        'STCN_PID':  'Photo ionization detector reading',
+        'STCN_FID': 'Flame ionization detector reading',
+        'FILE_FSET': 'Associated file reference'
     }
 }
 
@@ -922,6 +947,15 @@ AGS_TABLES_SHORTHANDS = {
         'GRAD_SIZE': 'Size',
         'GRAD_PERP': 'Percentage passing',
         'GRAD_TYPE': 'Test type' 
+    },
+    'STCN': {
+        'HOLE_ID': 'Location identifier',
+        'STCN_DPTH': 'z',
+        'STCN_RES': 'qc',
+        'STCN_FRES': 'fs',
+        'STCN_PWP1': 'u1',
+        'STCN_PWP2': 'u2',
+        'STCN_PWP3': 'u3'
     }
 }
 

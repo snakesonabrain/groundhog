@@ -94,20 +94,7 @@ STRESSES_STRIPLOAD = {
     'z': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'x': {'type': 'float', 'min_value': None, 'max_value': None},
     'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'triangular': {'type': 'bool', },
-}
-
-STRESSES_STRIPLOAD_ERRORRETURN = {
-    'delta sigma z [kPa]': np.nan,
-    'delta sigma x [kPa]': np.nan,
-    'delta tau zx [kPa]': np.nan,
-}
-
-STRESSES_STRIPLOAD = {
-    'z': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'x': {'type': 'float', 'min_value': None, 'max_value': None},
-    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'imposedforce': {'type': 'float', 'min_value': None, 'max_value': None},
+    'imposedstress': {'type': 'float', 'min_value': None, 'max_value': None},
     'triangular': {'type': 'bool', },
 }
 
@@ -119,7 +106,7 @@ STRESSES_STRIPLOAD_ERRORRETURN = {
 
 
 @Validator(STRESSES_STRIPLOAD, STRESSES_STRIPLOAD_ERRORRETURN)
-def stresses_stripload(z, x, width, imposedforce, triangular=False, **kwargs):
+def stresses_stripload(z, x, width, imposedstress, triangular=False, **kwargs):
     """
     Calculates the stress redistribution at a point in the subsoil due to a strip load with a given width, applied at the surface.
 
@@ -128,7 +115,7 @@ def stresses_stripload(z, x, width, imposedforce, triangular=False, **kwargs):
     :param z: Vertical distance from the soil surface (:math:`z`) [:math:`m`] - Suggested range: z >= 0.0
     :param x: Horizontal offset from the leftmost corner of the strip footing (:math:`x`) [:math:`m`]
     :param width: Width of the strip footing (:math:`B`) [:math:`m`] - Suggested range: width >= 0.0
-    :param imposedforce: Maximum value of the imposed force per unit length (:math:`q_s`) [:math:`kN/m`]
+    :param imposedstress: Maximum value of the imposed force per unit area (:math:`q_s`) [:math:`kN/m^2`]
     :param triangular: Boolean determining whether a triangular load pattern is applied (optional, default= False)
 
     .. math::
@@ -175,36 +162,41 @@ def stresses_stripload(z, x, width, imposedforce, triangular=False, **kwargs):
 
     R_1 = np.sqrt(x ** 2 + z ** 2)
     R_2 = np.sqrt((x - width) ** 2 + z ** 2)
-    beta = np.arccos(z / R_2)
-    alpha = np.arccos(z / R_1) - beta
+
+    _theta1 = np.arccos(z / R_1)
+    _theta2 = np.arccos(z / R_2)
+    if x < width:
+        _theta2 = -_theta2
+    beta = _theta2
+    alpha = _theta1 - beta
 
     if triangular:
         # Calculation for triangular stress distribution
-        _delta_sigma_z = (imposedforce / np.pi) * (
+        _delta_sigma_z = (imposedstress / np.pi) * (
             (x / width) * alpha -
             0.5 * np.sin(2 * beta)
         )
-        _delta_sigma_x = (imposedforce / np.pi) * (
+        _delta_sigma_x = (imposedstress / np.pi) * (
             (x / width) * alpha -
             (z / width) * np.log((R_1 ** 2) / (R_2 ** 2)) +
             0.5 * np.sin(2 * beta)
         )
-        _delta_tau_zx = (imposedforce / (2 * np.pi)) * (
+        _delta_tau_zx = (imposedstress / (2 * np.pi)) * (
             1 +
             np.cos(2 * beta) -
             2 * (z / width) * alpha
         )
     else:
         # Calculation for uniform stress distribution
-        _delta_sigma_z = (imposedforce / np.pi) * (
+        _delta_sigma_z = (imposedstress / np.pi) * (
             alpha +
             np.sin(alpha) * np.cos(alpha + 2 * beta)
         )
-        _delta_sigma_x = (imposedforce / np.pi) * (
+        _delta_sigma_x = (imposedstress / np.pi) * (
             alpha -
             np.sin(alpha) * np.cos(alpha + 2 * beta)
         )
-        _delta_tau_zx = (imposedforce / np.pi) * (
+        _delta_tau_zx = (imposedstress / np.pi) * (
             np.sin(alpha) * np.sin(alpha + 2 * beta)
         )
 

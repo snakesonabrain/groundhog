@@ -1180,3 +1180,60 @@ def plot_fence_diagram(
             iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
 
         return fig
+
+
+class CalculationGrid(object):
+    """
+    A ``CalculationGrid`` is an object which consist of a dataframe with nodes ``.nodes``
+    and a dataframe with elements ``.elements``.
+    Properties of the soil profile are mapped to the nodes and the elements to allow subsequent calculation.
+    At layer transition nodes, the properties of the layer below are always assigned to the node.
+    """
+    
+    def __init__(self, soilprofile, dz, custom_nodes=None, include_layertransitions=True):
+        """
+        Initializes the ``CalculationGrid`` object from a ``SoilProfile`` object.
+        A nodes offset ``dz`` needs to be specified. Additional nodes are inserted
+        at layer transitions by default (``include_layertransitions=True``).
+        The user can also specify a NumPy array with custom_nodes (None by default).
+        After initialization, the dataframes of nodal and elemental information are created.
+        For properties varying linearly across a layer, the value of the property at the element center
+        is also calculated and is given the name of the parameter (without from and to).
+        """
+        self.soilprofile = soilprofile
+        self.set_nodes(dz=dz, custom_nodes=custom_nodes, include_layertransitions=include_layertransitions)
+        self.set_elements()
+        
+    def set_nodes(self, dz, custom_nodes=None, include_layertransitions=True, **kwargs):
+        if custom_nodes is None:
+            no_nodes = int(np.ceil(1 + (self.soilprofile.max_depth - self.soilprofile.min_depth) / dz))
+            self.nodes = self.soilprofile.map_soilprofile(
+                nodalcoords=np.linspace(self.soilprofile.min_depth, self.soilprofile.max_depth, no_nodes),
+                include_layertransitions=include_layertransitions, **kwargs)
+        else:
+            self.nodes = self.soilprofile.map_soilprofile(
+                nodalcoords=custom_nodes,
+                include_layertransitions=include_layertransitions,
+                **kwargs)
+            
+    def set_elements(self):
+        self.elements = pd.DataFrame({
+            "z from [m]": list(self.nodes['z [m]'][:-1]),
+            "z to [m]": list(self.nodes['z [m]'][1:])
+        })
+        self.elements['z [m]'] = 0.5 * (
+            self.elements['z from [m]'] +
+            self.elements['z to [m]']
+            )
+        self.elements['dz [m]'] = list(self.nodes['z [m]'].diff()[1:])
+        for _param in self.soilprofile.numerical_soil_parameters():
+            if self.soilprofile.check_linear_variation(_param):
+                self.elements["%sfrom [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])] = \
+                    list(self.nodes[_param])[:-1]
+                self.elements["%sto [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])] = \
+                    list(self.nodes[_param])[1:]
+                self.elements[_param] = \
+                    0.5 * (np.array(list(self.nodes[_param])[:-1]) +
+                           np.array(list(self.nodes[_param])[1:]))
+            else:
+                self.elements[_param] = list(self.nodes[_param][:-1])

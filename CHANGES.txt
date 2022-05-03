@@ -12,7 +12,7 @@ v0.8.0, TBC - 2021 5th release
     - Added functionality for parsing AGS3.1 files using the agsformat argument in the AGSConverter
     - Added possibility of plotting friction ratio Rf instead of another panel to plot_raw_pcpt
     - Bugfix in Boussinesq stress calculation below a strip footing
-    - TODO: Add general functionality for gridded calculations
+    - Add general functionality for gridded calculations (``CalculationGrid`` in the ``soilprofile`` module)
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine

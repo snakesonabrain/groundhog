@@ -4,13 +4,9 @@
 __author__ = 'Bruno Stuyts'
 
 # Native Python packages
-from turtle import pu
 import unittest
-import os
 
 # 3rd party packages
-import pandas as pd
-import numpy as np
 
 # Project imports
 from groundhog.consolidation.groundwaterflow import pumpingtests

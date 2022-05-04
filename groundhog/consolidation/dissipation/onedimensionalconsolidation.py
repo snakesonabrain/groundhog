@@ -96,7 +96,7 @@ CONSOLIDATION_DEGREE = {
     'time': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'cv': {'type': 'float', 'min_value': 0.1, 'max_value': 1000},
     'drainage_length': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'sandtype': {'type': 'string', 'options': ("uniform", "triangular"), 'regex': None}
+    'distribution': {'type': 'string', 'options': ("uniform", "triangular"), 'regex': None}
 }
 
 CONSOLIDATION_DEGREE_ERRORRETURN = {
@@ -244,3 +244,157 @@ def consolidation_degree(time, cv, drainage_length, distribution='uniform'):
         'Tv [-]': _Tv
     }
 
+
+class ConsolidationCalculation(object):
+    """
+    The consolidation equation can be discretised as follows:
+
+    .. math::
+        u_{i,j+1} = u_{i,j} + \\frac{c_v \\Delta t}{( \\Delta z )^2} \\left( u_{i-1,j} - 2 u_{i,j} + u_{i+1,j} \\right)
+
+
+    At permeable boundaries, the excess pore pressure is 0 (:math:`u = 0`). At impervious boundaries, the following boundary condition applies:
+
+    .. math::
+        \\frac{\\partial u}{\partial z} = 0 = \\frac{1}{2 \\Delta z} \\left( u_{i-1,j} - u_{i+1,j} \\right) = 0
+
+        \\implies u_{i,j+1} = u_{i,j} + \\frac{c_v \\Delta t}{( \\Delta z )^2}  \\left( 2 u_{i-1,j} - 2 u_{i,j} \\right)
+
+
+    To ensure stability, the timestep needs to be chosen according to the following criterion:
+
+    .. math::
+        \\alpha = \\frac{c_v \\Delta t}{(\\Delta z)^2} < \\frac{1}{2}
+
+
+    Usually, :mathm:`\\alpha = 0.25` is used to determine the timestep.
+
+    The discretisation in space and time is done as follows where the number of timesteps is usually calculated from a chosen node offset:
+
+    .. math::
+        \\Delta z = \\frac{H_0}{m}, \\ \\Delta t = \\frac{t}{n}
+
+
+    """
+    
+    def __init__(self, height, total_time, no_nodes):
+        """
+        Initialises the consolidation calculation with the height of the layer and the total time.
+        Subdivision of the height in m elements is performed.
+        """
+        self.m = no_nodes
+        self.H0 = height
+        self.T = total_time
+        self.z = np.linspace(0, height, no_nodes)
+        self.dz = np.diff(self.z)[0]
+        
+    def set_cv(self, cv, uniform=True, cv_depths=None):
+        """
+        Sets the coefficient of consolidation. A constant value or an array of cv varying with depth can be
+        specified. cv is specified in m2/yr and is converted to m2/s inside the routine (all calcs happen in s)
+        """
+        if uniform:
+            self.cv = np.ones(self.z.__len__()) * cv / (365 * 24 * 3600)
+            self.cv_depths = None
+        else:
+            if cv_depths is None:
+                raise ValueError("Depths corresponding to the given values of cv need to be specified")
+            self.cv = np.interp(self.z, cv_depths, cv / (365 * 24 * 3600))
+            
+        self.dt = 0.25 * (self.dz ** 2) / self.cv.max()
+        self.n = int(np.ceil(self.T / self.dt))
+        self.times = np.linspace(0, self.T, self.n+1)
+    
+    def set_top_boundary(self, freedrainage=True):
+        """
+        Sets the boundary condition at the top
+        
+        Set ``freedrainage=False`` for an impervious top surface
+        """
+        if freedrainage:
+            self.top_boundary = "open"
+        else:
+            self.top_boundary = "closed"
+            
+    def set_bottom_boundary(self, freedrainage=True):
+        """
+        Sets the boundary condition at the bottom
+        
+        Set ``freedrainage=False`` for an impervious top surface
+        """
+        if freedrainage:
+            self.bottom_boundary = "open"
+        else:
+            self.bottom_boundary = "closed"
+            
+    def set_initial(self, u0, u0_depths):
+        """
+        Sets the initial excess pore pressure distribution
+        
+        :param u0: NumPy array with initial excess pore pressure
+        :param u0_depths: NumPy array with the depths corresponding to the defined excess pore pressures
+        """
+        if u0.__len__() != u0_depths.__len__():
+            raise ValueError(
+                "Array with excess pore pressures and corresponding depths need to be of equal length")
+        self.u0 = np.interp(self.z, u0_depths, u0)
+    
+    def set_output_times(self, output_times):
+        """
+        Sets the times at which output is requested.
+        These are pasted into the array with computed times
+        """
+        self.times = np.unique(np.sort(np.append(self.times, output_times)))
+        self.dts = np.diff(self.times)
+        self.output_times = output_times
+        self.output_indices = []
+        for _t in self.output_times:
+            self.output_indices.append(np.where(self.times == _t)[0][0])
+        
+    def calculate(self):
+        """
+        Calculates the pore pressure dissipation until the specified output time
+        """
+        u = deepcopy(self.u0)
+        self.u_steps = []
+        self.u_steps.append(u)
+        for j, _dt in enumerate(self.dts):
+            u_previous = deepcopy(u)
+            u = np.zeros(self.m)
+            for i, _z in enumerate(self.z):
+                if i == 0:
+                    if self.top_boundary == "open":
+                        u[i] = 0
+                    elif self.top_boundary == "closed":
+                        u[i] = u_previous[i] + ((self.cv[i] * _dt) / (self.dz ** 2)) * \
+                            (-2 * u_previous[i] + 2 * u_previous[i+1])
+                elif i == self.m-1:
+                    if self.bottom_boundary == "open":
+                        u[i] = 0
+                    elif self.bottom_boundary == "closed":
+                        u[i] = u_previous[i] + ((self.cv[i] * _dt) / (self.dz ** 2)) * \
+                            (2 * u_previous[i-1] - 2 * u_previous[i])
+                else:
+                    u[i] = u_previous[i] + ((self.cv[i] * _dt) / (self.dz ** 2)) * \
+                        (u_previous[i-1] - 2 * u_previous[i] + u_previous[i+1])
+            self.u_steps.append(u)
+            
+    def plot_results(self, plot_title="", showfig=True, xtitle=r'$ \Delta u \ \text{[kPa]} $',
+                     ytitle=r'$ z \ \text{[m]} $'):
+        self.fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+        for j, i in enumerate(self.output_indices):
+            try:
+                _data = go.Scatter(
+                    x=self.u_steps[i], y=self.z, showlegend=True, mode='lines',
+                                   name='t=%.2es' % self.times[i],
+                    line=dict(color=DEFAULT_PLOTLY_COLORS[j % 10]))
+                self.fig.append_trace(_data, 1, 1)
+            except Exception as err:
+                print(str(err), i)
+        self.fig['layout']['xaxis1'].update(title=xtitle)
+        self.fig['layout']['yaxis1'].update(title=ytitle, range=(self.z.max(), 0))
+        self.fig['layout'].update(height=500, width=600,
+            title=plot_title,
+            hovermode='closest')
+        if showfig:
+            self.fig.show()

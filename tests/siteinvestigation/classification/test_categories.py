@@ -41,3 +41,8 @@ class Test_Categories(unittest.TestCase):
             )['strength class'], 'Stiff'
         )
 
+    def test_uscs_categories(self):
+        self.assertEqual(
+            categories.uscs_categories('OL')['Soil type'],
+            "Organic clays organic silt-clays of low plasticity"
+        )

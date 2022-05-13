@@ -29,7 +29,7 @@ PCPT_KEY_MAPPING = {
     'Bq [-]': 'Bq',
     'Fr [%]': 'Fr',
     'Rf [%]': 'Rf',
-    'K0 [-]': 'K0',
+    'K0 [-]': 'k0',
     'Vs [m/s]': 'Vs',
     'gamma [kN/m3]': 'gamma',
     'OCR [-]': 'ocr',

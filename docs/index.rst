@@ -103,6 +103,8 @@ specifies the physical meaning and the units of input and output variables.
 
    shallowfoundations/shallowfoundations_toplevel
 
+   excavations/excavations_toplevel
+
    soildynamics/soildynamics_toplevel
 
    standards/standards_toplevel

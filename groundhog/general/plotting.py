@@ -692,7 +692,7 @@ class LogPlotMatplotlib(object):
 
     def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
                  fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
-                 soiltypelegend=True, figheight=6,
+                 soiltypelegend=True, figheight=6, plot_layer_transitions=True, showgrid=True,
                  **kwargs):
         """
         Initializes a figure with a minilog on the side.
@@ -702,9 +702,12 @@ class LogPlotMatplotlib(object):
         :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
         :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
         :param figheight: Figure height in inches (default=6in)
+        :param plot_layer_transitions: Boolean determining whether layer transitions need to be plotted or not
+        :param showgrid: Boolean determining whether a grid is shown on the plot panels or not (default=True)
         :param kwargs: Optional keyword arguments for the make_subplots method
         """
-
+        self.soilprofile = soilprofile
+        self.no_panels = no_panels
         # Determine the panel widths
         panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, range(0, no_panels)))
 
@@ -745,7 +748,8 @@ class LogPlotMatplotlib(object):
             except:
                 pass
 
-        plt.legend(handles=_legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        self._legend_entries = _legend_entries
+
         self.axes[0].set_xlim([0, 1])
         self.axes[0].get_xaxis().set_ticks([])
         self.axes[0].set_ylabel('Depth below mudline [m]',size=15)
@@ -757,7 +761,15 @@ class LogPlotMatplotlib(object):
             self.axes[i+1].set_xlim([0, 1])
             self.axes[i+1].set_ylim([soilprofile.max_depth, soilprofile.min_depth])
 
-    def add_trace(self, x, z, name, panel_no, resetaxisrange=True, line=True, **kwargs):
+        self.plot_layer_transitions = plot_layer_transitions
+
+        if showgrid:
+            for i in range(0, no_panels):
+                self.axes[i+1].grid()
+        else:
+            pass
+
+    def add_trace(self, x, z, name, panel_no, resetaxisrange=False, line=True, showlegend=False, **kwargs):
         """
         Adds a trace to the plot. By default, lines are added but optional keyword arguments can be added for plt.plot as ``**kwargs``
         :param x: Array with the x-values
@@ -765,6 +777,8 @@ class LogPlotMatplotlib(object):
         :param name: Label for the trace (LaTeX allowed, e.g. ``r'$ \alpha $'``)
         :param panel_no: Panel to plot the trace on (1-indexed)
         :param resetaxisrange: Boolean determining whether the axis range needs to be reset to fit this trace
+        :param line: Boolean determining whether the data needs to be shown as a line or as individual markers
+        :param showlegend: Boolean determining whether the trace name needs to be added to the legend entries
         :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
         :return: Adds the trace to the specified panel
         """
@@ -774,8 +788,18 @@ class LogPlotMatplotlib(object):
             self.axes[panel_no].scatter(x, z,label=name, **kwargs)
 
         if resetaxisrange:
-            self.axes[panel_no].set_xlim([np.array(x).min(), np.array(x).max()])
-        self.axes[panel_no].legend()
+            self.axes[panel_no].set_xlim([x[~np.isnan(x)].min(), x[~np.isnan(x)].max()])
+        
+        if showlegend:
+            self._legend_entries.append(name)
+
+    def plot_parameter(self, parameter, panel_no, name, **kwargs):
+        """
+        Plot the trace of a certain parameter in the ``SoilProfile`` object associated with the logplot
+        on the specified panel
+        """
+        z, x = self.soilprofile.soilparameter_series(parameter)
+        self.add_trace(x=x, z=z, name=name, panel_no=panel_no, **kwargs)
 
     def set_xaxis_title(self, title, panel_no, size=15, **kwargs):
         """
@@ -826,7 +850,21 @@ class LogPlotMatplotlib(object):
         """
         plt.gcf().set_size_inches(width, height)
 
-    def show(self):
+    def show(self, showlegend=True):
+        if self.plot_layer_transitions:
+            for i in range(0, self.no_panels):
+                for _y in self.soilprofile.layer_transitions():
+                    self.axes[i+1].plot(
+                        self.axes[i+1].get_xlim(),
+                        (_y, _y),
+                        color='grey', ls="--"
+                    )
+        else:
+            pass
+
+        if showlegend:
+            plt.legend(handles=self._legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        
         plt.show()
 
     def save_fig(self, path, dpi=250, bbox_inches='tight',pad_inches=1):

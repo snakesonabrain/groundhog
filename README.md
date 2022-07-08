@@ -42,19 +42,22 @@ You can support the development of groundhog by buying me a coffee
 License and copyright
 -----------------------
 
-groundhog is provided under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. Please check the license terms below and in the license file.
+groundhog. A general-purpose Python library for geotechnical engineering.
+    Copyright (C) 2020  Bruno Stuyts
 
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-  Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-  Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-  Neither the name of the software nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-  
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.
-
-Copyright (c) 2017-2021, Bruno Stuyts All rights reserved.
 
 Disclaimer
 -------------

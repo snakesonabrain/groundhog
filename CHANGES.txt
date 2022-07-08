@@ -16,6 +16,7 @@ v0.8.0, TBC - 2021 5th release
     - Added 1D excess pore pressure dissipation calculations based on finite difference analysis
     - Added class for settlement calculations (``SettlementCalculation``) in the ``shallowfoundations.settlement`` module
     - Added module for excavations and started with code for coefficients of active and passive earth pressure
+    - Changed license to GNU GPLv3
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine

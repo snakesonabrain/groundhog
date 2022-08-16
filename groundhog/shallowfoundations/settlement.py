@@ -230,11 +230,11 @@ class SettlementCalculation(object):
         self.soilprofile['pc to [kPa]'] = self.soilprofile['Vertical effective stress to [kPa]'] * \
             self.soilprofile['OCR [-]']
                             
-    def plot_initial_state(self, plot_title="", e0_range=(0, 3), **kwargs):
+    def plot_initial_state(self, plot_title="", e0_range=(0, 3), fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
         """
         Plots the initial stress vs depth and the initial void ratio vs depth
         """
-        self.initial_state_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2)
+        self.initial_state_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2, fillcolordict=fillcolordict)
         self.initial_state_plot.add_trace(
             x=self.soilprofile.soilparameter_series('e0 [-]')[1],
             z=self.soilprofile.soilparameter_series('e0 [-]')[0],
@@ -354,11 +354,11 @@ class SettlementCalculation(object):
         else:
             raise ValueError("Foundation shape must be one of: 'strip', 'circular', 'rectangular'")
     
-    def plot_stress_increase(self, plot_title="", **kwargs):
+    def plot_stress_increase(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
         """
         Plots the initial stress vs depth and the stress increase
         """
-        self.stress_increase_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2)
+        self.stress_increase_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2, fillcolordict=fillcolordict)
         self.stress_increase_plot.add_trace(
             x=self.grid.nodes['delta sigma v [kPa]'],
             z=self.grid.nodes['z [m]'],
@@ -410,11 +410,11 @@ class SettlementCalculation(object):
             (1 - (self.grid.elements["delta z [m]"] / self.grid.elements["dz [m]"])) - \
             (self.grid.elements["delta z [m]"] / self.grid.elements["dz [m]"])
         
-    def plot_result(self, plot_title="", **kwargs):
+    def plot_result(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
         """
         Plots the settlement resulting from the stress increase
         """
-        self.result_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2)
+        self.result_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2, fillcolordict=fillcolordict)
         self.result_plot.add_trace(
             x=self.grid.nodes['Vertical effective stress [kPa]'] + self.grid.nodes['delta sigma v [kPa]'],
             z=self.grid.nodes['z [m]'],

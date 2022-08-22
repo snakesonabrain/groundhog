@@ -21,11 +21,8 @@ development so any request for additional functionality can always be submitted 
 The package is developed around four pilars:
 
 - Flexible input parameter validation: Predefined parameter ranges are defined for most functions, based on the range of soil parameters for which the function was originally developed. This validation can be overridden by the user but requires explicit definition of the modified parameter ranges;
-
 - Multiple outputs: Groundhog functions return a Python dictionary including intermediate results or derived quantities;
-
 - Data standardisation: Possibility to read multiple input file formats (e.g. CPT data);
-
 - Soil profiles: Easy encoding and manipulation of soil profiles.
 
 
@@ -59,11 +56,13 @@ Support groundhog
 
 A lot of time and effort has gone into the creation and maintenance of groundhog.
 You can support the development of groundhog by buying me a coffee.
-Training, writing of non-shared company-specific software built on groundhog and consultancy are additional revenue streams for the package. Get on touch if you are interested in these services.
 
 .. raw:: html
 
    <a href="https://www.buymeacoffee.com/groundhog"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
+
+
+Training, writing of non-shared company-specific software built on groundhog and consultancy are additional revenue streams for the package. Get in touch if you are interested in these services.
 
 
 Tutorials
@@ -75,16 +74,12 @@ Tutorials
 Tutorials are provided in the notebooks folder of the project. Jupyter notebooks are provided for the following examples:
 
 - Basic use of groundhog functions
-
 - Soil profile definition, manipulation and plotting
-
 - PCPT data loading
-
 - PCPT data processing
-
 - Loading AGS data
-
 - Axial pile capacity calculation according to Belgian practice
+- ...
 
 
 Function documentation
@@ -105,11 +100,15 @@ specifies the physical meaning and the units of input and output variables.
 
    shallowfoundations/shallowfoundations_toplevel
 
+   consolidation/consolidation_toplevel
+
    excavations/excavations_toplevel
 
    soildynamics/soildynamics_toplevel
 
    standards/standards_toplevel
+
+   constitutivemodels/constitutivemodels_toplevel
 
 
 Acknowledgements

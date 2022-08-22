@@ -1,12 +1,14 @@
-Soil parameter correlations
+Constitutive models
 ================================
 
 
 .. toctree::
    :maxdepth: 2
 
-   correlations_general
+   general
+
+   cohesionless
 
    cohesive
 
-   cohesionless
+   rock

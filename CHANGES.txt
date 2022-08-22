@@ -1,4 +1,4 @@
-v0.8.0, TBC - 2021 5th release
+v0.8.0, 28/08/2022 - ISFOG2020 release
     - Improved margin settings for PSD plots
     - Added correlation between acoustic impedance and bulk unit weight from Chen et al (2021)
     - Added common-origin approach for liquefaction assessment according to Saye et al (2021)
@@ -17,6 +17,8 @@ v0.8.0, TBC - 2021 5th release
     - Added class for settlement calculations (``SettlementCalculation``) in the ``shallowfoundations.settlement`` module
     - Added module for excavations and started with code for coefficients of active and passive earth pressure
     - Changed license to GNU GPLv3
+    - Added placeholders for constitutive modelling functionality (constitutivemodels module)
+    - Added tutorials for settlement and consolidation functionality
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine

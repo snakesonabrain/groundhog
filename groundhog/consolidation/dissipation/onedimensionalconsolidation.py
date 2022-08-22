@@ -117,7 +117,7 @@ def consolidation_degree(time, cv, drainage_length, distribution='uniform'):
     :param time: Time at which excess pore pressures are computed (:math:`t`) [:math:`s`]
     :param cv: Coefficient of consolidation (:math:`c_v`) [:math:`m^2/yr`]
     :param drainage_length: Drainage length (:math:`H_{dr}`) [:math:`m`]
-    
+    :param distribution: Shape of the initial excess pore pressure distribution. Choose between ``"uniform"`` (default) and ``"triangular"``
     .. math::
         T_v = \\frac{c_v t}{H_{dr}^2}
     

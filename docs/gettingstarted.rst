@@ -93,7 +93,7 @@ and executing the following command in an Anaconda Command Prompt or terminal wi
     python setup.py install
 
 
-1. Learning Python
+2. Learning Python
 ----------------------
 
 2.1. Jupyter notebooks

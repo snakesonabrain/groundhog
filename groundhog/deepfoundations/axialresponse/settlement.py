@@ -70,8 +70,8 @@ def pile_settlement_curves(
         'Toe 1': {'a': 145.4, 'b': 0.58, 'c': 3.21, 'd': 0.70},
         'Toe 2': {'a': 137.57, 'b': 0.06, 'c': 5.63, 'd': 0.78},
         'Toe 3': {'a': 139.37, 'b': 0.0, 'c': 8.01, 'd': 1.0},
-        'Shaft 1+2': {'a': 134.41, 'b': 3.49, 'c': 2.8, 'd': 0.82},
-        'Shaft 3': {'a': 118.64, 'b': 2.8, 'c': 5.91, 'd': 1.23}
+        'Shaft 1': {'a': 134.41, 'b': 3.49, 'c': 2.8, 'd': 0.82},
+        'Shaft 2+3': {'a': 118.64, 'b': 2.8, 'c': 5.91, 'd': 1.23}
     }
 
     displ = np.linspace(0.0, 25.0, 250)
@@ -88,27 +88,27 @@ def pile_settlement_curves(
     fmob_toe_3 = np.minimum(coeff['Toe 3']['a'] + ((coeff['Toe 3']['b'] - coeff['Toe 3']['a']) /
                                                    (1 + ((displ / coeff['Toe 3']['c']) ** coeff['Toe 3']['d']))),
                             100.0 * np.ones(len(displ)))
-    # Driven + CFA
-    fmob_shaft_12 = np.minimum(coeff['Shaft 1+2']['a'] + ((coeff['Shaft 1+2']['b'] - coeff['Shaft 1+2']['a']) /
-                                                          (1 + ((displ / coeff['Shaft 1+2']['c']) ** coeff['Shaft 1+2'][
+    # Driven
+    fmob_shaft_1 = np.minimum(coeff['Shaft 1']['a'] + ((coeff['Shaft 1']['b'] - coeff['Shaft 1']['a']) /
+                                                          (1 + ((displ / coeff['Shaft 1']['c']) ** coeff['Shaft 1'][
                                                               'd']))),
                                100.0 * np.ones(len(displ)))
-    # Bored
-    fmob_shaft_3 = np.minimum(coeff['Shaft 3']['a'] + ((coeff['Shaft 3']['b'] - coeff['Shaft 3']['a']) /
-                                                       (1 + ((displ / coeff['Shaft 3']['c']) ** coeff['Shaft 3'][
+    # CFA + Bored
+    fmob_shaft_23 = np.minimum(coeff['Shaft 2+3']['a'] + ((coeff['Shaft 2+3']['b'] - coeff['Shaft 2+3']['a']) /
+                                                       (1 + ((displ / coeff['Shaft 2+3']['c']) ** coeff['Shaft 2+3'][
                                                            'd']))),
                               100.0 * np.ones(len(displ)))
 
 
     if pile_type == 'driven':
         fmob_toe = fmob_toe_1
-        fmob_shaft = fmob_shaft_12
+        fmob_shaft = fmob_shaft_1
     elif pile_type == 'CFA':
         fmob_toe = fmob_toe_2
-        fmob_shaft = fmob_shaft_12
+        fmob_shaft = fmob_shaft_23
     elif pile_type == 'bored':
         fmob_toe = fmob_toe_3
-        fmob_shaft = fmob_shaft_3
+        fmob_shaft = fmob_shaft_23
     else:
         raise ValueError("Pile type not recognised")
 

@@ -391,4 +391,4 @@ class Test_DrainedCapacity(unittest.TestCase):
         result = failuremechanism_prandtl(
             friction_angle=0, width=5)
 
-        self.assertEqual(result['X [m]'].max(), 1.5 * 5)
+        self.assertAlmostEqual(result['X [m]'].max(), 1.5 * 5, 4)

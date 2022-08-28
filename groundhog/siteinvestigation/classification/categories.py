@@ -21,7 +21,7 @@ RELATIVEDENSITY_CATEGORIES = {
 }
 
 RELATIVEDENSITY_CATEGORIES_ERRORRETURN = {
-    'Relative density []': None,
+    'Relative density': None,
 }
 
 
@@ -159,3 +159,54 @@ def su_categories(
     return {
         'strength class': _strength_class,
     }
+
+USCS_DICTIONARY = {
+    "GW": "Well graded gravels, gravel- sand mixtures, little or no fines",
+    "GP": "Poorly graded gravels, gravel sand mixtures, little or no fines",
+    "GM": "Silty gravels, poorly graded gravel-sand-silt mixtures",
+    "GC": "Clayey gravels, poorly graded gravel-sand-clay mixtures",
+    "SW": "Well graded sands, gravelly sands, little or no fines",
+    "SP": "Poorly graded sands, gravelly sands, little or no fines",
+    "SM": "Silty sands, poorly graded sand- silt mixtures",
+    "SC": "Clayey sands, poorly graded sand-clay mixtures",
+    "ML": "Inorganic silts and very fine sands, rock flour, silty or clayey fine sands with slight plasticity",
+    "CL": "Inorganic clays of low to medium plasticity, gravelly clays, sandy clays, silty clays, lean clays",
+    "OL": "Organic clays organic silt-clays of low plasticity",
+    "MH": "Inorganic silts, micaceous or diatomaceous fine sandy or silty soils, elastic silts",
+    "CH": "Inorganic clays of high plastic- ity, fat clays",
+    "OH": "Organic clays of medium-high plasticity"
+}
+
+USCS_CATEGORIES_ERRORRETURN = {
+    'Soil type': None,
+}
+
+USCS_CATEGORIES = {
+    'symbol': {'type': 'string', 'options': ("GW", "GP", "GM", "GC", "SW", "SP", "SM", "SC", "ML", "CL", "OL", "MH", "CH", "OH"), 'regex': None}
+}
+
+
+@Validator(USCS_CATEGORIES, USCS_CATEGORIES_ERRORRETURN)
+def uscs_categories(
+        symbol,
+        **kwargs):
+    """
+    Provides the verbose description for soil type codes according to USCS. The ``USCS_DICTIONARY`` can also be used in workflows.
+
+    :param symbol: Two character symbol for the soil type according to USCS
+
+    :returns: Dictionary with the following keys:
+
+        - 'Soil type': Verbose description of the soil type
+
+    Reference - USCS
+
+    """
+
+    
+    _soiltype = USCS_DICTIONARY[symbol]
+
+    return {
+        'Soil type': _soiltype,
+    }
+

@@ -39,8 +39,8 @@ def undercompaction_cohesionless_ladd(
 
     :param sample_height: Total height of the sample (:math:`H_0`) [:math:`m`] - Suggested range: 0.0 <= sample_height <= 1.0
     :param no_layers: Number of layers for the sample (:math:`N`) [:math:`-`] - Suggested range: 1.0 <= no_layers <= 10.0
-    :param undercompaction_deepest: Chosen undercompaction degree of the deepest layer (:math:`U_N`) [:math:`pct`] - Suggested range: 0.0 <= undercompaction_deepest <= 10.0
-    :param undercompaction_shallowest: Chosen undercompaction degree of the shallowest layer (:math:`U_1`) [:math:`pct`] (default=0pct) - Suggested range: 0.0 <= undercompaction_deepest <= 10.0
+    :param undercompaction_deepest: Chosen undercompaction degree of the deepest layer (:math:`U_1`) [:math:`pct`] - Suggested range: 0.0 <= undercompaction_deepest <= 10.0
+    :param undercompaction_shallowest: Chosen undercompaction degree of the shallowest layer (:math:`U_N`) [:math:`pct`] (default=0pct) - Suggested range: 0.0 <= undercompaction_deepest <= 10.0
 
     .. math::
         U_i = U_1 - \\left[ \\frac{U_1 - U_N}{N - 1} \\cdot (i - 1) \\right]

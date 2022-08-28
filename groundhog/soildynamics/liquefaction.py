@@ -8,6 +8,7 @@ __author__ = 'Bruno Stuyts'
 # 3rd party packages
 import numpy as np
 from scipy import interpolate
+from scipy.stats import norm
 
 # Project imports
 from groundhog.general.validation import Validator
@@ -456,4 +457,205 @@ def liquefactionprobability_moss(
         'qc1 [MPa]': _qc1,
         'qc1mod [MPa]': _qc1mod,
         'c [-]': _c
+    }
+
+
+LIQUEFACTIONPROBABILITY_SAYE = {
+    'Qt': {'type': 'float', 'min_value': 1.0, 'max_value': 1000.0},
+    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'CSR': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
+    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
+    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    'deltaQ_nominator': {'type': 'float', 'min_value': None, 'max_value': None},
+    'deltaQ_denominator': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent_qcnormalised': {'type': 'float', 'min_value': None, 'max_value': None},
+    'Cq_limit': {'type': 'float', 'min_value': None, 'max_value': None},
+    'mcrr_coefficient1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'mcrr_coefficient2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'mcrr_limit': {'type': 'float', 'min_value': None, 'max_value': None},
+    'deltaQ_limit': {'type': 'float', 'min_value': None, 'max_value': None},
+    'Pl_coefficient1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exactsoildata': {'type': 'bool',},
+}
+
+LIQUEFACTIONPROBABILITY_SAYE_ERRORRETURN = {
+    'DeltaQ [-]': np.nan,
+    'qc1 [-]': np.nan,
+    'Cq [-]': np.nan,
+    'mCRR [-]': np.nan,
+    'PL [-]': np.nan,
+}
+
+@Validator(LIQUEFACTIONPROBABILITY_SAYE, LIQUEFACTIONPROBABILITY_SAYE_ERRORRETURN)
+def liquefactionprobability_saye(
+        Qt,qc,sigma_vo_eff,CSR,fs,
+        atmospheric_pressure=100.0,deltaQ_nominator=10.0,deltaQ_denominator=0.67,
+        exponent_qcnormalised=0.5,Cq_limit=1.7,mcrr_coefficient1=178.0,mcrr_coefficient2=3.349,
+        mcrr_limit=0.1,deltaQ_limit=20.0,Pl_coefficient1=1.34,exactsoildata=True, **kwargs):
+
+    """
+    Current engineering practice employs clean sand-based procedures to evaluate liquefaction triggering in nonplastic, coarse-grained soils and low-plasticity, fine-grained soils below level or mildly-sloping ground. Furthermore, existing empirical liquefaction triggering procedures treat all clean sands (fines content <5%) as identical.
+
+    Saye et al propose an alternative approach in which the slope of the CPT data in Qt vs fs/sigma_voprime space is used to assess the liquefaction probability. This approach has been shown to produce more meaningful results in soils with significant fines content
+
+    :param Qt: Normalised cone tip resistance (:math:`Q_t`) [:math:`-`] - Suggested range: 1.0 <= Qt <= 1000.0
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 100.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param CSR: Cyclic stress ratio for magnitude 7.5 event (:math:`CSR_{7.5}`) [:math:`-`] - Suggested range: 0.0 <= CSR <= 1.0
+    :param fs: Sleeve friction (:math:`f_s`) [:math:`MPa`] - Suggested range: 0.0 <= fs <= 10.0
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param deltaQ_nominator: Term in the nominator for deltaQ (:math:``) [:math:`-`] (optional, default= 10.0)
+    :param deltaQ_denominator: Term in the denominator for deltaQ (:math:``) [:math:`-`] (optional, default= 0.67)
+    :param exponent_qcnormalised: Exponent in the normalisation for qc (:math:`n`) [:math:`-`] (optional, default= 0.5)
+    :param Cq_limit: Maximum value for Cq (:math:``) [:math:`-`] (optional, default= 1.7)
+    :param mcrr_coefficient1: First calibration coefficient in the formula for mCRR (:math:``) [:math:`-`] (optional, default= 178.0)
+    :param mcrr_coefficient2: Second calibration coefficient in the formula for mCRR (:math:``) [:math:`-`] (optional, default= 3.349)
+    :param mcrr_limit: Maximum value for mCRR (:math:``) [:math:`-`] (optional, default= 0.1)
+    :param deltaQ_limit: Minimum value for DeltaQ (:math:``) [:math:`-`] (optional, default= 20.0)
+    :param Pl_coefficient1: Coefficient in the equation for liquefaction probability (:math:``) [:math:`-`] (optional, default= 1.34)
+    :param exactsoildata: Boolean determining whether the standard deviation for exact or uncertain soil data needs to be used (optional, default= True)
+
+    .. math::
+        \\Delta_Q = \\frac{Q_t + 10}{\\frac{f_s}{\\sigma_{vo}^{\\prime}} + 0.67}
+
+        \\hat{m}_{CRR} = \\frac{\\hat{\\Delta}_Q}{178 \\cdot \\hat{\\Delta}_Q - 3.349} \\leq 0.1 \\ \\text{for} \\ \\Delta_Q \\geq 20
+
+        \\frac{q_{c1}}{P_a} = C_q \\cdot \\left( \\frac{q_c}{P_a} \\right)
+
+        C_q = \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^n \\leq 1.7
+
+        P_L = \\Phi \\left[ - \\frac{ \\left( \\hat{m}_{CRR} \\cdot \\left( \\frac{q_{c1}}{P_a} \\right) - 1.34 \\right) - \\log_{10} \\left(  CSR_{7.5} \\right) }{\\sigma} \\right]
+
+    :returns: Dictionary with the following keys:
+
+        - 'DeltaQ [-]': Value for DeltaQ (:math:`\\Delta_Q`)  [:math:`-`]
+        - 'qc1 [-]': Normalised cone tip resistance (:math:`q_{c1}`)  [:math:`-`]
+        - 'Cq [-]': Value for multiplier in qc normalisation (:math:`C_q`)  [:math:`-`]
+        - 'mCRR [-]': Median estimate for mCRR, slope in graph of normalised cone resistance vs CSR (:math:`\\hat{m}_{CRR}`)  [:math:`-`]
+        - 'PL [-]': Estimated liquefaction probability based on the common origin approach (:math:`P_L`)  [:math:`-`]
+
+    Reference - Saye, Steven R., Scott M. Olson, and Kevin W. Franke. "Common-Origin Approach to Assess Level-Ground Liquefaction Susceptibility and Triggering in CPT-Compatible Soils Using Δ Q." Journal of Geotechnical and Geoenvironmental Engineering 147.7 (2021): 04021046.
+
+    """
+    # Calculation of Delta Q
+    _DeltaQ = (Qt + deltaQ_nominator) / ((1e3 * fs / sigma_vo_eff) + deltaQ_denominator)
+
+    # Calculation of normalised cone tip resistance
+    _Cq = (atmospheric_pressure / sigma_vo_eff) ** exponent_qcnormalised
+    if _Cq > Cq_limit:
+        _Cq = Cq_limit
+    _qc1 = atmospheric_pressure * _Cq * (1e3 * qc / atmospheric_pressure)
+
+    # Calculation of slope of liquefaction resistance boundary
+    if _DeltaQ < deltaQ_limit:
+        _DeltaQ = deltaQ_limit
+    _mCRR = _DeltaQ / (mcrr_coefficient1 * _DeltaQ - mcrr_coefficient2)
+    if _mCRR > mcrr_limit:
+        _mCRR = mcrr_limit
+
+    # Calculation of liquefaction probability
+    if exactsoildata:
+        _sigma = 0.20
+    else:
+        _sigma = 0.24
+    _PL = norm.cdf(
+        -(((_mCRR * (_qc1 / atmospheric_pressure) - Pl_coefficient1) - np.log10(CSR)) /
+          _sigma)
+    )
+
+    return {
+        'DeltaQ [-]': _DeltaQ,
+        'qc1 [-]': _qc1,
+        'Cq [-]': _Cq,
+        'mCRR [-]': _mCRR,
+        'PL [-]': _PL,
+    }
+
+
+CYCLICSTRESSRATIO_YOUD = {
+    'acceleration': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 500.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 250.0},
+    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': 23.0},
+    'magnitude': {'type': 'float', 'min_value': 0.0, 'max_value': 8.5},
+    'gravity': {'type': 'float', 'min_value': 9.8, 'max_value': 10.0},
+    'msf_exponent_nominator': {'type': 'float', 'min_value': None, 'max_value': None},
+    'msf_exponent_denominator': {'type': 'float', 'min_value': None, 'max_value': None},
+    'rd_factor1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'rd_factor2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'rd_factor3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'rd_factor4': {'type': 'float', 'min_value': None, 'max_value': None},
+    'rd_transitiondepth': {'type': 'float', 'min_value': None, 'max_value': None},
+    'rd_maxdepth': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+CYCLICSTRESSRATIO_YOUD_ERRORRETURN = {
+    'CSR [-]': np.nan,
+    'CSR* [-]': np.nan,
+    'MSF [-]': np.nan,
+    'rd [-]': np.nan,
+}
+
+@Validator(CYCLICSTRESSRATIO_YOUD, CYCLICSTRESSRATIO_YOUD_ERRORRETURN)
+def cyclicstressratio_youd(
+        acceleration,sigma_vo,sigma_vo_eff,depth,magnitude,
+        gravity=9.81,msf_exponent_nominator=2.24,msf_exponent_denominator=2.56,rd_factor1=1.0,rd_factor2=0.00765,rd_factor3=1.174,rd_factor4=0.0267,rd_transitiondepth=9.15,rd_maxdepth=23.0, **kwargs):
+
+    """
+    Calculates the cyclic stress ratio adjusted to a magnitude 7.5 earthquake using the simplified equation (Seed and Idriss 1971; Whitman 1971) and the adjustments recommended by Youd et al. (2001).
+
+    This formulation is used in the common-origin approach by Saye et al (2021) to calculate the adjusted cyclic shear stress ratio for assessment of liquefaction probability.
+
+    :param acceleration: Maximum horizontal acceleration at the soil surface (:math:`a_{max}`) [:math:`m/s2`] - Suggested range: acceleration >= 0.0
+    :param sigma_vo: Vertical total stress at the depth considered (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 500.0
+    :param sigma_vo_eff: Vertical effective stress at the depth considered (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 250.0
+    :param depth: Depth considered for the assessment (:math:`z`) [:math:`m`] - Suggested range: 0.0 <= depth <= 23.0
+    :param magnitude: Earthquake magnitude (:math:`M`) [:math:`-`] - Suggested range: 0.0 <= magnitude <= 8.5
+    :param gravity: Acceleration due to gravity (:math:`g`) [:math:`m/s2`] - Suggested range: 9.8 <= gravity <= 10.0 (optional, default= 9.81)
+    :param msf_exponent_nominator: Exponent in the nominator of the equation for MSF (:math:``) [:math:`-`] (optional, default= 2.24)
+    :param msf_exponent_denominator: Exponent in the denominator of the equation for MSF (:math:``) [:math:`-`] (optional, default= 2.56)
+    :param rd_factor1: First calibration factor for shallow portion of rd (:math:``) [:math:`-`] (optional, default= 1.0)
+    :param rd_factor2: Second calibration factor for shallow portion of rd (:math:``) [:math:`-`] (optional, default= 0.00765)
+    :param rd_factor3: First calibration factor for deep portion of rd (:math:``) [:math:`-`] (optional, default= 1.174)
+    :param rd_factor4: Second calibration factor for deep portion of rd (:math:``) [:math:`-`] (optional, default= 0.0267)
+    :param rd_transitiondepth: Transition depth for rd (:math:``) [:math:`-`] (optional, default= 9.15)
+    :param rd_maxdepth: Max depth for rd (:math:``) [:math:`-`] (optional, default= 23.0)
+
+    .. math::
+        CSR_{7.5} = \\frac{CSR}{MSF} = \\frac{\\tau_{avg} / \\sigma_{vo}^{\\prime}}{MSF} = \\frac{0.65 \\cdot \\left(
+        \\frac{a_{max}}{g} \\right) \\cdot \\left( \\frac{\\sigma_{vo}}{\\sigma_{vo}^{\\prime}} \\right) \\cdot r_d}{MSF}
+
+        MSF = \\frac{10^{2.24}}{M^{2.56}}
+
+        r_d = \\begin{cases}
+            1.0 - 0.00765 \\cdot z, & \\text{for } z < 9.15m \\\\
+            1.174 - 0.0267 \\cdot z, & \\text{for } 9.15m \\leq z < 23m
+        \\end{cases}
+
+    :returns: Dictionary with the following keys:
+
+        - 'CSR [-]': Cyclic stress ratio (uncorrected) (:math:`CSR`)  [:math:`-`]
+        - 'CSR* [-]': Cyclic stress ratio corrected to 7.5 magnitude event (:math:`CSR_{7.5}`)  [:math:`-`]
+        - 'MSF [-]': Magnitude scaling factor (:math:`MSF`)  [:math:`-`]
+        - 'rd [-]': Depth reduction factor (:math:`r_d`)  [:math:`-`]
+
+    Reference - Youd, T. L., et al. 2001. Liquefaction resistance of soils: Summary report from the 1996 NCEER and 1998 NCEER=NSF workshops on evaluation of liquefaction resistance of soils.” J. Geotech. Geoenviron. Eng. 127 (10): 817–833. https://doi.org/10.1061/(ASCE)1090-0241(2001)127:10(817).
+
+    """
+    if depth < rd_transitiondepth:
+        _rd = rd_factor1 - rd_factor2 * depth
+    elif rd_transitiondepth <= depth < rd_maxdepth:
+        _rd = rd_factor3 - rd_factor4 * depth
+    else:
+        raise ValueError('Depth is greater than the maximum depth of %.1fm allowed for rd' % rd_maxdepth)
+    _CSR = 0.65 * (acceleration / gravity) * (sigma_vo / sigma_vo_eff) *_rd
+    _MSF = (10 ** msf_exponent_nominator) / (magnitude ** msf_exponent_denominator)
+    _CSR_corrected = _CSR / _MSF
+
+    return {
+        'CSR [-]': _CSR,
+        'CSR* [-]': _CSR_corrected,
+        'MSF [-]': _MSF,
+        'rd [-]': _rd,
     }

@@ -74,3 +74,34 @@ class Test_liquefaction(unittest.TestCase):
         self.assertAlmostEqual(
             result['Pl [pct]'], 27, 0
         )
+
+    def test_liquefactionprobability_saye(self):
+        result = liquefaction.liquefactionprobability_saye(
+            Qt=48,
+            qc=2,
+            sigma_vo_eff=20,
+            CSR=0.21,
+            fs=0.02,
+        )
+        self.assertAlmostEqual(result['PL [-]'], 0.99, 2)
+        result = liquefaction.liquefactionprobability_saye(
+            Qt=248,
+            qc=10,
+            sigma_vo_eff=20,
+            CSR=0.21,
+            fs=0.1,
+        )
+        self.assertAlmostEqual(result['PL [-]'], 0.07, 2)
+
+    def test_cyclicstressratio_youd(self):
+        result = liquefaction.cyclicstressratio_youd(
+            acceleration=15,
+            sigma_vo=80,
+            sigma_vo_eff=40,
+            depth=4,
+            magnitude=6.5,
+        )
+        self.assertAlmostEqual(result['rd [-]'], 0.969, 3)
+        self.assertAlmostEqual(result['MSF [-]'], 1.442, 3)
+        self.assertAlmostEqual(result['CSR [-]'], 1.927, 3)
+        self.assertAlmostEqual(result['CSR* [-]'], 1.336, 3)

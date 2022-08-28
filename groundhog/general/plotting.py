@@ -15,6 +15,7 @@ from plotly.offline import plot, iplot
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly import subplots
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Project imports
 
@@ -682,3 +683,267 @@ class LogPlot(object):
 
     def show(self):
         self.fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+
+
+class LogPlotMatplotlib(object):
+    """
+    Class for planneled plots with a minilog on the side, using the Matplotlib plotting backend
+    """
+
+    def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
+                 fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
+                 soiltypelegend=True, figheight=6, plot_layer_transitions=True, showgrid=True,
+                 **kwargs):
+        """
+        Initializes a figure with a minilog on the side.
+        :param soilprofile: Soilprofile used for the minilog
+        :param no_panels: Number of panels
+        :param logwidth: Width of the minilog as a percentage of the total width (default=0.05)
+        :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
+        :param figheight: Figure height in inches (default=6in)
+        :param plot_layer_transitions: Boolean determining whether layer transitions need to be plotted or not
+        :param showgrid: Boolean determining whether a grid is shown on the plot panels or not (default=True)
+        :param kwargs: Optional keyword arguments for the make_subplots method
+        """
+        self.soilprofile = soilprofile
+        self.no_panels = no_panels
+        # Determine the panel widths
+        panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, range(0, no_panels)))
+
+        panel_widths = list(np.append(logwidth, panel_widths))
+
+        # Set up the figure
+        self.fig, self.axes = plt.subplots(1, no_panels + 1, figsize=(4 * no_panels, figheight), sharex=False, sharey=True,
+                        constrained_layout=False, gridspec_kw={'width_ratios': panel_widths})
+        
+        self.axes[0].set_ylim([soilprofile.max_depth, soilprofile.min_depth])
+
+        # Create rectangles for the log plot
+        _layers = []
+        for i, row in soilprofile.iterrows():
+            try:
+                _fillcolor = fillcolordict[row['Soil type']]
+            except:
+                _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            _y0 = row['Depth from [m]']
+            _y1 = row['Depth to [m]']
+            self.axes[0].fill(
+                [0.0,0.0,1.0,1.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
+                label='_nolegend_', edgecolor="black")
+            
+        _legend_entries = []
+        for _soiltype in soilprofile['Soil type'].unique():
+            try:
+                _fillcolor = fillcolordict[_soiltype]
+            except:
+                soiltypelegend = False
+
+            try:
+                if soiltypelegend:
+                    _legend_entry, = self.axes[0].fill(
+                        [-11.0,-11.0,-10.0,-10.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
+                        label=_soiltype, edgecolor="black")
+                    _legend_entries.append(_legend_entry)
+            except:
+                pass
+
+        self._legend_entries = _legend_entries
+
+        self.axes[0].set_xlim([0, 1])
+        self.axes[0].get_xaxis().set_ticks([])
+        self.axes[0].set_ylabel('Depth below mudline [m]',size=15)
+        for i in range(0, no_panels):
+            _dummy_data = self.axes[i+1].plot([0, 100], [np.nan, np.nan], label='_nolegend_')
+            self.axes[i+1].tick_params(labelbottom=False,labeltop=True)
+            self.axes[i+1].set_xlabel('X-axis %i' % (i + 1), size=15)
+            self.axes[i+1].xaxis.set_label_position('top') 
+            self.axes[i+1].set_xlim([0, 1])
+            self.axes[i+1].set_ylim([soilprofile.max_depth, soilprofile.min_depth])
+
+        self.plot_layer_transitions = plot_layer_transitions
+
+        if showgrid:
+            for i in range(0, no_panels):
+                self.axes[i+1].grid()
+        else:
+            pass
+
+    def add_trace(self, x, z, name, panel_no, resetaxisrange=False, line=True, showlegend=False, **kwargs):
+        """
+        Adds a trace to the plot. By default, lines are added but optional keyword arguments can be added for plt.plot as ``**kwargs``
+        :param x: Array with the x-values
+        :param z: Array with the z-values
+        :param name: Label for the trace (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param panel_no: Panel to plot the trace on (1-indexed)
+        :param resetaxisrange: Boolean determining whether the axis range needs to be reset to fit this trace
+        :param line: Boolean determining whether the data needs to be shown as a line or as individual markers
+        :param showlegend: Boolean determining whether the trace name needs to be added to the legend entries
+        :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
+        :return: Adds the trace to the specified panel
+        """
+        if line:
+            self.axes[panel_no].plot(x, z,label=name, **kwargs)
+        else:
+            self.axes[panel_no].scatter(x, z,label=name, **kwargs)
+
+        if resetaxisrange:
+            self.axes[panel_no].set_xlim([x[~np.isnan(x)].min(), x[~np.isnan(x)].max()])
+        
+        if showlegend:
+            self._legend_entries.append(name)
+
+    def plot_parameter(self, parameter, panel_no, name, **kwargs):
+        """
+        Plot the trace of a certain parameter in the ``SoilProfile`` object associated with the logplot
+        on the specified panel
+        """
+        z, x = self.soilprofile.soilparameter_series(parameter)
+        self.add_trace(x=x, z=z, name=name, panel_no=panel_no, **kwargs)
+
+    def set_xaxis_title(self, title, panel_no, size=15, **kwargs):
+        """
+        Changes the X-axis title of a panel
+        :param title: Title to be set (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param panel_no: Panel number (1-indexed)
+        :param kwargs: Additional keyword arguments for the axis layout update function, e.g. ``range=(0, 100)``
+        :return: Adjusts the X-axis of the specified panel
+        """
+        self.axes[panel_no].set_xlabel(title, size=size)
+
+    def set_xaxis_range(self, min_value, max_value, panel_no, **kwargs):
+        """
+        Changes the X-axis range of a panel
+        :param min_value: Minimum value of the plot panel range
+        :param max_value: Maximum value of the plot panel range
+        :param panel_no: Panel number (1-indexed)
+        :param kwargs: Additional keyword arguments for the ``set_xlim`` method
+        :return: Adjusts the X-axis range of the specified panel
+        """
+        self.axes[panel_no].set_xlim([min_value, max_value])
+
+    def set_zaxis_title(self, title, size=15, **kwargs):
+        """
+        Changes the Z-axis
+        :param title: Title to be set (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param kwargs: Additional keyword arguments for the ``set_label`` method
+        :return: Adjusts the Z-axis title
+        """
+        self.axes[0].set_ylabel(title, size=size)
+
+    def set_zaxis_range(self, min_depth, max_depth, **kwargs):
+        """
+        Changes the Z-axis
+        :param min_depth: Minimum depth of the plot
+        :param max_depth: Maximum depth of the plot
+        :param kwargs: Additional keyword arguments for the ``set_ylim`` method
+        :return: Adjusts the Z-axis range
+        """
+        self.axes[0].set_ylim([max_depth, min_depth])
+
+    def set_size(self, width, height):
+        """
+        Adjust the size of the plot
+        :param width: Width of the plot in inches
+        :param height: Height of the plot in inches
+        :return: Adjust the height and width as specified
+        """
+        plt.gcf().set_size_inches(width, height)
+
+    def show(self, showlegend=True):
+        if self.plot_layer_transitions:
+            for i in range(0, self.no_panels):
+                for _y in self.soilprofile.layer_transitions():
+                    self.axes[i+1].plot(
+                        self.axes[i+1].get_xlim(),
+                        (_y, _y),
+                        color='grey', ls="--"
+                    )
+        else:
+            pass
+
+        if showlegend:
+            plt.legend(handles=self._legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        
+        plt.show()
+
+    def save_fig(self, path, dpi=250, bbox_inches='tight',pad_inches=1):
+        """
+        Exports the figure to png format
+
+        :param path: Path of the figure (filename ends in .png)
+        :param dpi: Output resolution
+        :param bbox_inches: Setting for the bounding box
+        :param pad_inches: Inches for padding
+        """
+        plt.savefig(path, dpi=dpi,bbox_inches=bbox_inches, pad_inches=pad_inches)
+
+    def select_additional_layers(self, no_additional_layers, panel_no=1, precision=2):
+        """
+        Allows for the selection of additional layer transitions for the ``SoilProfile`` object.
+        The number of additional transition is controlled by the ``no_additional_layers`` argument.
+        Click on the desired layer transition location in the specified panel (default ``panel_no=1``)
+        The depth of the layer transition is rounded according to the ``precision`` argument. Default=2
+        for cm accuracy."""
+        ax = self.axes[panel_no]
+        xy = plt.ginput(no_additional_layers)
+
+        x = [p[0] for p in xy]
+        y = [round(p[1], precision) for p in xy]
+        for _y in y:
+            for i in range(self.axes.__len__() - 1):
+                line = self.axes[i+1].plot(
+                    self.axes[i+1].get_xlim(),
+                    (_y, _y), color='grey', ls="--")
+            self.soilprofile.insert_layer_transition(_y)
+        ax.figure.canvas.draw()
+        
+    def select_constant(self, panel_no, parametername, units, nan_tolerance=0.1):
+        """
+        Selects a constant value in each layer. Click the desired value in each layer, working from the top down.
+        If a nan value needs to be set in a layer, click sufficiently close to the minimum of the x axis.
+        The ``nan_tolerance`` argument determines which values are interpreted as nan.
+        The parameter is added to the ``SoilProfile`` object with the ``'parametername [units]'`` key.
+        """
+        ax = self.axes[panel_no]
+        xy = plt.ginput(self.soilprofile.__len__())
+
+        x = [p[0] for p in xy]
+        y = [p[1] for p in xy]
+        
+        for i, _x in enumerate(x):
+            if _x < nan_tolerance:
+                x[i] = np.nan
+
+        self.soilprofile["%s [%s]" % (parametername, units)] = x
+        self.plot_parameter(
+            parameter="%s [%s]" % (parametername, units),
+            panel_no=panel_no,
+            name=parametername)
+        ax.figure.canvas.draw()
+
+    def select_linear(self, panel_no, parametername, units, nan_tolerance=0.1):
+        """
+        Selects a linear variation in each layer. Click the desired value at each layer boundary.
+        Note that a value needs to be selected at the top and bottom of each layer (2 x no layers clicks).
+        If a nan value needs to be set in a layer, click sufficiently close to the minimum of the x axis.
+        The ``nan_tolerance`` argument determines which values are interpreted as nan.
+        The parameter is added to the ``SoilProfile`` object with the ``'parametername [units]'`` key.
+        """
+        ax = self.axes[panel_no]
+        xy = plt.ginput(2 * self.soilprofile.__len__())
+
+        x = [p[0] for p in xy]
+        y = [p[1] for p in xy]
+        
+        for i, _x in enumerate(x):
+            if _x < nan_tolerance:
+                x[i] = np.nan
+                
+        self.soilprofile["%s from [%s]" % (parametername, units)] = x[::2]
+        self.soilprofile["%s to [%s]" % (parametername, units)] = x[1::2]
+        self.plot_parameter(
+            parameter="%s [%s]" % (parametername, units),
+            panel_no=panel_no,
+            name=parametername)
+        ax.figure.canvas.draw()

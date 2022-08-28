@@ -21,11 +21,8 @@ development so any request for additional functionality can always be submitted 
 The package is developed around four pilars:
 
 - Flexible input parameter validation: Predefined parameter ranges are defined for most functions, based on the range of soil parameters for which the function was originally developed. This validation can be overridden by the user but requires explicit definition of the modified parameter ranges;
-
 - Multiple outputs: Groundhog functions return a Python dictionary including intermediate results or derived quantities;
-
 - Data standardisation: Possibility to read multiple input file formats (e.g. CPT data);
-
 - Soil profiles: Easy encoding and manipulation of soil profiles.
 
 
@@ -57,11 +54,15 @@ A more comprehensive Getting Started section with detailed installation instruct
 Support groundhog
 ------------------
 
+A lot of time and effort has gone into the creation and maintenance of groundhog.
 You can support the development of groundhog by buying me a coffee.
 
 .. raw:: html
 
    <a href="https://www.buymeacoffee.com/groundhog"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=groundhog&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"></a>
+
+
+Training, writing of non-shared company-specific software built on groundhog and consultancy are additional revenue streams for the package. Get in touch if you are interested in these services.
 
 
 Tutorials
@@ -73,16 +74,12 @@ Tutorials
 Tutorials are provided in the notebooks folder of the project. Jupyter notebooks are provided for the following examples:
 
 - Basic use of groundhog functions
-
 - Soil profile definition, manipulation and plotting
-
 - PCPT data loading
-
 - PCPT data processing
-
 - Loading AGS data
-
 - Axial pile capacity calculation according to Belgian practice
+- ...
 
 
 Function documentation
@@ -103,7 +100,15 @@ specifies the physical meaning and the units of input and output variables.
 
    shallowfoundations/shallowfoundations_toplevel
 
+   consolidation/consolidation_toplevel
+
+   excavations/excavations_toplevel
+
    soildynamics/soildynamics_toplevel
+
+   standards/standards_toplevel
+
+   constitutivemodels/constitutivemodels_toplevel
 
 
 Acknowledgements
@@ -116,10 +121,21 @@ in the package to reduce the amount of dependencies.
 License and usage restrictions
 -------------------------------
 
-This package is distributed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
-(`CC BY-NC-SA 4.0 <https://creativecommons.org/licenses/by-nc-sa/4.0/>`_) license.
-Any commercial usage is strictly prohibited. Contact the authors for other licensing options if you plan to use the package
-for commercial work.
+groundhog. A general-purpose Python library for geotechnical engineering.
+    Copyright (C) 2020  Bruno Stuyts
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 Indices and tables

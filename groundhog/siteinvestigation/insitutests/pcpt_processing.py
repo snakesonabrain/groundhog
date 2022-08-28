@@ -4,6 +4,7 @@
 __author__ = 'Bruno Stuyts'
 
 # Native Python packages
+from multiprocessing.sharedctypes import Value
 import os
 import warnings
 from copy import deepcopy
@@ -483,7 +484,8 @@ class PCPTProcessing(InsituTestProcessing):
 
     def load_gef(self, path, inverse_depths=False, override_title=True,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
-                 qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
+                 qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True,
+                 separator=' ', **kwargs):
         """
         Reads PCPT data from a Geotechnical Exchange Format (.gef) file.
         The file is parsed using regular expressions to provide the necessary data.
@@ -503,6 +505,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param fs_multiplier: Multiplier applied on sleeve friction to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param u2_multiplier: Multiplier applied on pore pressure at shoulder to convert to MPa (e.g. 0.001 to convert from kPa to MPa)
         :param add_zero_row: Boolean determining whether a datapoint needs to be added at zero depth.
+        :param separator: Separator used for the gef file (default is ``' '``)
         :param kwargs: Optional keyword arguments for reading the datafile (using ``read_csv`` from Pandas)
         :return:
         """
@@ -535,7 +538,7 @@ class PCPTProcessing(InsituTestProcessing):
         measurementvalue_dict = dict()
         voidvalue_dict = dict()
 
-        separator = ' '
+        separator = separator
         test_id = None
         easting = None
         northing = None
@@ -882,7 +885,8 @@ class PCPTProcessing(InsituTestProcessing):
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
 
-    def load_pydov(self, name, push_key='Push', add_zero_row=True, **kwargs):
+    def load_pydov(self, name, push_key='Push', add_zero_row=True, z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u',
+        qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001, **kwargs):
         """
         Load CPT data from Databank Ondergrond Vlaanderen based on the unique CPT name which can be found in DOV
         :param name: Unique identifier of the CPT in pydov
@@ -894,8 +898,8 @@ class PCPTProcessing(InsituTestProcessing):
         self.data = sondering.search(query=query)
         if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
-        self.rename_columns(z_key='diepte', qc_key='qc', fs_key='fs', u2_key='u')
-        self.convert_columns(qc_multiplier=1, fs_multiplier=0.001, u2_multiplier=0.001)
+        self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key)
+        self.convert_columns(qc_multiplier=qc_multiplier, fs_multiplier=fs_multiplier, u2_multiplier=u2_multiplier)
 
         try:
             if self.data["z [m]"].min() != 0 and add_zero_row:
@@ -1136,8 +1140,10 @@ class PCPTProcessing(InsituTestProcessing):
     # region Data plotting
 
     def plot_raw_pcpt(self, qc_range=(0, 100), qc_tick=10, fs_range=(0, 1), fs_tick=0.1,
-                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2,
+                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2, rf_range=(0, 5), rf_tick=0.5,
                       show_hydrostatic=True,
+                      plot_friction_ratio=False,
+                      friction_ratio_panel=3,
                       plot_height=700, plot_width=1000, return_fig=False,
                       plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,
                       hydrostaticcolor=None, show_hydrostatic_legend=False, plot_layers=True):
@@ -1153,6 +1159,11 @@ class PCPTProcessing(InsituTestProcessing):
         :param z_range: Range for the depth (default=None for plotting from zero to maximum cone penetration)
         :param z_tick: Tick interval for depth (default=2m)
         :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param rf_range: Range for the friction ratio, if used (default=None for plotting from zero to 5%)
+        :param rf_tick: Tick interval for friction ratio, if used (default=0.5%)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted (default=False)
+        :param friction_ratio_panel: Panel for plotting friction ratio (default=3 for pore pressure panel). Only used when ``plot_friction_ratio=True``
         :param plot_height: Height for the plot (default=700px)
         :param plot_width: Width for the plot (default=1000px)
         :param return_fig: Boolean determining whether the figure needs to be returned (True) or plotted (False)
@@ -1180,26 +1191,52 @@ class PCPTProcessing(InsituTestProcessing):
                 y=push_data['z [m]'],
                 line=dict(color=color),
                 showlegend=False, mode='lines', name=r'$ q_c $')
-            fig.append_trace(trace1, 1, 1)
+            
             trace2 = go.Scatter(
                 x=push_data['fs [MPa]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
                 showlegend=False, mode='lines', name=r'$ f_s $')
-            fig.append_trace(trace2, 1, 2)
             trace3 = go.Scatter(
                 x=push_data['u2 [MPa]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
                 showlegend=False, mode='lines', name=r'$ u $')
-            fig.append_trace(trace3, 1, 3)
+            trace_rf = go.Scatter(
+                    x=100 * push_data['fs [MPa]'] / push_data['qc [MPa]'],
+                    y=push_data['z [m]'],
+                    line=dict(color=color),
+                    showlegend=False, mode='lines', name=r'$ R_f $')
+
+            if plot_friction_ratio:
+                if friction_ratio_panel == 1:
+                    fig.append_trace(trace_rf, 1, 1)
+                    fig.append_trace(trace2, 1, 2)
+                    fig.append_trace(trace3, 1, 3)
+                elif friction_ratio_panel == 2:
+                    fig.append_trace(trace1, 1, 1)
+                    fig.append_trace(trace_rf, 1, 2)
+                    fig.append_trace(trace3, 1, 3)
+                elif friction_ratio_panel == 3:
+                    fig.append_trace(trace1, 1, 1)
+                    fig.append_trace(trace2, 1, 2)
+                    fig.append_trace(trace_rf, 1, 3)
+                else:
+                    raise ValueError("friction_ratio_panel needs to be equal to 1, 2 or 3")
+            else:
+                fig.append_trace(trace1, 1, 1)
+                fig.append_trace(trace2, 1, 2)
+                fig.append_trace(trace3, 1, 3)
         if show_hydrostatic:
-            trace3 = go.Scatter(
-                x=0.001 * self.data['z [m]'] * self.waterunitweight,
-                y=self.data['z [m]'],
-                line=dict(color=hydrostaticcolor, dash='dot'),
-                showlegend=show_hydrostatic_legend, mode='lines', name=r'$ u_{hydrostatic} $')
-            fig.append_trace(trace3, 1, 3)
+            if plot_friction_ratio and friction_ratio_panel == 3:
+                pass
+            else:
+                trace3 = go.Scatter(
+                    x=0.001 * self.data['z [m]'] * self.waterunitweight,
+                    y=self.data['z [m]'],
+                    line=dict(color=hydrostaticcolor, dash='dot'),
+                    showlegend=show_hydrostatic_legend, mode='lines', name=r'$ u_{hydrostatic} $')
+                fig.append_trace(trace3, 1, 3)
         # Plot layers
         try:
             for i, row in self.layerdata.iterrows():
@@ -1224,6 +1261,7 @@ class PCPTProcessing(InsituTestProcessing):
                     fig.append_trace(layer_trace_u2, 1, 3)
         except:
             pass
+
         fig['layout']['xaxis1'].update(
             title=r'$ q_c \ [\text{MPa}] $', side='top', anchor='y',
             range=qc_range, dtick=qc_tick)
@@ -1233,8 +1271,26 @@ class PCPTProcessing(InsituTestProcessing):
         fig['layout']['xaxis3'].update(
             title=r'$ u  \ [\text{MPa}] $', side='top', anchor='y',
             range=u2_range, dtick=u2_tick)
+
+        if plot_friction_ratio:
+            if friction_ratio_panel == 1:
+                fig['layout']['xaxis1'].update(
+                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+            elif plot_friction_ratio and friction_ratio_panel == 2:
+                fig['layout']['xaxis2'].update(
+                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+            elif plot_friction_ratio and friction_ratio_panel == 3:
+                fig['layout']['xaxis3'].update(
+                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+            else:
+                raise ValueError("friction_ratio_panel needs to be equal to 1, 2 or 3")
+        else:
+            pass
+        
         fig['layout']['yaxis1'].update(
-            title=r'$ z \ [\text{m}]$', range=z_range, dtick=z_tick)
+            title=r'$ \text{Depth below mudline, } z \ [\text{m}] $', autorange='reversed',
+            range=z_range, dtick=z_tick)
+        
         fig['layout'].update(
             title=plot_title, hovermode='closest',
             height=plot_height, width=plot_width,

@@ -1,4 +1,32 @@
-v0.7.0, TBC -- 2021 4th release
+v0.8.0, 28/08/2022 - ISFOG2020 release
+    - Improved margin settings for PSD plots
+    - Added correlation between acoustic impedance and bulk unit weight from Chen et al (2021)
+    - Added common-origin approach for liquefaction assessment according to Saye et al (2021)
+    - Implemented cyclic shear stress ratio equations according to Youd et al (2001)
+    - Small change for the plotting functionality of Prandtl's failure mechanism
+    - Error corrected in docstring of undercompaction_cohesionless_ladd, mathematical symbol for undercompaction for shallowest and deepest layers were switched.
+    - Added possibility for alternative depth, qc, fs and u2 keys in load_pydov
+    - Added new modules for standards. Started with Eurocode 7-based parameter selection
+    - Modified Koppejan calculation to use standard 'Depth from [m]' and 'Depth to [m]' columns for the layering
+    - Added LogPlotMatplotlib for plotting of logs with Matplotlib
+    - Added functionality for parsing AGS3.1 files using the agsformat argument in the AGSConverter
+    - Added possibility of plotting friction ratio Rf instead of another panel to plot_raw_pcpt
+    - Bugfix in Boussinesq stress calculation below a strip footing
+    - Add general functionality for gridded calculations (``CalculationGrid`` in the ``soilprofile`` module)
+    - Added 1D excess pore pressure dissipation calculations based on finite difference analysis
+    - Added class for settlement calculations (``SettlementCalculation``) in the ``shallowfoundations.settlement`` module
+    - Added module for excavations and started with code for coefficients of active and passive earth pressure
+    - Changed license to GNU GPLv3
+    - Added placeholders for constitutive modelling functionality (constitutivemodels module)
+    - Added tutorials for settlement and consolidation functionality
+    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+
+
+v0.7.0, 20/10/2021 -- Streamlit unleashed
     - Update to Readme to fix up formatting on Pypi (thanks to Thomas van der Linden for highlighting)
     - Updated plotting ranges for pore pressure panel on CPT raw data plot
     - Started with streamlit apps (authored by Berk Demir)
@@ -17,12 +45,6 @@ v0.7.0, TBC -- 2021 4th release
     - Add Vs-CPT correlation according to Wride et al (2000)
     - Add Vs-CPT correlation according to Tonni and Simonini (2013)
     - Add Vs-CPT correlations according to McGann et al (2018) - Both for Christchurch general soils and Banks peninsula loess soils
-    - TODO: Add general functionality for gridded calculations
-    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Implement soil parameter name conventions across groundhog
-    - TODO: Add soil type classification according to Schneider et al (2008)
 
 v0.6.1, 23/07/2021 -- Bugfix release
     - Fixed bug in offset calculation for fence diagrams
@@ -59,7 +81,6 @@ v0.5.0, 12 April 2021 -- CGS webinar release
     - Added inverse correlation for cone resistance from relative density for OC sand according to Baldi et al
     - Include standard PSD plot and Plasticity chart
     - Excel export of CPT with data, cone properties, layering and location info
-
 
 v0.4.0, 06 January 2021 -- 2021 New Year's release
     - Added a module for dynamic soil properties to soildynamics

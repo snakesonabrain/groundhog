@@ -19,6 +19,7 @@ GROUP_NAMES = {
     'TRAN': 'Data File Transmission Information / Data Status',
     'TYPE': 'Definition of Data Types',
     'UNIT': 'Definition of Units',
+    'CLSS': 'Classification tests',
     'CONG': 'Consolidation Tests - General',
     'CONS': 'Consolidation Tests - Data',
     'CORE': 'Coring Information',
@@ -40,7 +41,10 @@ GROUP_NAMES = {
     'TREG': 'Triaxial Tests - Effective Stress - General',
     'TRET': 'Triaxial Tests - Effective Stress - Data',
     'TRIG': 'Triaxial Tests - Total Stress - General',
-    'TRIT': 'Triaxial Tests - Total Stress - Data'
+    'TRIT': 'Triaxial Tests - Total Stress - Data',
+    'GRAD': 'Particle size distribution data',
+    'RELD': 'Relative density test',
+    'STCN': 'Static cone penetration test'
 }
 
 AGS_TABLES = {
@@ -174,7 +178,7 @@ AGS_TABLES = {
     'GEOL': {
         'LOCA_ID': 'Location identifier',
         'GEOL_TOP': 'Depth to the top of stratum',
-        'GEOL_BASE': 'Depth to the base of description',
+        'GEOL_BASE': 'Depth to the base of stratum',
         'GEOL_DESC': 'General description of stratum',
         'GEOL_LEG': 'Legend code',
         'GEOL_GEOL': 'Geology code',
@@ -609,6 +613,80 @@ AGS_TABLES = {
         'TRIT_MODE': 'Mode of failure',
         'TRIT_REM': 'Comments',
         'FILE_FSET': 'Associated file reference (eg test result sheets)'
+    },
+    'CLSS': {
+        'HOLE_ID': 'Location identifier',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference number',
+        'SPEC_DPTH': 'Specimen depth',
+        'CLSS_NMC': 'Natural moisture content',
+        'CLSS_LL': 'Liquid limit',
+        'CLSS_PL': 'Plastic limit',
+        'CLSS_BDEN': 'Bulk density',
+        'CLSS_DDEN': 'Dry density',
+        'CLSS_PD': 'Particle density',
+        'CLSS_425': 'Percentage passing 425 micron sieve',
+        'CLSS_PREP': 'Method of preparation',
+        'CLSS_SLIM': 'Shrinkage limit',
+        'CLSS_LS': 'Linear shrinkage',
+        'CLSS_HVP': 'Hand vane undrained shear strength (peak)',
+        'CLSS_HVR': 'Hand vane undrained shear strength (remoulded)',
+        'CLSS_PPEN': 'Pocket penetrometer undrained shear strength',
+        'CLSS_VNPK': 'Laboratory vane undrained shear strength (peak)',
+        'CLSS_VNRM': 'Laboratory vane undrained shear strength (remoulded)',
+        '?CLSS_REM': 'Notes on classification testing',
+        '?FILE_FSET': 'Associated file reference'
+    },
+    'GRAD': {
+        'HOLE_ID': 'Location identifier',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Specimen Depth',
+        'GRAD_SIZE': 'Sieve or particle size',
+        'GRAD_PERP': 'Percentage passing',
+        'GRAD_TYPE': 'Grading analysis test type' 
+    },
+    'RELD': {
+        'HOLE_ID': 'Location identifier',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Specimen depth',
+        'RELD_REM': 'Method of test',
+        'RELD_DMAX': 'Maximum dry density',
+        'RELD_375': 'Percentage weight percent of sample retained on 37.5mm sieve',
+        'RELD_Ø63': 'Percentage weight percent of sample retained on 6.3mm sieve',
+        'RELD_Ø2Ø': 'Percentage weight percent of sample retained on 2mm sieve',
+        'RELD_DMIN': 'Minimum dry density' 
+    },
+    'STCN': {
+        'HOLE_ID': 'Location identifier',
+        'STCN_DPTH': 'Depth',
+        'STCN_TYP': 'Cone test type', 
+        'STCN_REF': 'Cone ID',
+        'STCN_FORC': 'Axial force',
+        'STCN_FRIC': 'Sleeve force',
+        'STCN_RES': 'Cone resistance',
+        'STCN_FRES': 'Sleeve friction',
+        'STCN_PWP1': 'Pore water pressure 1',
+        'STCN_PWP2': 'Pore water pressure 2',
+        'STCN_PWP3': 'Pore water pressure 3',
+        'STCN_CON': 'Conductivity',
+        'STCN_TEMP': 'Temperature',
+        'STCN_PH': 'pH',
+        'STCN_SLP1': 'Slope indicator 1',
+        'STCN_SLP2': 'Slope indicator 2',
+        'STCN_REDX': 'Redox potential',
+        'STCN_FFD': 'Fluorescense',
+        'STCN_PMT': 'Photo-multiplier tube reading',
+        'STCN_PID':  'Photo ionization detector reading',
+        'STCN_FID': 'Flame ionization detector reading',
+        'FILE_FSET': 'Associated file reference'
     }
 }
 
@@ -833,13 +911,59 @@ AGS_TABLES_SHORTHANDS = {
         'TRIT_STRN': 'epsilon_a_f',
         'TRIT_CU': 'Su',
         'TRIT_MODE': 'Failure mode'
+    },
+    'CLSS': {
+        'HOLE_ID': 'Location ID',
+        'SAMP_TOP': 'Sample top',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Depth',
+        'CLSS_NMC': 'w',
+        'CLSS_LL': 'LL',
+        'CLSS_PL': 'PL',
+        'CLSS_BDEN': 'Bulk density',
+        'CLSS_DDEN': 'Dry density',
+        'CLSS_PD': 'Particle density',
+        'CLSS_425': 'Percentage passing 425 micron sieve',
+        'CLSS_PREP': 'Preparation',
+        'CLSS_SLIM': 'Shrinkage limit',
+        'CLSS_LS': 'Linear shrinkage',
+        'CLSS_HVP': 'Hand vane Su (peak)',
+        'CLSS_HVR': 'Hand vane Su (remoulded)',
+        'CLSS_PPEN': 'PP Su',
+        'CLSS_VNPK': 'LV Su (peak)',
+        'CLSS_VNRM': 'LV Su (remoulded)',
+        'CLSS_REM': 'Notes',
+        'FILE_FSET': 'File'
+    },
+    'GRAD': {
+        'HOLE_ID': 'Location ID',
+        'SAMP_TOP': 'Depth to top of sample',
+        'SAMP_REF': 'Sample reference',
+        'SAMP_TYPE': 'Sample type',
+        'SPEC_REF': 'Specimen reference',
+        'SPEC_DPTH': 'Depth',
+        'GRAD_SIZE': 'Size',
+        'GRAD_PERP': 'Percentage passing',
+        'GRAD_TYPE': 'Test type' 
+    },
+    'STCN': {
+        'HOLE_ID': 'Location identifier',
+        'STCN_DPTH': 'z',
+        'STCN_RES': 'qc',
+        'STCN_FRES': 'fs',
+        'STCN_PWP1': 'u1',
+        'STCN_PWP2': 'u2',
+        'STCN_PWP3': 'u3'
     }
 }
 
 
 class AGSConverter(object):
 
-    def __init__(self, path, encoding='utf8', errors='replace', removedoublequotes=True, **kwargs):
+    def __init__(self, path, encoding='utf8', errors='replace', removedoublequotes=True,
+        removeheadinglinebreaks=True, agsformat="4",**kwargs):
         """
         Initializes an AGS conversion object using the path to the AGS file.
         The AGS file needs to properly formatted with at least one blank line between each group.
@@ -849,16 +973,25 @@ class AGSConverter(object):
             - A line with the units of the values in the columns;
             - A line with the data type of the columns
 
+        The functionality is developed for AGS4.x files but support for AGS3.1 files is also available
+        using ``agsformat="3.1"`` as optional keyword argument.
+
         :param path: Path to the AGS 4.0 file
         :param encoding: Encoding of the file (default=utf-8)
         :param errors: Specify file reading behaviour in case of encoding errors
         :param removedoublequotes: Boolean determining whether doublequotes need to be removed after file loading (default=True)
+        :param removeheadinglinebreaks: Boolean determining whether line breaks in heading rows need to be removed after file loading (default=True)
+        :param agsformat: Format of the AGS file (default=``"4"``). AGS 3.1 (``"3.1"``) is also available
         """
         self.path = path
+        self.agsformat = agsformat
         with open(path, "r", encoding=encoding, errors=errors) as file_handle:
             self.rawtextstring = file_handle.read()
+        if removeheadinglinebreaks:
+            self.remove_heading_linebreaks()
         if removedoublequotes:
             self.remove_doublequotes(**kwargs)
+        
         self.extract_groupnames()
 
     def remove_doublequotes(self, replace_by=""):
@@ -873,17 +1006,30 @@ class AGSConverter(object):
         :return:
         """
         self.textstring = re.sub(r'[^,]""', r'%s"' % replace_by, self.rawtextstring)
+
         self.raw_dataframe = pd.DataFrame(re.split(r'\n', self.textstring), columns=['AGS lines'])
+
+    def remove_heading_linebreaks(self):
+        """
+        Removes line breaks in header rows which would prevent further AGS parsing
+        If a comma is followed by a line break (``,\n``), it is replaced by a comma without line break
+        """
+        self.rawtextstring = self.rawtextstring.replace(',\n', ",")
 
     def extract_groupnames(self):
         """
         Scans the AGS file and extracts all group names
         :return: Sets the attribute ``groupnames`` of the ``AGSConverter`` object
         """
-        self.groupnames = re.findall(r'"GROUP","(?P<groupname>.+)"', self.textstring)
+        if self.agsformat == "4":
+            self.groupnames = re.findall(r'"GROUP","(?P<groupname>.+)"', self.textstring)
+        elif self.agsformat == "3.1":
+            self.groupnames = re.findall('\"\*\*(?P<groupname>.+)\"', self.textstring)
+        else:
+            raise ValueError("AGS format %s not recognised. Use '4' or '3.1' for currently supported formats")
 
     @staticmethod
-    def convert_ags_headers(df):
+    def convert_ags_headers(df, agsformat):
         """
         Converts the headers of an AGS-based dataframes from the three rows in the AGS to a single column header.
         Numerical data is also converted into the correct datatype.
@@ -893,16 +1039,32 @@ class AGSConverter(object):
         # Rename the headers
         new_headers = []
         datatypes = dict()
+        if agsformat == "3.1":
+            if df[df.columns[0]].iloc[0] == "<UNITS>":
+                pass
+            else:
+                return df
         for i, original_header in enumerate(df.columns):
             if str(df.loc[0, original_header]) == 'nan':
                 new_name = "%s" % (original_header)
             else:
                 new_name = "%s [%s]" % (original_header, df.loc[0, original_header])
             new_headers.append(new_name)
-            if ("DP" in df.loc[1, original_header]) or ("SF" in df.loc[1, original_header]):
-                datatypes[new_name] = 'float'
+            if agsformat == '4':
+                if ("DP" in df.loc[1, original_header]) or ("SF" in df.loc[1, original_header]):
+                    datatypes[new_name] = 'float'
         df.columns = new_headers
-        df = df[2:].reset_index(drop=True).astype(datatypes)
+        if agsformat == '4':
+            df = df[2:].reset_index(drop=True).astype(datatypes)
+        elif agsformat == "3.1":
+            df = df[1:].reset_index(drop=True)
+            for _col in df.columns:
+                try:
+                    df[_col] = pd.to_numeric(df[_col])
+                except:
+                    pass
+        else:
+            raise ValueError("AGS format %s not recognised. Use '4' or '3.1' for currently supported formats")
         return df
 
     def convert_ags_group(self, groupname, verbose_keys=False, additional_keys=dict(), use_shorthands=False,
@@ -920,8 +1082,14 @@ class AGSConverter(object):
 
         # Read the textstring into a pandas dataframe
         # Define where the data for the selected group starts
-        _start_index = self.raw_dataframe[
-            self.raw_dataframe['AGS lines'].str.startswith(r'"GROUP","%s"' % groupname)].index[0]
+        if self.agsformat == "4":
+            _start_index = self.raw_dataframe[
+                self.raw_dataframe['AGS lines'].str.startswith(r'"GROUP","%s"' % groupname)].index[0]
+        elif self.agsformat == "3.1":
+            _start_index = self.raw_dataframe[
+                self.raw_dataframe['AGS lines'].str.startswith(r'"**%s' % groupname)].index[0]
+        else:
+            raise ValueError("AGS format %s not recognised. Use '4' or '3.1' for currently supported formats")
 
         # Define where the data for the selected group ends
         empty_rows = self.raw_dataframe[
@@ -942,6 +1110,13 @@ class AGSConverter(object):
             nrows=_end_index - _start_index - 2,
             **kwargs)
 
+        # Remove * from header names in AGS3.1
+        if self.agsformat == "3.1":
+            coldict = dict()
+            for _col in _group_data.columns:
+                coldict[_col] = _col[1:]
+            _group_data.rename(columns=coldict, inplace=True)
+
         # Converted to verbose column keys if necessary
         if verbose_keys:
             try:
@@ -954,8 +1129,8 @@ class AGSConverter(object):
             except Exception as err:
                 warnings.warn("Verbose names for group %s not found. AGS column names kept - %s" % (groupname, str(err)))
 
-        # Convert the headers using the convert_ags_headers function
-        _group_data = self.convert_ags_headers(_group_data)
+        # Convert the headers using the convert_ags_headers function (only for AGS 4.x format)
+        _group_data = self.convert_ags_headers(_group_data, agsformat=self.agsformat)
 
         # Drop the HEADING [UNIT] column if required
         if drop_heading_col:

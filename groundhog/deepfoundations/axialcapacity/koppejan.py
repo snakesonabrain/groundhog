@@ -49,14 +49,14 @@ class KoppejanCalculation(object):
         Other properties may be provided as required by the correlations.
         The water level needs to be defined for calculation of the vertical effective stress profile.
 
-        :param layer_data: Pandas dataframe with layering definition. As a minimum the keys 'z from [m]', 'z to [m]' and 'Total unit weight [kN/m3]' need to be provided.
+        :param layer_data: Pandas dataframe with layering definition. As a minimum the keys 'Depth from [m]', 'Depth to [m]' and 'Total unit weight [kN/m3]' need to be provided.
         :param waterlevel: Level below soil surface (>=0m) where the watertable starts, default = 0m for fully saturated conditions
         :param waterunitweight: Unit weight of water used for the calculation [kN/m2] - Default = 10kN/m3
         :return: Sets the attribute `layerdata`
 
         """
         # Validation
-        for key in ['z from [m]', 'z to [m]']:
+        for key in ['Depth from [m]', 'Depth to [m]']:
             if key not in layer_data.columns:
                 raise ValueError("Dataframe needs to contain key '%s'" % key)
 
@@ -67,12 +67,12 @@ class KoppejanCalculation(object):
                 raise ValueError("Dataframe needs to contain key '%s' or a similar range definition" % (
                     key.replace("____", "")))
 
-        layer_data.sort_values('z from [m]', inplace=True)
-        check_layer_overlap(layer_data)
+        layer_data.sort_values('Depth from [m]', inplace=True)
+        check_layer_overlap(layer_data, z_from_key="Depth from [m]", z_to_key="Depth to [m]")
 
         for i, row in layer_data.iterrows():
             layer_data.loc[i, "Layer no"] = i+1
-            if row['z to [m]'] - row['z from [m]'] < 1:
+            if row['Depth to [m]'] - row['Depth from [m]'] < 1:
                 layer_data.loc[i, "qclim [MPa]"] = 12
             else:
                 layer_data.loc[i, "qclim [MPa]"] = 15
@@ -92,7 +92,9 @@ class KoppejanCalculation(object):
         # Map soil properties
         self.data = map_depth_properties(
             target_df=self.data,
-            layering_df=self.layerdata
+            layering_df=self.layerdata,
+            layering_zfrom_key="Depth from [m]",
+            layering_zto_key="Depth to [m]"
         )
 
     def calculate_side_friction(self, alpha_s):

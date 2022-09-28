@@ -99,3 +99,89 @@ def acousticimpedance_bulkunitweight_chen(
         'n [-]': _n,
         'I [(m/s).(g/cm3)]': _I,
     }
+
+SHEARWAVEVELOCITY_COMPRESSIONINDEX_CHA = {
+    'Cc': {'type': 'float', 'min_value': 0.005, 'max_value': 1.2},
+    'sigma_eff_particle_motion': {'type': 'float', 'min_value': 10, 'max_value': 1200},
+    'sigma_eff_wave_propagation': {'type': 'float', 'min_value': 10, 'max_value': 1200},
+    'alpha': {'type': 'float', 'min_value': 5, 'max_value': 1000},
+    'beta': {'type': 'float', 'min_value': 0.0, 'max_value': 0.6},
+    'calibration_factor_alpha_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_alpha_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_beta_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_beta_2': {'type': 'float', 'min_value': None, 'max_value': None}
+}
+
+SHEARWAVEVELOCITY_COMPRESSIONINDEX_CHA_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+    'alpha [-]': np.nan,
+    'beta [-]': np.nan
+}
+
+@Validator(SHEARWAVEVELOCITY_COMPRESSIONINDEX_CHA, SHEARWAVEVELOCITY_COMPRESSIONINDEX_CHA_ERRORRETURN)
+def shearwavevelocity_compressionindex_cha(
+        Cc, sigma_eff_particle_motion, sigma_eff_wave_propagation,
+        alpha=np.nan, beta=np.nan, calibration_factor_alpha_1=13.5, calibration_factor_alpha_2=-0.63,
+        calibration_factor_beta_1=0.17, calibration_factor_beta_2=0.43, **kwargs):
+
+    """
+    Shear wave velocity is dependent on the stiffness of the soil skeleton which is in turn affected by the compression index :math:`C_c`.
+    Cha et al (2014) reported a series of oedometer tests with bender elements to establish the coefficients of a power law equation.
+    Note that :math:`C_c` itself is also stress-dependent and requires the selection of appropriate points in :math:`e-\\log p^{\\prime}` space.
+
+    The relations proposed by Cha et al (2014) are used here by default, but the user can also enter custom values for :math:`\\alpha` and :math:`\\beta`
+    Since porosity is not a parameter which is commonly used, the user can enter bulk unit weight instead which is then converted to porosity for a saturated soil.
+
+    For application to field cases, the effective stress in the direction of particle motion and wave propagation needs to be estimated.
+    This usually involves estimation of the coefficient of lateral earth pressure.
+
+    :param Cc: Compression index (:math:`C_c`) [:math:`-`] - Suggested range: 0.005 <= Cc <= 1.2
+    :param sigma_eff_particle_motion: Effective stress in the direction of particle motion (:math:`\\sigma_{\\perp}^{\\prime}`) [:math:`kPa`] - Suggested range: 10 <= sigma_eff_particle_motion <= 1200
+    :param sigma_eff_wave_propagation: Effective stress in the direction of wave propagation (:math:`\\sigma_{\\parallel}^{\\prime}`) [:math:`kPa`] - Suggested range: 10 <= sigma_eff_wave_propagation <= 1200
+    :param alpha: Custom alpha-factor in the power law (:math:`\\alpha`) [:math:`-`] - Suggested range: 5 <= alpha <= 1000 (optional, default=``np.nan``)
+    :param beta: Custom beta-factor in the power law (:math:`\\beta`) [:math:`-`] - Suggested range: 0.0 <= beta <= 0.6 (optional, default= ´´np.nan´´)
+    :param calibration_factor_alpha_1: First calibration factor for alpha [:math:`-`] (optional, default= 13.5)
+    :param calibration_factor_alpha_2: Second calibration factor for alpha [:math:`-`] (optional, default= 0.63)
+    :param calibration_factor_beta_1: First calibration factor for beta [:math:`-`] (optional, default= 0.17)
+    :param calibration_factor_beta_2: First calibration factor for alpha [:math:`-`] (optional, default= 0.43)
+
+    .. math::
+        V_s = \\sqrt{\\frac{G}{\\rho}} = \\alpha \\left( \\frac{\\sigma_{\\perp}^{\\prime} + \\sigma_{\\parallel}^{\\prime}}{2 \\ \\text{kPa}} \\right)^{\\beta}
+
+        \\alpha = 13.5 (\\text{m/s}) \\cdot C_c^{-0.63}
+
+        \\beta = 0.17 \\log_{10} C_c + 0.43
+
+    :returns: Dictionary with the following keys:
+
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [:math:`\\text{m/s}`]
+        - 'alpha [-]': Alpha-factor (multiplier) (:math:`\\alpha`)  [:math:`-`]
+        - 'beta [-]': Beta-factor (exponent) (:math:`\\beta`)  [:math:`-`]
+
+    .. figure:: images/chaetal_data.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Compiled data from Cha et al
+
+    Reference - Cha et al (2014). Small-Strain Stiffness, Shear-Wave Velocity and Soil Compressibilitys. Journal of Geotechnical and Geoenvironmental Engineering.
+
+    """
+    if np.math.isnan(alpha):
+        _alpha = calibration_factor_alpha_1 * (Cc ** calibration_factor_alpha_2)
+    else:
+        _alpha = alpha
+
+    if np.math.isnan(beta):
+        _beta = calibration_factor_beta_1 * np.log10(Cc) + calibration_factor_beta_2
+    else:
+        _beta = beta
+    
+    _Vs = _alpha * ((0.5 * (sigma_eff_particle_motion + sigma_eff_wave_propagation)) ** _beta)
+    
+    return {
+        'Vs [m/s]': _Vs,
+        'alpha [-]': _alpha,
+        'beta [-]': _beta
+    }

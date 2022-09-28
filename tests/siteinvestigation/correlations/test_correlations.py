@@ -116,3 +116,10 @@ class Test_Correlations(unittest.TestCase):
         result = general.acousticimpedance_bulkunitweight_chen(
             bulkunitweight=21.0)
         self.assertAlmostEqual(result['I [(m/s).(g/cm3)]'], 3868, 0)
+
+    def test_shearwavevelocity_compressionindex_cha(self):
+        result = general.shearwavevelocity_compressionindex_cha(
+            Cc=0.05, sigma_eff_particle_motion=100, sigma_eff_wave_propagation=100)
+        self.assertAlmostEqual(result['alpha [-]'], 89, 0)
+        self.assertAlmostEqual(result['beta [-]'], 0.21, 2)
+        self.assertAlmostEqual(result['Vs [m/s]'], 233, 0)

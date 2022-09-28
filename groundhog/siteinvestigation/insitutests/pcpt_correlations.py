@@ -664,8 +664,10 @@ def relativedensity_sand_jamiolkowski(
         atmospheric_pressure=100.0, coefficient_1=2.96, coefficient_2=24.94, coefficient_3=0.46, coefficient_4=-1.87,
         coefficient_5=2.32, **kwargs):
     """
-    Jamiolkowksi et al formulated a correlation for the relative density of dry sand based on calibration chamber tests. The correlation can be modified for saturated sands and results in relative densities which can be up to 10% higher.
-    Note that calibration chamber testing is carried out on sands with vertical effective stress between 50kPa and 400kPa and coefficients of lateral earth pressure Ko between 0.4 and 1.5. Relative densities for stress conditions outside this range (e.g. shallow soils) should be assessed with care.
+    Jamiolkowksi et al formulated a correlation for the relative density of dry sand based on calibration chamber tests.
+    The correlation can be modified for saturated sands by applying a correction factor and results in relative densities which can be up to 10% higher.
+    Note that calibration chamber testing is carried out on sands with vertical effective stress between 50kPa and 400kPa and coefficients of lateral earth pressure Ko between 0.4 and 1.5.
+    Relative densities for stress conditions outside this range (e.g. shallow soils) should be assessed with care.
 
     When used with ``apply_correlation``, use ``'Dr Jamiolkowski et al (2003)'`` as correlation name.
 
@@ -682,7 +684,7 @@ def relativedensity_sand_jamiolkowski(
     .. math::
         D_{r,dry} = \\frac{1}{2.96} \\cdot \\ln \\left[ \\frac{q_c / P_a}{24.94 \\cdot \\left( \\frac{\\sigma_{m}^{\\prime}}{P_a} \\right)^{0.46} } \\right]
 
-        D_{r,sat} = \\left(  \\frac{-1.87 + 2.32 \\cdot \\ln \\left[ \\frac{q_c}{\\sqrt{P_a + \\sigma_{vo}^{\\prime}}} \\right] }{100} \\right) \\cdot \\frac{D_{r,dry}}{100}
+        D_{r,sat} = \\left( 1 + \\frac{-1.87 + 2.32 \\cdot \\ln \\left[ \\frac{q_c}{\\sqrt{P_a + \\sigma_{vo}^{\\prime}}} \\right] }{100} \\right) \\cdot D_{r,dry}
 
     :returns: Dictionary with the following keys:
 

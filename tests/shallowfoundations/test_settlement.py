@@ -60,7 +60,7 @@ class Test_settlement(unittest.TestCase):
         calc.calculate()
         self.assertAlmostEqual(
             calc.settlement,
-            0.726,
+            0.741,
             3)
 
     def test_settlement_calculation_budhu(self):

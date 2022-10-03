@@ -13,28 +13,7 @@ from scipy.optimize import brentq
 from groundhog.general.validation import Validator
 
 
-PCPT_KEY_MAPPING = {
-    'qc [MPa]': 'qc',
-    'fs [MPa]': 'fs',
-    'u2 [MPa]': 'u2',
-    'qt [MPa]': 'qt',
-    'ft [MPa]': 'ft',
-    'qnet [MPa]': 'qnet',
-    'Vertical total stress [kPa]': 'sigma_vo',
-    'Vertical effective stress [kPa]': 'sigma_vo_eff',
-    'Ic [-]': 'ic',
-    'Dr [-]': 'relative_density',
-    'Gmax [kPa]': 'gmax',
-    'Qt [-]': 'Qt',
-    'Bq [-]': 'Bq',
-    'Fr [%]': 'Fr',
-    'Rf [%]': 'Rf',
-    'K0 [-]': 'k0',
-    'Vs [m/s]': 'Vs',
-    'gamma [kN/m3]': 'gamma',
-    'OCR [-]': 'ocr',
-    'z [m]': 'depth'
-}
+
 
 
 

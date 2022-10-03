@@ -27,7 +27,7 @@ except:
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
-from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
+from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
 from groundhog.general.parameter_mapping import offsets, latlon_distance
@@ -1694,7 +1694,7 @@ class PCPTProcessing(InsituTestProcessing):
             if header in self.data.columns:
                 self.data.drop(header, axis=1, inplace=True)
 
-        self.data.rename(columns=PCPT_KEY_MAPPING, inplace=True)
+        self.data.rename(columns=SOIL_PARAMETER_MAPPING, inplace=True)
 
         for i, row in self.data.iterrows():
             if apply_for_soiltypes == 'all' or row['Soil type'] in apply_for_soiltypes:
@@ -1708,7 +1708,7 @@ class PCPTProcessing(InsituTestProcessing):
                     header = outputs[resultkey]
                     self.data.loc[i, header] = np.nan
                     
-        self.data.rename(columns=reverse_dict(PCPT_KEY_MAPPING), inplace=True)
+        self.data.rename(columns=reverse_dict(SOIL_PARAMETER_MAPPING), inplace=True)
     # endregion
 
     # region Design lines

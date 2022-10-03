@@ -13,7 +13,6 @@ import numpy as np
 # Project imports
 from distutils.log import error, warn
 
-from sympy import EX
 from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, reverse_dict
 from groundhog.deepfoundations.axialcapacity.skinfriction import SKINFRICTION_METHODS, SKINFRICTION_PARAMETERS
 from groundhog.deepfoundations.axialcapacity.endbearing import ENDBEARING_METHODS, ENDBEARING_PARAMETERS

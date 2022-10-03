@@ -62,3 +62,8 @@ class Test_axcapcalc(unittest.TestCase):
     def test_gridding(self):
         self.test_checking()
         self.calc_api.create_grid()
+
+    def test_pilepenetration(self):
+        self.test_gridding()
+        self.calc_api.set_pilepenetration(pile_penetration=18)
+        self.assertEqual(self.calc_api.output["Depth to [m]"].max(), 18)

@@ -95,7 +95,7 @@ def API_unit_end_bearing_sand_rp2geo(api_relativedensity, api_soildescription, s
         :width: 400
         :align: center
 
-        API RP 2 GEO values
+        API RP 2 GEO values (TODO: Add figure file in docs)
 
     Reference - API RP 2GEO, API RP 2GEO Geotechnical and Foundation Design Considerations, 2011
 

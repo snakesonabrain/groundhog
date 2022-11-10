@@ -1,6 +1,8 @@
 v0.9.0, TBD
     - Added shearwavevelocity_compressionindex_cha for estimate shear wave velocity when stress conditions and packing density are known
     - Refactoring of code for element properties in a CalculationGrid object
+    - Added axial capacity basic code
+    - 
     - TODO: Add hatching patterns to LogPlot and LogPlotMatplotlib
     - TODO: Check difference between docs and implementation for relative density correlation according to Jamiolkowski
     - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands

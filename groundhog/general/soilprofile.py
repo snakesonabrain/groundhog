@@ -684,14 +684,14 @@ class SoilProfile(pd.DataFrame):
             if self.check_linear_variation(_param):
                 _from_param = _param.replace(' [', ' from [')
                 _to_param = _param.replace(' [', ' to [')
-                _profile[_from_param].iloc[0] = np.interp(
+                _profile.loc[_profile.index[0], _from_param] = np.interp(
                     top_depth,
                     [_profile[self.depth_from_col].iloc[0],
                      _profile[self.depth_to_col].iloc[0]],
                     [_profile[_from_param].iloc[0],
                      _profile[_to_param].iloc[0]]
                 )
-                _profile[_to_param].iloc[-1] = np.interp(
+                _profile.loc[_profile.index[-1], _to_param] = np.interp(
                     bottom_depth,
                     [_profile[self.depth_from_col].iloc[-1], _profile[self.depth_to_col].iloc[-1]],
                     [_profile[_from_param].iloc[-1],
@@ -699,8 +699,8 @@ class SoilProfile(pd.DataFrame):
                 )
 
         # Adjust bounds
-        _profile[self.depth_from_col].iloc[0] = top_depth
-        _profile[self.depth_to_col].iloc[-1] = bottom_depth
+        _profile.loc[_profile.index[0], self.depth_from_col] = top_depth
+        _profile.loc[_profile.index[-1], self.depth_to_col] = bottom_depth
 
         # Reset the indices
         _profile.reset_index(drop=True, inplace=True)

@@ -12,6 +12,9 @@ __pycache__/
 # VS code conf
 .vscode/
 
+# zip files
+*.zip
+
 # Distribution / packaging
 .Python
 build/

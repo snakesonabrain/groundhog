@@ -565,6 +565,7 @@ class LogPlot(object):
         :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
         :param kwargs: Optional keyword arguments for the make_subplots method
         """
+        self.soilprofile = soilprofile
 
         # Determine the panel widths
         panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, range(0, no_panels)))
@@ -623,12 +624,12 @@ class LogPlot(object):
             self.fig['layout']['xaxis%i' % (i + 2)].update(
                 anchor='y', title='X-axis %i' % (i+1), side='top')
 
-    def add_trace(self, x, z, name, panel_no, resetaxisrange=True, **kwargs):
+    def add_trace(self, x, z, name, panel_no, resetaxisrange=False, **kwargs):
         """
         Adds a trace to the plot. By default, lines are added but optional keyword arguments can be added for go.Scatter as ``**kwargs``
         :param x: Array with the x-values
         :param z: Array with the z-values
-        :param name: Name for the trace (LaTeX allowed, e.g. ``r'$ \alpha $'``)
+        :param name: Name for the trace (LaTeX allowed, e.g. ``r'$ \\alpha $'``)
         :param panel_no: Panel to plot the trace on (1-indexed)
         :param resetaxisrange: Boolean determining whether the axis range needs to be reset to fit this trace
         :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
@@ -650,6 +651,27 @@ class LogPlot(object):
         if resetaxisrange:
             self.fig['layout']['xaxis%i' % (panel_no + 1)].update(
                 range=(np.array(x).min(), np.array(x).max()))
+
+    def add_soilparameter_trace(self, parametername, panel_no, legendname=None, resetaxisrange=False, **kwargs):
+        """
+        Adds a trace to the plot based on a soil parameter available in the SoilProfile. By default, lines are added but optional keyword arguments can be added for go.Scatter as ``**kwargs``
+        :param parametername: Name of the soil parameter (with units) e.g. ``'Su [kPa]'`` when ``'Su from [kPa]'`` and ``'Su to [kPa]'`` are available in the SoilProfile
+        :param panel_no: Panel to plot the trace on (1-indexed)
+        :param legendname: Name for the trace (LaTeX allowed, e.g. ``r'$ \\alpha $'``), default is None to use ``parametername``
+        :param resetaxisrange: Boolean determining whether the axis range needs to be reset to fit this trace
+        :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
+        :return: Adds the trace to the specified panel
+        """
+        if not parametername in self.soilprofile.soil_parameters():
+            raise ValueError("Soil parameter %s not encoded in the soil profile. Check soil profile definition and try again" % parametername)
+        x = self.soilprofile.soilparameter_series(parametername)[1]
+        z = self.soilprofile.soilparameter_series(parametername)[0]
+
+        if legendname is None:
+            name = legendname
+        else:
+            name = parametername
+        self.add_trace(x, z, name, panel_no, resetaxisrange, **kwargs)
 
     def set_xaxis(self, title, panel_no, **kwargs):
         """
@@ -793,13 +815,28 @@ class LogPlotMatplotlib(object):
         if showlegend:
             self._legend_entries.append(name)
 
-    def plot_parameter(self, parameter, panel_no, name, **kwargs):
+    def add_soilparameter_trace(self, parametername, panel_no, legendname=None, resetaxisrange=False, line=True, showlegend=False, **kwargs):
         """
-        Plot the trace of a certain parameter in the ``SoilProfile`` object associated with the logplot
-        on the specified panel
+        Adds a trace to the plot based on a soil parameter available in the SoilProfile. By default, lines are added but optional keyword arguments can be added for plt.plot as ``**kwargs``
+        :param parametername: Name of the soil parameter (with units) e.g. ``'Su [kPa]'`` when ``'Su from [kPa]'`` and ``'Su to [kPa]'`` are available in the SoilProfile
+        :param panel_no: Panel to plot the trace on (1-indexed)
+        :param legendname: Label for the trace (LaTeX allowed, e.g. ``r'$ \\alpha $'``)
+        :param resetaxisrange: Boolean determining whether the axis range needs to be reset to fit this trace
+        :param line: Boolean determining whether the data needs to be shown as a line or as individual markers
+        :param showlegend: Boolean determining whether the trace name needs to be added to the legend entries
+        :param kwargs: Optional keyword arguments for the ``go.Scatter`` constructor
+        :return: Adds the trace to the specified panel
         """
-        z, x = self.soilprofile.soilparameter_series(parameter)
-        self.add_trace(x=x, z=z, name=name, panel_no=panel_no, **kwargs)
+        if not parametername in self.soilprofile.soil_parameters():
+            raise ValueError("Soil parameter %s not encoded in the soil profile. Check soil profile definition and try again" % parametername)
+        x = self.soilprofile.soilparameter_series(parametername)[1]
+        z = self.soilprofile.soilparameter_series(parametername)[0]
+
+        if legendname is None:
+            name = legendname
+        else:
+            name = parametername
+        self.add_trace(x, z, name, panel_no, resetaxisrange, line, showlegend, **kwargs)
 
     def set_xaxis_title(self, title, panel_no, size=15, **kwargs):
         """
@@ -916,10 +953,9 @@ class LogPlotMatplotlib(object):
                 x[i] = np.nan
 
         self.soilprofile["%s [%s]" % (parametername, units)] = x
-        self.plot_parameter(
+        self.add_soilparameter_trace(
             parameter="%s [%s]" % (parametername, units),
-            panel_no=panel_no,
-            name=parametername)
+            panel_no=panel_no)
         ax.figure.canvas.draw()
 
     def select_linear(self, panel_no, parametername, units, nan_tolerance=0.1):
@@ -942,8 +978,7 @@ class LogPlotMatplotlib(object):
                 
         self.soilprofile["%s from [%s]" % (parametername, units)] = x[::2]
         self.soilprofile["%s to [%s]" % (parametername, units)] = x[1::2]
-        self.plot_parameter(
+        self.add_soilparameter_trace(
             parameter="%s [%s]" % (parametername, units),
-            panel_no=panel_no,
-            name=parametername)
+            panel_no=panel_no)
         ax.figure.canvas.draw()

@@ -141,12 +141,121 @@ def API_unit_end_bearing_sand_rp2geo(api_relativedensity, api_soildescription, s
         'Nq [-]': Nq
     }
 
+UNITENDBEARING_SAND_ALMHAMRE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+    'exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+UNITENDBEARING_SAND_ALMHAMRE_ERRORRETURN = {
+    'q_b_coring [kPa]': np.nan,
+    'q_b_plugged [kPa]': np.nan,
+    'plugged []': False,
+    'internal_friction []': True,
+}
+
+@Validator(UNITENDBEARING_SAND_ALMHAMRE, UNITENDBEARING_SAND_ALMHAMRE_ERRORRETURN)
+def unitendbearing_sand_almhamre(
+        qt, sigma_vo_eff,
+        multiplier=0.15, exponent=0.2, **kwargs):
+    """
+    Calculates unit end bearing in sand according to Alm & Hamre.
+
+    :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\\\sigma_{vo}^{\\\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param multiplier: Multipier for unit end bearing (:math:``) [:math:`-`] (optional, default= 0.15)
+    :param exponent: Exponent for unit end bearing (:math:``) [:math:`-`] (optional, default= 0.2)
+
+    .. math::
+        q_{b,sand} = 0.15 \\\\cdot q_t \\\\cdot \\\\left( \\\\frac{q_t}{\\\\sigma_{vo}^{\\\\prime}} \\\\right)^{0.2}
+
+    :returns: Dictionary with the following keys:
+
+        - 'q_b_coring [kPa]': Unit end bearing for pile driving (:math:`q_{b,sand}`)  [:math:`kPa`]
+        - 'q_b_plugged [kPa]': Not applicable [:math:`kPa`]
+        - 'plugged []': Determines whether the pile is plugged (False for driving piles)
+        - 'internal_friction []': Determines whether internal friction is taken into account (True by default for Alm & Hamre formula)
+
+    Reference - Alm, T., Hamre, L., 2001. Soil model for pile driveability predictions based on CPT interpretations. Presented at the International Conference On Soil Mechanics and Foundation Engineering.
+    Alm, T., Hamre, L., 1998. Soil model for driveability predictions. Presented at the OTC 8835, Annual Offshore Technology Conference, Houston, Texas, p. 13.
+
+    """
+
+    _q_b_coring = multiplier * (1000 * qt) * ((1000 * qt / sigma_vo_eff) ** exponent)
+    _q_b_plugged = 0
+    _plugged = False
+    _internal_friction = True
+
+    return {
+        'q_b_coring [kPa]': _q_b_coring,
+        'q_b_plugged [kPa]': _q_b_plugged,
+        'plugged []': _plugged,
+        'internal_friction []': _internal_friction,
+    }
+
+
+UNITENDBEARING_CLAY_ALMHAMRE = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
+    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+UNITENDBEARING_CLAY_ALMHAMRE_ERRORRETURN = {
+    'q_b_coring [kPa]': np.nan,
+    'q_b_plugged [kPa]': np.nan,
+    'plugged []': False,
+    'internal_friction []': True,
+}
+
+
+@Validator(UNITENDBEARING_CLAY_ALMHAMRE, UNITENDBEARING_CLAY_ALMHAMRE_ERRORRETURN)
+def unitendbearing_clay_almhamre(
+        qt,
+        multiplier=0.6, **kwargs):
+    """
+    Calculates unit end bearing in clay according to Alm & Hamre.
+
+    :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
+    :param multiplier: Multipier for unit end bearing (:math:``) [:math:`-`] (optional, default= 0.6)
+
+    .. math::
+        q_{b,clay} = 0.6 \\\\cdot q_t
+
+    :returns: Dictionary with the following keys:
+
+        - 'q_b_coring [kPa]': Unit end bearing for pile driving (:math:`q_{b,sand}`)  [:math:`kPa`]
+        - 'q_b_plugged [kPa]': Not applicable [:math:`kPa`]
+        - 'plugged []': Determines whether the pile is plugged (False for driving piles)
+        - 'internal_friction []': Determines whether internal friction is taken into account (True by default for Alm & Hamre formula)
+
+    Reference - Alm, T., Hamre, L., 2001. Soil model for pile driveability predictions based on CPT interpretations. Presented at the International Conference On Soil Mechanics and Foundation Engineering.
+    Alm, T., Hamre, L., 1998. Soil model for driveability predictions. Presented at the OTC 8835, Annual Offshore Technology Conference, Houston, Texas, p. 13.
+
+    """
+
+    _q_b_coring = multiplier * 1000 * qt
+    _q_b_plugged = 0
+    _plugged = False
+    _internal_friction = True
+
+    return {
+        'q_b_coring [kPa]': _q_b_coring,
+        'q_b_plugged [kPa]': _q_b_plugged,
+        'plugged []': _plugged,
+        'internal_friction []': _internal_friction,
+    }
+
+
 ENDBEARING_METHODS = {
     'API RP2 GEO Sand': API_unit_end_bearing_sand_rp2geo,
-    'API RP2 GEO Clay': API_unit_end_bearing_clay
+    'API RP2 GEO Clay': API_unit_end_bearing_clay,
+    'Alm and Hamre Sand': unitendbearing_sand_almhamre,
+    'Alm and Hamre Clay': unitendbearing_clay_almhamre
 }
 
 ENDBEARING_PARAMETERS = {
     'API RP2 GEO Sand': ['api_relativedensity', 'api_soildescription', 'sigma_vo_eff'],
-    'API RP2 GEO Clay': ['undrained_shear_strength',]
+    'API RP2 GEO Clay': ['undrained_shear_strength',],
+    'Alm and Hamre Sand': ['qt', 'sigma_vo_eff'],
+    'Alm and Hamre Clay': ['qt',]
 }

@@ -19,7 +19,7 @@ from groundhog.general.soilprofile import SoilProfile
 TESTS_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
-class Test_axcapcalc(unittest.TestCase):
+class Test_axcapcalc_API(unittest.TestCase):
 
     def setUp(self):
         self.soilprofile_api = SoilProfile({
@@ -67,3 +67,55 @@ class Test_axcapcalc(unittest.TestCase):
         self.test_gridding()
         self.calc_api.set_pilepenetration(pile_penetration=18)
         self.assertEqual(self.calc_api.output["Depth to [m]"].max(), 18)
+
+
+class Test_axcapcalc_AlmHamre(unittest.TestCase):
+
+    def setUp(self):
+        self.soilprofile_almhamre = SoilProfile({
+            'Depth from [m]': [0, 5, 10],
+            'Depth to [m]': [5, 10, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND'],
+            'Total unit weight [kN/m3]': [20, 18, 20],
+            'Unit skin friction': ['Alm and Hamre Sand', 'Alm and Hamre Clay', 'Alm and Hamre Sand'],
+            'Unit end bearing': ['Alm and Hamre Sand', 'Alm and Hamre Clay', 'Alm and Hamre Sand']
+        })
+        self.soilprofile_almhamre_errors = SoilProfile({
+            'Depth from [m]': [0, 5, 10],
+            'Depth to [m]': [5, 10, 20],
+            'Soil type': ['SAND', 'CLAY', 'SAND'],
+            'Total unit weight [kN/m3]': [20, 18, 20],
+            'Unit skin friction': ['Ulm and Hamre Sand', 'Alm and Hamre Clay', 'Alm and Hamre Sand'], # Typo with method
+            'Unit end bearing': ['Ulm and Hamre Sand', 'Alm and Hamre Clay', 'Alm and Hamre Sand']
+        })
+        
+        
+    def test_calcinitiation(self):
+        self.calc_almhamre = axcap.AxCapCalculation(self.soilprofile_almhamre)
+        self.calc_almhamre_errors = axcap.AxCapCalculation(self.soilprofile_almhamre_errors)
+
+    def test_checking(self):
+        self.test_calcinitiation()
+        self.calc_almhamre.check_methods()
+        self.assertRaises(ValueError, self.calc_almhamre.check_methods, True)
+        self.calc_almhamre.sp.calculate_overburden()
+        self.calc_almhamre.sp['qt from [MPa]'] = [10, 1.5, 20]
+        self.calc_almhamre.sp['qt to [MPa]'] = [12, 1.8, 25]
+        self.calc_almhamre.sp['fs from [MPa]'] = [0.1, 0.6, 0.2]
+        self.calc_almhamre.sp['fs to [MPa]'] = [0.12, 0.65, 0.25]
+        self.calc_almhamre.sp['Interface friction angle [deg]'] = [29, 20, 29]
+        self.calc_almhamre.sp['Embedded length [m]'] = [18, 18, 18]
+        self.calc_almhamre.check_methods(raise_errors=True)
+        self.assertTrue(self.calc_almhamre.checked)
+        self.calc_almhamre_errors.check_methods()
+        self.assertFalse(self.calc_almhamre_errors.checked)
+        self.assertRaises(ValueError, self.calc_almhamre_errors.check_methods, True)
+
+    def test_gridding(self):
+        self.test_checking()
+        self.calc_almhamre.create_grid()
+
+    def test_pilepenetration(self):
+        self.test_gridding()
+        self.calc_almhamre.set_pilepenetration(pile_penetration=18)
+        self.assertEqual(self.calc_almhamre.output["Depth to [m]"].max(), 18)

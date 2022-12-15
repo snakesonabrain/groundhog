@@ -54,6 +54,9 @@ class AxCapCalculation(object):
                     _param_name = reverse_dict(SOIL_PARAMETER_MAPPING)[_param]
                     if _param_name in self.sp.string_soil_parameters() or _param_name in self.sp.numerical_soil_parameters():
                         pass
+                    elif _param_name == 'z [m]':
+                        # 'depth' or 'z [m]' is defined in the grid anyway
+                        pass 
                     else:
                         self.checked = False
                         error_message = "Skin friction method %s: Required parameter %s not found" % (_method, _param_name)
@@ -75,6 +78,9 @@ class AxCapCalculation(object):
                     _param_name = reverse_dict(SOIL_PARAMETER_MAPPING)[_param]
                     if _param_name in self.sp.string_soil_parameters() or _param_name in self.sp.numerical_soil_parameters():
                         pass
+                    elif _param_name == 'z [m]':
+                        # 'depth' or 'z [m]' is defined in the grid anyway
+                        pass 
                     else:
                         self.checked = False
                         error_message = "End bearing method %s: Required parameter %s not found" % (_method, _param_name)

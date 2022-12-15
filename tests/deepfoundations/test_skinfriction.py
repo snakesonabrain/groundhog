@@ -70,7 +70,8 @@ class Test_almhamre_unitskinfriction_clay(unittest.TestCase):
             embedded_length=30,
             qt=1.5,
             fs=0.2,
-            sigma_vo_eff=100)
+            sigma_vo_eff=100,
+            fail_silently=False)
         self.assertAlmostEqual(
             result['f_s_initial [kPa]'], 200, 3)
         self.assertAlmostEqual(
@@ -81,8 +82,9 @@ class Test_almhamre_unitskinfriction_clay(unittest.TestCase):
             depth=20,
             embedded_length=30,
             qt=1.5,
-            sleeve_friction=0.2,
-            sigma_vo_eff=100)
+            fs=0.2,
+            sigma_vo_eff=100,
+            fail_silently=False)
         self.assertAlmostEqual(
             result['f_s_initial [kPa]'], 200, 3)
         self.assertAlmostEqual(

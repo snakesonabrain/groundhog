@@ -120,6 +120,8 @@ class AxCapCalculation(object):
             raise ValueError("Pile penetration cannot exceed the maximum depth of the soil profile")
 
         self.output = self.grid.elements.cut_profile(top_depth=0, bottom_depth=pile_penetration)
+        if "Embedded length [m]" in self.output.keys():
+            self.output.loc[:, "Embedded length [m]"] = pile_penetration
 
     def calculate_unitskinfriction(self, **kwargs):
         """
@@ -335,7 +337,7 @@ class AxCapCalculation(object):
         single_penetration_plot = LogPlot(soilprofile=self.sp, no_panels=4, fillcolordict=fillcolordict)
 
         z_fs, x_fs = self.output.soilparameter_series('Unit skin friction outside compression [kPa]')
-        z_qb, x_qb = self.output.soilparameter_series('Unit end bearing plugged [kPa]')
+        z_qb, x_qb = self.output.soilparameter_series('Unit end bearing coring [kPa]')
 
         single_penetration_plot.add_trace(x=x_fs, z=z_fs, showlegend=False, mode='lines',name='fs comp', panel_no=1)
         single_penetration_plot.add_trace(x=x_qb, z=z_qb, showlegend=False, mode='lines',name='qb', panel_no=2)

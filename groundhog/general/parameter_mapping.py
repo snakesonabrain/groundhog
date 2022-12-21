@@ -22,6 +22,7 @@ SOIL_PARAMETER_MAPPING = {
     'qnet [MPa]': 'qnet',
     'Vertical total stress [kPa]': 'sigma_vo',
     'Vertical effective stress [kPa]': 'sigma_vo_eff',
+    'Effective pressure [kPa]': 'p_eff',
     'Effective unit weight [kN/m3]': 'gamma_eff',
     'Total unit weight [kN/m3]': 'gamma_tot',
     'Ic [-]': 'ic',

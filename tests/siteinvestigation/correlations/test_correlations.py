@@ -123,3 +123,17 @@ class Test_Correlations(unittest.TestCase):
         self.assertAlmostEqual(result['alpha [-]'], 89, 0)
         self.assertAlmostEqual(result['beta [-]'], 0.21, 2)
         self.assertAlmostEqual(result['Vs [m/s]'], 233, 0)
+
+    def test_stress_dilatancy_bolton(self):
+        result_triaxialstrain = cohesionless.stress_dilatancy_bolton(
+            relative_density=0.6, p_eff=200)
+        self.assertAlmostEqual(result_triaxialstrain['Ir [-]'], 1.82, 2)
+        self.assertAlmostEqual(result_triaxialstrain['Dilation angle [deg]'], 5.46, 2)
+        result_triaxialstrain_highstress = cohesionless.stress_dilatancy_bolton(
+            relative_density=0.6, p_eff=400)
+        self.assertAlmostEqual(result_triaxialstrain_highstress['Ir [-]'], 1.41, 2)
+        self.assertAlmostEqual(result_triaxialstrain_highstress['Dilation angle [deg]'], 4.22, 2)
+        result_planestrain = cohesionless.stress_dilatancy_bolton(
+            relative_density=0.6, p_eff=200, stress_condition='plane strain')
+        self.assertAlmostEqual(result_planestrain['Ir [-]'], 1.82, 2)
+        self.assertAlmostEqual(result_planestrain['Dilation angle [deg]'], 11.38, 2)

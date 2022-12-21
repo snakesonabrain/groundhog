@@ -754,7 +754,7 @@ class LogPlotMatplotlib(object):
                 [0.0,0.0,1.0,1.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
                 label='_nolegend_', edgecolor="black")
             
-        _legend_entries = []
+        _legend_handles = []
         for _soiltype in soilprofile['Soil type'].unique():
             try:
                 _fillcolor = fillcolordict[_soiltype]
@@ -766,12 +766,12 @@ class LogPlotMatplotlib(object):
                     _legend_entry, = self.axes[0].fill(
                         [-11.0,-11.0,-10.0,-10.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
                         label=_soiltype, edgecolor="black")
-                    _legend_entries.append(_legend_entry)
+                    _legend_handles.append(_legend_entry)
             except:
                 pass
 
-        self._legend_entries = _legend_entries
-
+        self._legend_entries = _legend_handles
+        
         self.axes[0].set_xlim([0, 1])
         self.axes[0].get_xaxis().set_ticks([])
         self.axes[0].set_ylabel('Depth below mudline [m]',size=15)
@@ -805,15 +805,15 @@ class LogPlotMatplotlib(object):
         :return: Adds the trace to the specified panel
         """
         if line:
-            self.axes[panel_no].plot(x, z,label=name, **kwargs)
+            _axes_obj = self.axes[panel_no].plot(x, z,label=name, **kwargs)
         else:
-            self.axes[panel_no].scatter(x, z,label=name, **kwargs)
+            _axes_obj = self.axes[panel_no].scatter(x, z,label=name, **kwargs)
 
         if resetaxisrange:
             self.axes[panel_no].set_xlim([x[~np.isnan(x)].min(), x[~np.isnan(x)].max()])
         
         if showlegend:
-            self._legend_entries.append(name)
+            self._legend_entries.append(_axes_obj)
 
     def add_soilparameter_trace(self, parametername, panel_no, legendname=None, resetaxisrange=False, line=True, showlegend=False, **kwargs):
         """

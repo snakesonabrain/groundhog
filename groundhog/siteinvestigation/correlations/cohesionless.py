@@ -4,6 +4,7 @@
 __author__ = 'Bruno Stuyts'
 
 # Native Python packages
+import warnings
 
 # 3rd party packages
 import numpy as np
@@ -207,4 +208,96 @@ def hssmall_parameters_sand(
         'phi_eff [deg]': _phi_eff,
         'psi [deg]': _psi,
         'Rf [-]': _Rf,
+    }
+
+STRESS_DILATANCY_BOLTON = {
+    'relative_density': {'type': 'float', 'min_value': 0.1, 'max_value': 1.0},
+    'p_eff': {'type': 'float', 'min_value': 20, 'max_value': 10000},
+    'Q': {'type': 'float', 'min_value': 5, 'max_value': 10},
+    'R': {'type': 'float', 'min_value': None, 'max_value': None},
+    'stress_condition': {'type': 'string', 'options':("triaxial strain","plane strain"),'regex':None},
+}
+
+STRESS_DILATANCY_BOLTON_ERRORRETURN = {
+    'Ir [-]': np.nan,
+    'phi_max - phi_cs [deg]': np.nan,
+    'Dilation angle [deg]': np.nan,
+    '-depsilon_v/depsilon_1__max [-]': np.nan
+}
+
+
+@Validator(STRESS_DILATANCY_BOLTON, STRESS_DILATANCY_BOLTON_ERRORRETURN)
+def stress_dilatancy_bolton(
+        relative_density, p_eff, Q=10, R=1,
+        stress_condition='triaxial strain', **kwargs):
+    """
+    Cohesionless soils with sufficiently high relative density will tend to dilate but dilation
+    can be suppressed by the stress on the sample. The higher the stress, the lower the amount
+    of dilation.
+    Bolton (1986) formulated relations to calculated the difference between peak friction angle
+    and critical state friction angle based on a series of plane strain and triaxial tests.
+    A relative dilatancy index (:math:`I_R`) is defined which has allows prediction of the dilation
+    angle for plane strain and triaxial strain.
+    This function predicts the value of the relative dilatancy index based on user input and
+    applies this to calculate the difference between peak and residual friction angle, 
+    dilation angle and the maximum ratio of volumetric strain increment to first principal strain increment
+    for a selected stress condition (plane strain or triaxial strain).
+    The calibration factors in the equation for relative dilatancy index can be adjusted
+    (e.g. for crushable soils).
+    Note that the formulae apply for :math:`0 < I_R < 4`.
+    
+    :param relative_density: Relative density of the material (:math:`D_{r)`) [:math:`-`] - Suggested range: 0.1 <= relative_density <= 1.0
+    :param p_eff: Effective pressure (:math:`p_{eff)^{\\prime}`) [kPa] - Suggested range: 20 <= p_eff <= 10000. In the discussion following the paper publication, a remark was made that using a minimum value of 150kPa for the effective pressure is prudent.
+    :param Q: First calibration factor in the equation for relative dilatancy index (:math:`Q`) (optional: Default = 10 for quartz and feldspar sands, See Table 2 in Bolton's paper for other grain types)- Suggested range: 5 <= Q <= 10
+    :param R: Second calibration factor in the equation for relative dilatancy index (:math:`R`) (optional: Default = 1)
+    :param stress_condition: Assumed stress condition: Choose between ``'triaxial strain'`` and ``'plane strain'``
+
+    .. math::
+        I_R = D_r \\left( Q - \\ln p^{\\prime} \\right) - R
+
+        \\varphi_{max}^{\\prime} - \\varphi_{crit}^{\\prime} = 0.8 \\phi_{max} = 5 I_R \\ \\ \\text{plane strain}
+
+        \\varphi_{max}^{\\prime} - \\varphi_{crit}^{\\prime} = 3 I_R \\ \\ \\text{triaxial strain}
+        
+        \\left( - \\frac{d \\epsilon_v}{d \\epsilon_1} \\right)_{max} = 0.3 I_R
+
+    :returns: Dictionary with the following keys:
+
+        - 'Ir [-]': Relative dilatancy index (:math:`I_R`)  [-]
+        - 'phi_max - phi_cs [deg]': Difference between peak and critical state friction angle (:math:`\\varphi_{max}^{\\prime} - \\varphi_{crit}^{\\prime}`)  [deg]
+        - 'Dilation angle [deg]': Calculated dilation angle for the selected stress condition (:math:`\\psi`)  [deg]
+        - '-depsilon_v/depsilon_1__max [-]': Maximum ratio of volumetric to first principal strain increment (:math:`\\left( - \\frac{d \\epsilon_v}{d \\epsilon_1} \\right)_{max}`) [-]
+
+    .. figure:: images/data_bolton.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Stress-dilatancy theory applied to selected tests (Bolton, 1986)
+
+    Reference - Bolton, M. D. "The strength and dilatancy of sands." Geotechnique 36.1 (1986): 65-78.
+
+    """
+
+    _Ir = relative_density * (Q  - np.log(p_eff)) - R
+
+    if _Ir < 0 or _Ir > 4:
+        warnings.warn("Outside of valid range for relative dilatancy index")
+
+    if stress_condition == 'plane strain':
+        _phi_difference = 5 * _Ir
+        _dilationangle = _phi_difference / 0.8
+    elif stress_condition == 'triaxial strain':
+        _phi_difference = 3 * _Ir
+        _dilationangle = _phi_difference
+    else:
+        raise ValueError("Stress condition %s not recognised" % stress_condition)
+
+    _strainratio = 0.3 * _Ir
+
+    return {
+        'Ir [-]': _Ir,
+        'phi_max - phi_cs [deg]': _phi_difference,
+        'Dilation angle [deg]': _dilationangle,
+        '-depsilon_v/depsilon_1__max [-]': _strainratio
     }

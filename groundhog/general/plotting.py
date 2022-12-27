@@ -29,394 +29,19 @@ PLOTLY_GLOBAL_FONT = dict(family='Century Gothic', size=12, color='#5f5f5f')
 C0 = '#1f77b4'; C1 = '#ff7f0e'; C2 = '#2ca02c'; C3 = '#d62728'; C4 = '#9467bd'; C5 = '#8c564b'; C6 = '#e377c2'; C7 = '#7f7f7f'; C8 = '#bcbd22'; C9 = '#17becf'
 PLOTLY_COLORS = [C0, C1, C2, C3, C4, C5, C6, C7, C8, C9]
 
-PORTRAIT_TEMPLATE = """
-<HTML>
-    <head>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        <style>
-            @page { margin: 0 }
-            body { margin: 0 }
-            .sheet {
-              margin: 0;
-              overflow: hidden;
-              position: relative;
-              box-sizing: border-box;
-              page-break-after: always;
-            }
+BRIGHTCOLORS = ['#4477AA', '#EE6677', '#228833', '#CCBB44', '#66CCEE', '#AA3377', '#BBBBBB']
 
-            body.A3           .sheet { width: 297mm; height: 419mm }
-            body.A3.landscape .sheet { width: 420mm; height: 296mm }
-            body.A4           .sheet { width: 210mm; height: 296mm }
-            body.A4.landscape .sheet { width: 297mm; height: 209mm }
-            body.A5           .sheet { width: 148mm; height: 209mm }
-            body.A5.landscape .sheet { width: 210mm; height: 147mm }
-
-            .sheet.padding-5mm { padding: 5mm}
-            .sheet.padding-10mm { padding: 10mm }
-            .sheet.padding-15mm { padding: 15mm }
-            .sheet.padding-20mm { padding: 20mm }
-            .sheet.padding-25mm { padding: 25mm }
-
-            @media screen {
-              body { background: #e0e0e0 }
-              .sheet {
-                background: white;
-                box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
-                margin: 5mm;
-              }
-            }
-            @media print {
-                       body.A3.landscape { width: 420mm }
-              body.A3, body.A4.landscape { width: 297mm }
-              body.A4, body.A5.landscape { width: 210mm }
-              body.A5                    { width: 148mm }
-            }
-            table {
-                border-spacing: 0;
-                border-collapse: collapse;
-                width: 100%;
-            }
-            table td{
-                overflow: hidden;
-                word-wrap: break-word;
-                text-align: center;
-            }
-            table, th, td {
-                border: 3px solid black;
-            }
-            th, td {
-                border: 1px solid black;
-                font-family: 'Century Gothic';
-                font-size: 10px;
-                padding: 3px;
-            }
-        </style>
-    </head>
-    <body class="A4 portrait">
-        {% for fig in figures %}
-        <section class="sheet" style="padding: 5mm;">
-            <table class="table">
-                <tbody>
-                    <tr style="height: 920px">
-                        <td colspan=4><div style="align-items: center">{{ fig.path }}</div></td>
-                    </tr>
-                    <tr>
-                        <td style="width: 100px; border-bottom: 0px; padding: 3px">Drawn by</td>
-                        <td style="width: 550px; padding: 3px; border-bottom: 0px; font-size: 14px; text-align: left; padding-left: 10px; padding-top: 10px" rowspan=2>
-                            {{ fig.title }}<!-- Max chars = 90 --></td>
-                        <td colspan=2 style="border-bottom: 0px; padding: 3px">Report no</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 3px">{{ fig.drawnby }}</td>
-                        <td style="padding: 3px" colspan=2>{{ fig.report }}<!-- Max chars = 15 --></td>
-                    </tr>
-                    <tr>
-                        <td style="border-bottom: 0px; padding: 3px">Checked by</td>
-                        <td style="width: 550px; padding: 3px; text-align: left; padding-left: 10px" rowspan=4>
-                            {% if fig.subtitle1 %}
-                                {{ fig.subtitle1 }}<!-- Max chars = 120 -->
-                            {% endif %}
-                            {% if fig.subtitle2 %}
-                                <br>{{ fig.subtitle2 }}<!-- Max chars = 120 -->
-                            {% endif %}
-                            {% if fig.subtitle3 %}
-                                <br>{{ fig.subtitle3 }}<!-- Max chars = 120 -->
-                            {% endif %}
-                            {% if fig.subtitle4 %}
-                                <br>{{ fig.subtitle4 }}
-                            {% endif %}
-                        </td><!-- Max chars = 120 -->
-                        <td style="border-bottom: 0px; padding: 3px">Figure No</td>
-                        <td style="border-bottom: 0px; padding: 3px">Rev</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 3px">{{ fig.checkedby }}</td>
-                        <td style="padding: 3px">{{ fig.figno }}<!-- Max chars = 12 --></td>
-                        <td style="padding: 3px">{{ fig.rev }}<!-- Max chars = 2 --></td>
-                    </tr>
-                    <tr>
-                        <td rowspan=3><img src="https://en.wikipedia.org/wiki/Ghent_University#/media/File:Ghent_University_logo.svg" width="80px"></td>
-                        <td colspan=2 style="border-bottom: 0px; padding: 3px">Date</td>
-                    </tr>
-                    <tr>
-                        <td colspan=2 style="padding: 3px">{{ fig.date }}</td>
-                    </tr>
-                    <tr>
-                        <td colspan=3 style="font-size: 15px">{{ fig.projecttitle }}</td><!-- Max chars = 95-->
-                    </tr>
-
-                </tbody>
-            </table>
-        </section>
-        {% endfor %}
-
-    </body>
-</HTML>
-
-"""
-
-LANDSCAPE_TEMPLATE = """
-<HTML>
-    <head>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        <style>
-            @page { margin: 0 }
-            body { margin: 0 }
-            .sheet {
-              margin: 0;
-              overflow: hidden;
-              position: relative;
-              box-sizing: border-box;
-              page-break-after: always;
-            }
-
-            body.A3           .sheet { width: 297mm; height: 419mm }
-            body.A3.landscape .sheet { width: 420mm; height: 296mm }
-            body.A4           .sheet { width: 210mm; height: 296mm }
-            body.A4.landscape .sheet { width: 297mm; height: 209mm }
-            body.A5           .sheet { width: 148mm; height: 209mm }
-            body.A5.landscape .sheet { width: 210mm; height: 147mm }
-
-            .sheet.padding-5mm { padding: 5mm}
-            .sheet.padding-10mm { padding: 10mm }
-            .sheet.padding-15mm { padding: 15mm }
-            .sheet.padding-20mm { padding: 20mm }
-            .sheet.padding-25mm { padding: 25mm }
-
-            @media screen {
-              body { background: #e0e0e0 }
-              .sheet {
-                background: white;
-                box-shadow: 0 .5mm 2mm rgba(0,0,0,.3);
-                margin: 5mm;
-              }
-            }
-            @media print {
-                       body.A3.landscape { width: 420mm }
-              body.A3, body.A4.landscape { width: 297mm }
-              body.A4, body.A5.landscape { width: 210mm }
-              body.A5                    { width: 148mm }
-            }
-            table {
-                border-spacing: 0;
-                border-collapse: collapse;
-                width: 100%;
-            }
-            table td{
-                overflow: hidden;
-                word-wrap: break-word;
-                text-align: center;
-            }
-            table, th, td {
-                border: 3px solid black;
-            }
-            th, td {
-                border: 1px solid black;
-                font-family: 'Century Gothic';
-                font-size: 10px;
-                padding: 3px;
-            }
-        </style>
-    </head>
-    <body class="A4 landscape">
-        {% for fig in figures %}
-        <section class="sheet" style="padding: 5mm;">
-            <table class="table">
-                <tbody>
-                    <tr style="height: 500px">
-                        <td colspan=4><div style="align-items: center">{{ fig.path }}</div></td>
-                    </tr>
-                    <tr>
-                        <td style="width: 100px; border-bottom: 0px; padding: 3px">Drawn by</td>
-                        <td style="width: 875px; padding: 3px; border-bottom: 0px; font-size: 14px; text-align: left; padding-left: 10px; padding-top: 10px" rowspan=2>
-                            {{ fig.title }}<!-- Max chars = 90 --></td>
-                        <td colspan=2 style="border-bottom: 0px; padding: 3px">Report no</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 3px">{{ fig.drawnby }}</td>
-                        <td style="padding: 3px" colspan=2>{{ fig.report }}<!-- Max chars = 15 --></td>
-                    </tr>
-                    <tr>
-                        <td style="border-bottom: 0px; padding: 3px">Checked by</td>
-                        <td style="width: 875px; padding: 3px; text-align: left; padding-left: 10px" rowspan=4>
-                            {% if fig.subtitle1 %}
-                                {{ fig.subtitle1 }}<!-- Max chars = 120 -->
-                            {% endif %}
-                            {% if fig.subtitle2 %}
-                                <br>{{ fig.subtitle2 }}<!-- Max chars = 120 -->
-                            {% endif %}
-                            {% if fig.subtitle3 %}
-                                <br>{{ fig.subtitle3 }}<!-- Max chars = 120 -->
-                            {% endif %}
-                            {% if fig.subtitle4 %}
-                                <br>{{ fig.subtitle4 }}
-                            {% endif %}
-                        </td><!-- Max chars = 120 -->
-                        <td style="border-bottom: 0px; padding: 3px">Figure No</td>
-                        <td style="border-bottom: 0px; padding: 3px">Rev</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 3px">{{ fig.checkedby }}</td>
-                        <td style="padding: 3px">{{ fig.figno }}<!-- Max chars = 12 --></td>
-                        <td style="padding: 3px">{{ fig.rev }}<!-- Max chars = 2 --></td>
-                    </tr>
-                    <tr>
-                        <td rowspan=3><img src="https://en.wikipedia.org/wiki/Ghent_University#/media/File:Ghent_University_logo.svg" width="80px"></td>
-                        <td colspan=2 style="border-bottom: 0px; padding: 3px">Date</td>
-                    </tr>
-                    <tr>
-                        <td colspan=2 style="padding: 3px">{{ fig.date }}</td>
-                    </tr>
-                    <tr>
-                        <td colspan=3 style="font-size: 15px">{{ fig.projecttitle }}</td><!-- Max chars = 95-->
-                    </tr>
-
-                </tbody>
-            </table>
-        </section>
-        {% endfor %}
-
-    </body>
-</HTML>
-"""
-
-def generate_html(outpath, figures, titles, drawnby, report,
-                           fignos, rev, projecttitle,
-                           subtitle1s, subtitle2s=None, subtitle3s=None, subtitle4s=None, checkedby=None,
-                           figure_date=datetime.date.today().strftime("%d/%m/%Y"),
-                           filename='figures',
-                           portraitformat=True,
-                           print_message=True):
-    """
-    Returns HTML for a series of Plotly portrait figures.
-    The figures are first coerced to the correct format (portrait: H=870 x W=702, landscape: H=600 x W=1050). Standardized font and colors are also set.
-
-    :param outpath: Path where the output is written. Use absolute paths.
-    :param figures: List of Plotly figures
-    :param titles: List of titles for the figures (maximum 90 characters)
-    :param drawnby: Initials of drawer (maximum 3 characters)
-    :param report: Report number (maximum 15 characters)
-    :param fignos: List with figure numbers (maximum 12 characters)
-    :param rev: Revision of the figures (maximum 2 characters)
-    :param date: Date of drawing in %d/%m/%Y format
-    :param projecttitle: Title of the project (maximum 95 characters)
-    :param subtitle1s: List with first subtitles (maximum 120 characters)
-    :param subtitle2s: List with second subtitles (maximum 120 characters) - default is None
-    :param subtitle3s: List with third subtitles (maximum 120 characters) - default is None
-    :param subtitle4s: List with fourth subtitles (maximum 120 characters) - default is None
-    :param checkedby: Initials of the checker (maximum 3 characters)
-    :param filename: Filename for the output, 'figures' by default
-    :param portraitformat: Boolean determining whether the figure is portrait or landscape format
-    :param print_message: Defines whether a message is returned to the user
-    :return: Writes a file with HTML code to the specified output path
-    """
-
-    # 0. Validation of string lengths
-    if len(drawnby) > 3:
-        raise ValueError("Initials cannot be longer than 3 characters")
-    if checkedby is not None:
-        if len(checkedby) > 3:
-            raise ValueError("Initials cannot be longer than 3 characters")
-    if len(figure_date) > 10:
-        raise ValueError("Dates cannot exceed 10 characters")
-    if len(report) > 15:
-        raise ValueError("Report number cannot exceed 15 characters")
-    if len(rev) > 2:
-        raise ValueError("Revision number cannot exceed 2 characters")
-    if len(projecttitle) > 95:
-        raise ValueError("Project title cannot exceed 95 characters")
-    for title in titles:
-        if len(title) > 90:
-            raise ValueError("Figure titles cannot exceed 90 characters")
-    for figno in fignos:
-        if len(figno) > 12:
-            raise ValueError("Figure titles cannot exceed 12 characters")
-    for subtitle in subtitle1s:
-        if len(subtitle) > 120:
-            raise ValueError("Figure subtitles cannot exceed 120 characters")
-    if subtitle2s is not None:
-        for subtitle in subtitle2s:
-            if len(subtitle) > 120:
-                raise ValueError("Figure subtitles cannot exceed 120 characters")
-    if subtitle3s is not None:
-        for subtitle in subtitle3s:
-            if len(subtitle) > 120:
-                raise ValueError("Figure subtitles cannot exceed 120 characters")
-    if subtitle4s is not None:
-        for subtitle in subtitle4s:
-            if len(subtitle) > 120:
-                raise ValueError("Figure subtitles cannot exceed 120 characters")
-    if len(titles) == len(fignos) == len(figures) == len(subtitle1s):
-        pass
-    else:
-        raise ValueError('Lists with figures, figure titles, figure numbers, ... all need to be the same length')
-    if subtitle2s is not None:
-        if len(subtitle1s) != len(subtitle2s):
-            raise ValueError("Lists with subtitles need to be the same length")
-    if subtitle3s is not None:
-        if len(subtitle1s) != len(subtitle3s):
-            raise ValueError("Lists with subtitles need to be the same length")
-    if subtitle4s is not None:
-        if len(subtitle1s) != len(subtitle4s):
-            raise ValueError("Lists with subtitles need to be the same length")
-
-    if portraitformat:
-        template = PORTRAIT_TEMPLATE
-        figure_height=870
-        figure_width=702
-    else:
-        template = LANDSCAPE_TEMPLATE
-        figure_height = 600
-        figure_width = 1050
-    try:
-        # 1. Coerce the figure to correct format, set font and colors
-        figure_list = []
-        for i, fig in enumerate(figures):
-
-            fig['layout'].update(
-                height=figure_height,
-                width=figure_width,
-                font=PLOTLY_GLOBAL_FONT,
-                colorway=PLOTLY_COLORS
-            )
-            div = plot(fig, auto_open=False, output_type='div', show_link=False, include_plotlyjs=False)
-            figure = {
-                'path': div,
-                'title': titles[i],
-                'drawnby': drawnby,
-                'report': report,
-                'subtitle1': subtitle1s[i],
-                'checkedby': checkedby,
-                'figno': fignos[i],
-                'rev': rev,
-                'date': figure_date,
-                'projecttitle': projecttitle,
-            }
-            if subtitle2s is not None:
-                figure['subtitle2'] = subtitle2s[i]
-            if subtitle3s is not None:
-                figure['subtitle3'] = subtitle3s[i]
-            if subtitle4s is not None:
-                figure['subtitle4'] = subtitle4s[i]
-            figure_list.append(figure)
-
-        # 2. Render the template
-        rtemplate = Environment(loader=BaseLoader).from_string(template)
-        html_figures = rtemplate.render(
-            figures=figure_list)
-
-        # 3. Write the output
-        with open("%s/%s.html" % (outpath, filename), "w+") as renderedhtmlfile:
-            renderedhtmlfile.write(html_figures)
-
-        if print_message:
-            print("Figures successfully generated. Open the file %s/%s.html to see the output." % (
-                outpath, filename))
-    except:
-        raise
-
+USCS_HATCHES = {
+    'SW': '..',
+    'SP': '....',
+    'SM': '||...',
+    'SC': '///...',
+    'ML': '||||',
+    'CL': '////',
+    'OL': '--',
+    'MH': '||',
+    'CH': '//'
+}
 
 def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None, hide_all_legends=False,
                   modes=None, markerformats=None,
@@ -713,7 +338,8 @@ class LogPlotMatplotlib(object):
     """
 
     def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
-                 fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
+                 fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey', 'Silt': 'green'},
+                 hatchpatterns={"Sand": "...", "Clay": '////', 'Rock':'oo', 'Silt': '|||'},
                  soiltypelegend=True, figheight=6, plot_layer_transitions=True, showgrid=True,
                  **kwargs):
         """
@@ -722,6 +348,7 @@ class LogPlotMatplotlib(object):
         :param no_panels: Number of panels
         :param logwidth: Width of the minilog as a percentage of the total width (default=0.05)
         :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :param hatchpatterns: Matplotlib letters used for hatching of the soil types
         :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
         :param figheight: Figure height in inches (default=6in)
         :param plot_layer_transitions: Boolean determining whether layer transitions need to be plotted or not
@@ -743,21 +370,32 @@ class LogPlotMatplotlib(object):
 
         # Create rectangles for the log plot
         _layers = []
+        _color_assignment = dict()
         for i, row in soilprofile.iterrows():
             try:
                 _fillcolor = fillcolordict[row['Soil type']]
+                _color_assignment[row['Soil type']] = _fillcolor
             except:
-                _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
+                if row['Soil type'] in _color_assignment.keys():
+                    _fillcolor = _color_assignment[row['Soil type']]
+                else:
+                    _fillcolor = BRIGHTCOLORS[i % 7]
+                    _color_assignment[row['Soil type']] = _fillcolor
+            try:
+                _hatch = hatchpatterns[row['Soil type']]
+            except:
+                _hatch = None
+                
             _y0 = row['Depth from [m]']
             _y1 = row['Depth to [m]']
             self.axes[0].fill(
                 [0.0,0.0,1.0,1.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
-                label='_nolegend_', edgecolor="black")
+                label='_nolegend_', edgecolor="black", hatch=_hatch)
             
         _legend_handles = []
         for _soiltype in soilprofile['Soil type'].unique():
             try:
-                _fillcolor = fillcolordict[_soiltype]
+                _fillcolor = _color_assignment[_soiltype]
             except:
                 soiltypelegend = False
 

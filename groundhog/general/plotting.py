@@ -525,22 +525,34 @@ class LogPlotMatplotlib(object):
         """
         plt.gcf().set_size_inches(width, height)
 
-    def show(self, showlegend=True):
+    def show_legend(self):
+        plt.legend(handles=self._legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
+    def plot_layers(self):
+        
+        for i in range(0, self.no_panels):
+            for _y in self.soilprofile.layer_transitions():
+                self.axes[i+1].plot(
+                    self.axes[i+1].get_xlim(),
+                    (_y, _y),
+                    color='grey', ls="--"
+                )
+
+    def show(self, showlegend=True, showfig=True):
         if self.plot_layer_transitions:
-            for i in range(0, self.no_panels):
-                for _y in self.soilprofile.layer_transitions():
-                    self.axes[i+1].plot(
-                        self.axes[i+1].get_xlim(),
-                        (_y, _y),
-                        color='grey', ls="--"
-                    )
+            self.plot_layers()
         else:
             pass
 
         if showlegend:
-            plt.legend(handles=self._legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+            self.show_legend()
+        else:
+            pass
         
-        plt.show()
+        if showfig:
+            plt.show()
+        else:
+            pass
 
     def save_fig(self, path, dpi=250, bbox_inches='tight',pad_inches=1):
         """

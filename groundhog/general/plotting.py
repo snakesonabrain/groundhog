@@ -451,7 +451,10 @@ class LogPlotMatplotlib(object):
             self.axes[panel_no].set_xlim([x[~np.isnan(x)].min(), x[~np.isnan(x)].max()])
         
         if showlegend:
-            self._legend_entries.append(_axes_obj)
+            if line:
+                self._legend_entries.append(_axes_obj[0])
+            else:
+                self._legend_entries.append(_axes_obj)
 
     def add_soilparameter_trace(self, parametername, panel_no, legendname=None, resetaxisrange=False, line=True, showlegend=False, **kwargs):
         """
@@ -470,7 +473,7 @@ class LogPlotMatplotlib(object):
         x = self.soilprofile.soilparameter_series(parametername)[1]
         z = self.soilprofile.soilparameter_series(parametername)[0]
 
-        if legendname is None:
+        if legendname is not None:
             name = legendname
         else:
             name = parametername

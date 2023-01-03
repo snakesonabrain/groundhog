@@ -205,17 +205,17 @@ def unitskinfriction_sand_almhamre(
     :param multiplier_inside: Multiplier on calculated unit skin friction to obtain inside unit skin friction (default is 50%) (:math:``) [:math:`-`] (optional, default= 0.5)
 
     .. math::
-        f_s = f_{s,res} + (f_{s,i} - f_{s,res}) \\\\cdot e^{k \\\\cdot (z-z_{tip})}
+        f_s = f_{s,res} + (f_{s,i} - f_{s,res}) \\cdot e^{k \\cdot (z-z_{tip})}
 
-        k = \\\\frac{\\\\sqrt{q_t / \\\\sigma_{vo}^{\\\\prime}}}{80}
+        k = \\frac{\\sqrt{q_t / \\sigma_{vo}^{\\prime}}}{80}
 
-        f_{s,i,sand} = 0.0132 \\\\cdot q_t \\\\cdot \\\\left( \\\\frac{\\\\sigma_{vo}^{\\\\prime}}{P_a} \\\\right)^{0.13} \\\\cdot \\\\tan \\\\delta
+        f_{s,i,sand} = 0.0132 \\cdot q_t \\cdot \\left( \\frac{\\sigma_{vo}^{\\prime}}{P_a} \\right)^{0.13} \\cdot \\tan \\delta
 
-        f_{s,res,sand} = 0.2 \\\\cdot f_{s,i,sand}
+        f_{s,res,sand} = 0.2 \\cdot f_{s,i,sand}
 
-        f_{s,out} = 0.5 \\\\cdot f_s
+        f_{s,out} = 0.5 \\cdot f_s
 
-        f_{s,in} = 0.5 \\\\cdot f_s
+        f_{s,in} = 0.5 \\cdot f_s
 
     :returns: Dictionary with the following keys:
 
@@ -302,13 +302,13 @@ def unitskinfriction_clay_almhamre(
     :param multiplier_inside: Multiplier on calculated unit skin friction to obtain inside unit skin friction (default is 50%) (:math:``) [:math:`-`] (optional, default= 1.0)
 
     .. math::
-        f_s = f_{s,res} + (f_{s,i} - f_{s,res}) \\\\cdot e^{k \\\\cdot (z-z_{tip})}
+        f_s = f_{s,res} + (f_{s,i} - f_{s,res}) \\cdot e^{k \\cdot (z-z_{tip})}
 
-        k = \\\\frac{\\\\sqrt{q_t / \\\\sigma_{vo}^{\\\\prime}}}{80}
+        k = \\frac{\\sqrt{q_t / \\sigma_{vo}^{\\prime}}}{80}
 
         f_{s,i,clay} = f_{s,CPT}
 
-        f_{s,res,clay} = 0.004 \\\\cdot q_t \\\\cdot \\\\left( 1 - 0.0025 \\\\cdot \\\\frac{q_t}{\\\\sigma_{vo}^{\\\\prime}} \\\\right)
+        f_{s,res,clay} = 0.004 \\cdot q_t \\cdot \\left( 1 - 0.0025 \\cdot \\frac{q_t}{\\sigma_{vo}^{\\prime}} \\right)
 
         f_{s,out} = f_s
 

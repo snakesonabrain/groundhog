@@ -1142,12 +1142,12 @@ def plot_fence_diagram(
         if plotmap:
             mapbox_points = go.Scattermapbox(
                 lat=y_coords, lon=x_coords, showlegend=False,
-                mode='markers', name='Locations', hovertext=profile_names)
+                mode='markers', name='Locations', hovertext=profile_names, marker=dict(color='black'))
             fig.append_trace(mapbox_points, 1, 2)
             mapbox_profileline = go.Scattermapbox(
                 lat=[start_point[1], end_point[1]],
                 lon=[start_point[0], end_point[0]],
-                showlegend=False, mode='lines', name='Profile')
+                showlegend=False, mode='lines', name='Profile', line=dict(color='red'))
             fig.append_trace(mapbox_profileline, 1, 2)
 
         if xaxis_layout is None:

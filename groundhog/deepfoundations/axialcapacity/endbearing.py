@@ -163,12 +163,12 @@ def unitendbearing_sand_almhamre(
     Calculates unit end bearing in sand according to Alm & Hamre.
 
     :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
-    :param sigma_vo_eff: Vertical effective stress (:math:`\\\\sigma_{vo}^{\\\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
     :param multiplier: Multipier for unit end bearing (:math:``) [:math:`-`] (optional, default= 0.15)
     :param exponent: Exponent for unit end bearing (:math:``) [:math:`-`] (optional, default= 0.2)
 
     .. math::
-        q_{b,sand} = 0.15 \\\\cdot q_t \\\\cdot \\\\left( \\\\frac{q_t}{\\\\sigma_{vo}^{\\\\prime}} \\\\right)^{0.2}
+        q_{b,sand} = 0.15 \\cdot q_t \\cdot \\left( \\frac{q_t}{\\sigma_{vo}^{\\prime}} \\right)^{0.2}
 
     :returns: Dictionary with the following keys:
 
@@ -219,7 +219,7 @@ def unitendbearing_clay_almhamre(
     :param multiplier: Multipier for unit end bearing (:math:``) [:math:`-`] (optional, default= 0.6)
 
     .. math::
-        q_{b,clay} = 0.6 \\\\cdot q_t
+        q_{b,clay} = 0.6 \\cdot q_t
 
     :returns: Dictionary with the following keys:
 

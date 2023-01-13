@@ -489,16 +489,19 @@ class LogPlotMatplotlib(object):
         """
         self.axes[panel_no].set_xlabel(title, size=size)
 
-    def set_xaxis_range(self, min_value, max_value, panel_no, **kwargs):
+    def set_xaxis_range(self, min_value, max_value, panel_no, ticks=None, **kwargs):
         """
         Changes the X-axis range of a panel
         :param min_value: Minimum value of the plot panel range
         :param max_value: Maximum value of the plot panel range
         :param panel_no: Panel number (1-indexed)
+        :param ticks: List of ticks to set (default=None for Matplotlib defaults)
         :param kwargs: Additional keyword arguments for the ``set_xlim`` method
         :return: Adjusts the X-axis range of the specified panel
         """
         self.axes[panel_no].set_xlim([min_value, max_value])
+        if ticks is not None:
+            self.axes[panel_no].set_xticks(ticks)
 
     def set_zaxis_title(self, title, size=15, **kwargs):
         """
@@ -508,16 +511,19 @@ class LogPlotMatplotlib(object):
         :return: Adjusts the Z-axis title
         """
         self.axes[0].set_ylabel(title, size=size)
-
-    def set_zaxis_range(self, min_depth, max_depth, **kwargs):
+        
+    def set_zaxis_range(self, min_depth, max_depth, ticks=None, **kwargs):
         """
         Changes the Z-axis
         :param min_depth: Minimum depth of the plot
         :param max_depth: Maximum depth of the plot
+        :param ticks: List of ticks to set (default=None for Matplotlib defaults)
         :param kwargs: Additional keyword arguments for the ``set_ylim`` method
         :return: Adjusts the Z-axis range
         """
         self.axes[0].set_ylim([max_depth, min_depth])
+        if ticks is not None:
+            self.axes[0].set_yticks(ticks)
 
     def set_size(self, width, height):
         """

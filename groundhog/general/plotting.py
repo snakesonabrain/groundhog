@@ -328,6 +328,14 @@ class LogPlot(object):
         """
         self.fig['layout'].update(height=height, width=width)
 
+    def set_title(self, title):
+        """
+        Set a title for the plot
+        :param title: Title for the plot
+        :return: Sets the title as specified
+        """
+        self.fig['layout'].update(title=title)
+
     def show(self):
         self.fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 

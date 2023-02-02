@@ -69,7 +69,7 @@ Tutorials
 ----------
 
 .. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/snakesonabrain/groundhog/master
+ :target: https://mybinder.org/v2/gh/snakesonabrain/groundhog/main
 
 Tutorials are provided in the notebooks folder of the project. Jupyter notebooks are provided for the following examples:
 

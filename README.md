@@ -3,7 +3,7 @@ Groundhog - A general-purpose geotechnical package
 
 [![PyPI version](https://badge.fury.io/py/groundhog.svg)](https://badge.fury.io/py/groundhog)
 
-![groundhog banner](https://github.com/snakesonabrain/groundhog/blob/master/groundhog_banner_wide.png?raw=true)
+![groundhog banner](https://github.com/snakesonabrain/groundhog/blob/main/groundhog_banner_wide.png?raw=true)
 
 This Python package contains useful functionality for supporting automated geotechnical calculations.
 
@@ -17,7 +17,7 @@ groundhog bundles a large amount of knowledge and provides it to end users throu
 
 groundhog is developed using a set of 10 Golden rules which are reflected in the groundhog function architecture and should also be followed by any contributors to the project.
 
-For more information, consult the [documentation](https://groundhog.readthedocs.io/en/master/) or get started using the [tutorial notebooks](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master). [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/snakesonabrain/groundhog/master)
+For more information, consult the [documentation](https://groundhog.readthedocs.io/en/main/) or get started using the [tutorial notebooks](https://mybinder.org/v2/gh/snakesonabrain/groundhog/main). [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/snakesonabrain/groundhog/main)
 
 Installation requirements
 -------------------------

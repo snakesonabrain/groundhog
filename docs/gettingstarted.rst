@@ -128,11 +128,11 @@ There are several learning resources available online. I can recommend the follo
 3. First steps with groundhog
 -------------------------------------
 
-The first steps with groundhog are best taken by following the interactive tutorials on `Binder <https://mybinder.org/v2/gh/snakesonabrain/groundhog/master>`_ .
+The first steps with groundhog are best taken by following the interactive tutorials on `Binder <https://mybinder.org/v2/gh/snakesonabrain/groundhog/main>`_ .
 You don't need to install any software on your system, everything runs in the browser.
 
 .. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/snakesonabrain/groundhog/master
+ :target: https://mybinder.org/v2/gh/snakesonabrain/groundhog/main
 
 The amount of changes you can make to the tutorials through Binder is limited and
 when you start building your own workflows, installing Python (see Section 1) is required.

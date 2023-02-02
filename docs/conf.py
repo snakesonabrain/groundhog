@@ -22,7 +22,7 @@ from groundhog.__version__ import __version__
 # -- Project information -----------------------------------------------------
 
 project = 'Groundhog'
-copyright = '2016-2020, Bruno Stuyts'
+copyright = '2016-2022, Bruno Stuyts'
 author = 'Bruno Stuyts'
 
 # The short X.Y version

@@ -1,3 +1,15 @@
+v0.9.0, 02/02/2023 - Groundhog day 2023
+    - Added shearwavevelocity_compressionindex_cha for estimate shear wave velocity when stress conditions and packing density are known
+    - Refactoring of code for element properties in a CalculationGrid object
+    - Added axial capacity basic code and notebook
+    - Added hatching to Matplotlib logplots
+    - Added stress dilatancy theory according to Bolton (1986)
+    - TODO: Add hatching patterns to LogPlot
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+    
 v0.8.0, 28/08/2022 - ISFOG2020 release
     - Improved margin settings for PSD plots
     - Added correlation between acoustic impedance and bulk unit weight from Chen et al (2021)
@@ -19,12 +31,6 @@ v0.8.0, 28/08/2022 - ISFOG2020 release
     - Changed license to GNU GPLv3
     - Added placeholders for constitutive modelling functionality (constitutivemodels module)
     - Added tutorials for settlement and consolidation functionality
-    - TODO: Add correlations from the Bolton paper Strength & Dilatancy of Sands
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Implement soil parameter name conventions across groundhog
-    - TODO: Add soil type classification according to Schneider et al (2008)
-
 
 v0.7.0, 20/10/2021 -- Streamlit unleashed
     - Update to Readme to fix up formatting on Pypi (thanks to Thomas van der Linden for highlighting)

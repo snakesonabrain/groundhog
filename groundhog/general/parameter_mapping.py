@@ -13,6 +13,40 @@ from pyproj import Geod
 
 # Project imports
 
+SOIL_PARAMETER_MAPPING = {
+    'qc [MPa]': 'qc',
+    'fs [MPa]': 'fs',
+    'u2 [MPa]': 'u2',
+    'qt [MPa]': 'qt',
+    'ft [MPa]': 'ft',
+    'qnet [MPa]': 'qnet',
+    'Vertical total stress [kPa]': 'sigma_vo',
+    'Vertical effective stress [kPa]': 'sigma_vo_eff',
+    'Effective pressure [kPa]': 'p_eff',
+    'Effective unit weight [kN/m3]': 'gamma_eff',
+    'Total unit weight [kN/m3]': 'gamma_tot',
+    'Ic [-]': 'ic',
+    'Dr [-]': 'relative_density',
+    'Gmax [kPa]': 'gmax',
+    'Qt [-]': 'Qt',
+    'Bq [-]': 'Bq',
+    'Fr [%]': 'Fr',
+    'Rf [%]': 'Rf',
+    'K0 [-]': 'k0',
+    'Vs [m/s]': 'Vs',
+    'gamma [kN/m3]': 'gamma',
+    'OCR [-]': 'ocr',
+    'z [m]': 'depth',
+    'Embedded length [m]': 'embedded_length',
+    'Effective friction angle [deg]': 'phi_eff',
+    'Interface friction angle [deg]': 'interface_friction_angle',
+    'Undrained shear strength [kPa]': 'undrained_shear_strength',
+    'API soil description': 'api_soildescription',
+    'API relative density description': 'api_relativedensity',
+    'Limiting unit skin friction [kPa]': 'fs_lim',
+    'Limiting unit end bearing [kPa]': 'qb_lim',
+    'Tension modifier [-]': 'tension_modifier'
+}
 
 def map_depth_properties(target_df, layering_df, target_z_key=None,
                          layering_zfrom_key=None, layering_zto_key=None):

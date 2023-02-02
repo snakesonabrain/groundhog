@@ -684,14 +684,14 @@ class SoilProfile(pd.DataFrame):
             if self.check_linear_variation(_param):
                 _from_param = _param.replace(' [', ' from [')
                 _to_param = _param.replace(' [', ' to [')
-                _profile[_from_param].iloc[0] = np.interp(
+                _profile.loc[_profile.index[0], _from_param] = np.interp(
                     top_depth,
                     [_profile[self.depth_from_col].iloc[0],
                      _profile[self.depth_to_col].iloc[0]],
                     [_profile[_from_param].iloc[0],
                      _profile[_to_param].iloc[0]]
                 )
-                _profile[_to_param].iloc[-1] = np.interp(
+                _profile.loc[_profile.index[-1], _to_param] = np.interp(
                     bottom_depth,
                     [_profile[self.depth_from_col].iloc[-1], _profile[self.depth_to_col].iloc[-1]],
                     [_profile[_from_param].iloc[-1],
@@ -699,8 +699,8 @@ class SoilProfile(pd.DataFrame):
                 )
 
         # Adjust bounds
-        _profile[self.depth_from_col].iloc[0] = top_depth
-        _profile[self.depth_to_col].iloc[-1] = bottom_depth
+        _profile.loc[_profile.index[0], self.depth_from_col] = top_depth
+        _profile.loc[_profile.index[-1], self.depth_to_col] = bottom_depth
 
         # Reset the indices
         _profile.reset_index(drop=True, inplace=True)
@@ -1142,12 +1142,12 @@ def plot_fence_diagram(
         if plotmap:
             mapbox_points = go.Scattermapbox(
                 lat=y_coords, lon=x_coords, showlegend=False,
-                mode='markers', name='Locations', hovertext=profile_names)
+                mode='markers', name='Locations', hovertext=profile_names, marker=dict(color='black'))
             fig.append_trace(mapbox_points, 1, 2)
             mapbox_profileline = go.Scattermapbox(
                 lat=[start_point[1], end_point[1]],
                 lon=[start_point[0], end_point[0]],
-                showlegend=False, mode='lines', name='Profile')
+                showlegend=False, mode='lines', name='Profile', line=dict(color='red'))
             fig.append_trace(mapbox_profileline, 1, 2)
 
         if xaxis_layout is None:
@@ -1218,24 +1218,76 @@ class CalculationGrid(object):
                 **kwargs)
             
     def set_elements(self):
+        """
+        Create a dataframe with elements. Each element has a top and bottom node. The soil property value at bottom and
+        top are calculated, as well as the values at the center of the element.
+        """
         self.elements = pd.DataFrame({
-            "z from [m]": list(self.nodes['z [m]'][:-1]),
-            "z to [m]": list(self.nodes['z [m]'][1:])
+            "Depth from [m]": list(self.nodes['z [m]'][:-1]),
+            "Depth to [m]": list(self.nodes['z [m]'][1:])
         })
         self.elements['z [m]'] = 0.5 * (
-            self.elements['z from [m]'] +
-            self.elements['z to [m]']
+            self.elements['Depth from [m]'] +
+            self.elements['Depth to [m]']
             )
         self.elements['dz [m]'] = list(self.nodes['z [m]'].diff()[1:])
-        for _param in self.soilprofile.numerical_soil_parameters():
-            if self.soilprofile.check_linear_variation(_param):
-                self.elements["%sfrom [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])] = \
-                    list(self.nodes[_param])[:-1]
-                self.elements["%sto [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])] = \
-                    list(self.nodes[_param])[1:]
-                self.elements[_param] = \
-                    0.5 * (np.array(list(self.nodes[_param])[:-1]) +
-                           np.array(list(self.nodes[_param])[1:]))
-            else:
-                self.elements[_param] = list(self.nodes[_param][:-1])
 
+        for i, _layer in self.soilprofile.iterrows():
+            # Loop over layers in the soil profile and set parameters
+            for j, _z in enumerate(self.elements['z [m]']):
+                if _z < _layer["Depth from [m]"] or _z > _layer["Depth to [m]"]:
+                    pass
+                else:
+                    for _param in self.soilprofile.numerical_soil_parameters():
+                        if self.soilprofile.check_linear_variation(_param):
+                            # Linearly varying parameters
+                            self.elements.loc[j, "%sfrom [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])] = \
+                                np.interp(
+                                    self.elements.loc[j, "Depth from [m]"],
+                                    [_layer["Depth from [m]"], _layer["Depth to [m]"]],
+                                    [_layer["%sfrom [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])],
+                                     _layer["%sto [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])]])
+                            self.elements.loc[j, "%sto [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])] = \
+                                np.interp(
+                                    self.elements.loc[j, "Depth to [m]"],
+                                    [_layer["Depth from [m]"], _layer["Depth to [m]"]],
+                                    [_layer["%sfrom [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])],
+                                     _layer["%sto [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])]])
+                            self.elements.loc[j, _param] = \
+                               np.interp(
+                                    _z,
+                                    [_layer["Depth from [m]"], _layer["Depth to [m]"]],
+                                    [_layer["%sfrom [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])],
+                                     _layer["%sto [%s" % (re.split('\[', _param)[0], re.split('\[', _param)[1])]])
+                        else:
+                            self.elements.loc[j, _param] = _layer[_param]
+                    for _param in self.soilprofile.string_soil_parameters():
+                        self.elements.loc[j, _param] = _layer[_param]
+        self.elements = profile_from_dataframe(self.elements)
+
+    def soilparameter_series(self, parameter, ignore_linearvariation=False):
+        """
+        Returns two lists (depths and corresponding parameter values) for plotting
+        of a soil parameter vs depth.
+        The routine first checks whether a valid parameter is provided.
+        The lists are formatted such that variations at a layer interface are
+        adequately plotted.
+        :param parameter: A valid soil parameter with units
+        :param ignore_linearvariation: Boolean determining if linear variations need to be ignored
+        :return: Two lists (depths and corresponding parameter values)
+        """
+        if not parameter in self.elements.numerical_soil_parameters():
+            raise ValueError("Parameter %s not defined, choose one of %s." % (
+                parameter, self.soilprofile.numerical_soil_parameters()
+            ))
+        if self.elements.check_linear_variation(parameter) and not ignore_linearvariation:
+            first_array_x = np.array(self.elements[parameter.replace(' [', ' from [')])
+            second_array_x = np.array(self.elements[parameter.replace(' [', ' to [')])
+        else:
+            first_array_x = np.array(self.elements[parameter])
+            second_array_x = np.array(self.elements[parameter])
+        first_array_z = np.array(self.elements['Depth from [m]'])
+        second_array_z = np.array(self.elements['Depth to [m]'])
+        z = np.insert(second_array_z, np.arange(len(first_array_z)), first_array_z)
+        x = np.insert(second_array_x, np.arange(len(first_array_x)), first_array_x)
+        return z, x

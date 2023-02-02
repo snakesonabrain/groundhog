@@ -21,7 +21,7 @@ setup(
       keywords=['engineering', 'geotechnical'],
       author='Bruno Stuyts',
       author_email='bruno@pro-found.be',
-      license='Creative Commons BY-SA 4.0',
+      license='GNU GPLv3',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
@@ -31,5 +31,5 @@ setup(
             "Programming Language :: Python :: 3",
             "Operating System :: OS Independent",
       ],
-      python_requires='>=3.6',
+      python_requires='>=3.7',
       )

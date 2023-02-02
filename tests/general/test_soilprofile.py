@@ -399,3 +399,24 @@ class Test_SoilProfile(unittest.TestCase):
             profile.parameter_at_depth(depth=7, parameter='qc [MPa]'), 10)
         self.assertEqual(
             profile.parameter_at_depth(depth=15, parameter='qc [MPa]'), 45)
+
+class Test_CalculationGrid(unittest.TestCase):
+
+    def setUp(self):
+        self.profile = sp.SoilProfile(
+            {
+                'Depth from [m]': [0, 1, 5, 10],
+                'Depth to [m]': [1, 5, 10, 20],
+                'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
+                'Gmax from [kPa]': [10e3, 50e3, 75e3, 90e3],
+                'Gmax to [kPa]': [20e3, 60e3, 85e3, 100e3],
+                'Su from [kPa]': [np.nan, np.nan, 100, np.nan],
+                'Su to [kPa]': [np.nan, np.nan, 150, np.nan]
+            }
+        )
+        self.profile.title = "Test"
+
+    def test_gridcreation(self):
+        grid = sp.CalculationGrid(self.profile, dz=1)
+        self.assertEqual(grid.elements.loc[9, "Su to [kPa]"], 150)
+        self.assertEqual(grid.elements.loc[5, "Su from [kPa]"], 100)

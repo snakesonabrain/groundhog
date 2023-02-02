@@ -646,6 +646,6 @@ class LogPlotMatplotlib(object):
         self.soilprofile["%s from [%s]" % (parametername, units)] = x[::2]
         self.soilprofile["%s to [%s]" % (parametername, units)] = x[1::2]
         self.add_soilparameter_trace(
-            parameter="%s [%s]" % (parametername, units),
+            parametername="%s [%s]" % (parametername, units),
             panel_no=panel_no)
         ax.figure.canvas.draw()

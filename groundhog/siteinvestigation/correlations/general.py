@@ -185,3 +185,46 @@ def shearwavevelocity_compressionindex_cha(
         'alpha [-]': _alpha,
         'beta [-]': _beta
     }
+
+
+K0_FRICTIONANGLE_MESRI = {
+    'critical_state_friction_angle': {'type': 'float', 'min_value': 15, 'max_value': 45},
+    'ocr': {'type': 'float', 'min_value': 1, 'max_value': 30},
+}
+
+K0_FRICTIONANGLE_MESRI_ERRORRETURN = {
+    'K0 [-]': np.nan,
+}
+
+
+@Validator(K0_FRICTIONANGLE_MESRI, K0_FRICTIONANGLE_MESRI_ERRORRETURN)
+def k0_frictionangle_mesri(
+        critical_state_friction_angle,
+        ocr=1, **kwargs):
+    """
+    Calculates the coefficient of lateral earthpressure at rest for normally and overconsolidated sand and clay.
+    Mesri and Hayat (1993) showed that the equation by Jaky (1944) only applied for sedimented, normally consolidated young clays and sands.
+    The effect of overconsolidation was captured by multiplying the value for normally consolidated soil with the OCR raised to an exponent.
+    This exponent is independent of the soil's initial density and thus needs to be related to the critical state friction angle,
+    rather than the peak friction angle of the soil. By adjusting for the effect of overconsolidation, reasonable predictions are obtained
+    for overconsolidated and pre-sheared soils.
+
+    :param critical_state_friction_angle: Grain size for which 10% of the particles are finer (:math:`D_{10}`) [:math:`mm`] - Suggested range: 0.01 <= grain_size <= 2.0
+    :param ocr: Calibration coefficient containing the effect of the shape of pore channels (:math:`C_{10)`) [:math:`-`] (optional, default= 0.01)
+
+    .. math::
+        K_0 = \\left( 1 - \\sin \\varphi_{cv}^{\\prime} \\right) \\text{OCR}^{\\sin \\varphi_{cv}^{\\prime}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'K0 [-]': Coefficient of lateral earth pressure at rest (:math:`K_0`)  [:math:`-`]
+
+    Reference - Mesri and Hayat (1993) The coefficient of earth pressure at rest. Canadian Geotechnical Journal. 30(4), 647-666
+
+    """
+
+    _K0 = (1 - np.sin(np.radians(critical_state_friction_angle))) * (ocr ** (np.sin(np.radians(critical_state_friction_angle))))
+
+    return {
+        'K0 [-]': _K0,
+    }

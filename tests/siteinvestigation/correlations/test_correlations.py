@@ -93,15 +93,15 @@ class Test_Correlations(unittest.TestCase):
         )
 
     def test_gmax_plasticityocr_andersen(self):
-        result = cohesive.gmax_plasticityocr_andersen(PI=50, OCR=1, sigma_vo_eff=100)
+        result = cohesive.gmax_plasticityocr_andersen(pi=50, ocr=1, sigma_vo_eff=100)
         self.assertAlmostEqual(
             result['Gmax [kPa]'], 17151, 0
         )
-        result = cohesive.gmax_plasticityocr_andersen(PI=100, OCR=1, sigma_vo_eff=100)
+        result = cohesive.gmax_plasticityocr_andersen(pi=100, ocr=1, sigma_vo_eff=100)
         self.assertAlmostEqual(
             result['Gmax [kPa]'], 10282, 0
         )
-        result = cohesive.gmax_plasticityocr_andersen(PI=50, OCR=10, sigma_vo_eff=100)
+        result = cohesive.gmax_plasticityocr_andersen(pi=50, ocr=10, sigma_vo_eff=100)
         self.assertAlmostEqual(
             result['Gmax [kPa]'], 54236, 0
         )
@@ -137,3 +137,21 @@ class Test_Correlations(unittest.TestCase):
             relative_density=0.6, p_eff=200, stress_condition='plane strain')
         self.assertAlmostEqual(result_planestrain['Ir [-]'], 1.82, 2)
         self.assertAlmostEqual(result_planestrain['Dilation angle [deg]'], 11.38, 2)
+
+    def test_k0_frictionangle_mesri(self):
+        result = general.k0_frictionangle_mesri(
+            phi_cs=32)
+        self.assertAlmostEqual(result['K0 [-]'], 0.47, 2)
+        result_ocr = general.k0_frictionangle_mesri(
+            phi_cs=32, ocr=10)
+        self.assertAlmostEqual(result_ocr['K0 [-]'], 1.59, 2)
+        
+    def test_k0_plasticity_kenney(self):
+        result = cohesive.k0_plasticity_kenney(
+            pi=30, fail_silently=False)
+        self.assertAlmostEqual(result['K0 [-]'], 0.53, 2)
+        result_ocr = cohesive.k0_plasticity_kenney(
+            pi=30, ocr=10)
+        self.assertAlmostEqual(result_ocr['K0 [-]'], 1.41, 2)
+        
+    

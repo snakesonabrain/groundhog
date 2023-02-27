@@ -20,7 +20,7 @@ class Test_earthpressurecoefficients_frictionangle(unittest.TestCase):
 
     def test_values(self):
         result = basic.earthpressurecoefficients_frictionangle(
-            effective_friction_angle=30
+            phi_eff=30
         )
         self.assertAlmostEqual(result['Ka [-]'], 1 / 3, 6)
         self.assertAlmostEqual(result['Kp [-]'], 3, 6)
@@ -32,7 +32,7 @@ class Test_earthpressurecoefficients_poncelet(unittest.TestCase):
 
     def test_values(self):
         result = basic.earthpressurecoefficients_poncelet(
-            effective_friction_angle=30,
+            phi_eff=30,
             interface_friction_angle=20,
             wall_angle=5,
             top_angle=5,
@@ -45,7 +45,7 @@ class Test_earthpressurecoefficients_rankine(unittest.TestCase):
 
     def test_values(self):
         result = basic.earthpressurecoefficients_rankine(
-            effective_friction_angle=30,
+            phi_eff=30,
             wall_angle=5,
             top_angle=5,
             fail_silently=False

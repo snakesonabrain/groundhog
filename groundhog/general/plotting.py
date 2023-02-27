@@ -601,7 +601,36 @@ class LogPlotMatplotlib(object):
                     (_y, _y), color='grey', ls="--")
             self.soilprofile.insert_layer_transition(_y)
         ax.figure.canvas.draw()
-        
+
+    def select_layering(self, panel_no=1, precision=2, stop_threshold=0):
+        """
+        Allows for the selection of layer transitions for the ``SoilProfile`` object.
+        The number of additional transition is controlled by how often the user clicks.
+        Click on the desired layer transition location in the specified panel (default ``panel_no=1``).
+        The selection stops when the user clicks on a point with x-coordinate below the ``stop_threshold``.
+        The depth of the layer transition is rounded according to the ``precision`` argument. Default=2
+        for cm accuracy."""
+        ax = self.axes[panel_no]
+
+        final = False
+
+        while not final:
+            xy = plt.ginput(1)
+            x = [p[0] for p in xy]
+            y = [round(p[1], precision) for p in xy]
+                
+            if x[0] < stop_threshold:
+                final = True
+            else:
+                for _y in y:
+                    for i in range(self.axes.__len__() - 1):
+                        line = self.axes[i+1].plot(
+                            self.axes[i+1].get_xlim(),
+                            (_y, _y), color='grey', ls="--")
+                    self.soilprofile.insert_layer_transition(_y)
+            ax.figure.canvas.draw()
+    
+
     def select_constant(self, panel_no, parametername, units, nan_tolerance=0.1):
         """
         Selects a constant value in each layer. Click the desired value in each layer, working from the top down.

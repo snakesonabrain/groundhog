@@ -188,7 +188,7 @@ def shearwavevelocity_compressionindex_cha(
 
 
 K0_FRICTIONANGLE_MESRI = {
-    'critical_state_friction_angle': {'type': 'float', 'min_value': 15, 'max_value': 45},
+    'phi_cs': {'type': 'float', 'min_value': 15, 'max_value': 45},
     'ocr': {'type': 'float', 'min_value': 1, 'max_value': 30},
 }
 
@@ -199,7 +199,7 @@ K0_FRICTIONANGLE_MESRI_ERRORRETURN = {
 
 @Validator(K0_FRICTIONANGLE_MESRI, K0_FRICTIONANGLE_MESRI_ERRORRETURN)
 def k0_frictionangle_mesri(
-        critical_state_friction_angle,
+        phi_cs,
         ocr=1, **kwargs):
     """
     Calculates the coefficient of lateral earthpressure at rest for normally and overconsolidated sand and clay.
@@ -209,8 +209,8 @@ def k0_frictionangle_mesri(
     rather than the peak friction angle of the soil. By adjusting for the effect of overconsolidation, reasonable predictions are obtained
     for overconsolidated and pre-sheared soils.
 
-    :param critical_state_friction_angle: Grain size for which 10% of the particles are finer (:math:`D_{10}`) [:math:`mm`] - Suggested range: 0.01 <= grain_size <= 2.0
-    :param ocr: Calibration coefficient containing the effect of the shape of pore channels (:math:`C_{10)`) [:math:`-`] (optional, default= 0.01)
+    :param phi_cs: Critical state friction angle (:math:`\\varphi_{cs}^{\\prime}`) [:math:`deg`] - Suggested range: 0.01 <= grain_size <= 2.0
+    :param ocr: Overconsolidation ratio (:math:`\\text{OCR}`) [:math:`-`] (optional, default= 1, suggested range: 1 <= OCR < 30)
 
     .. math::
         K_0 = \\left( 1 - \\sin \\varphi_{cv}^{\\prime} \\right) \\text{OCR}^{\\sin \\varphi_{cv}^{\\prime}}
@@ -223,7 +223,7 @@ def k0_frictionangle_mesri(
 
     """
 
-    _K0 = (1 - np.sin(np.radians(critical_state_friction_angle))) * (ocr ** (np.sin(np.radians(critical_state_friction_angle))))
+    _K0 = (1 - np.sin(np.radians(phi_cs))) * (ocr ** (np.sin(np.radians(phi_cs))))
 
     return {
         'K0 [-]': _K0,

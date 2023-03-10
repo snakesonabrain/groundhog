@@ -665,11 +665,11 @@ class SoilProfile(pd.DataFrame):
         :return: Deep copy of the ``SoilProfile`` between the specified bounds
         """
         if top_depth < self.min_depth:
-            warnings.warn("Top depth of %.2f is smaller than minimum depth of the soil profile." % bottom_depth)
+            warnings.warn("Top depth of %.2f is smaller than minimum depth of the soil profile." % top_depth)
             top_depth = self.min_depth
 
         if bottom_depth > self.max_depth:
-            warnings.warn("Bottom depth of %.2f is greater than maximum depth of the soil profile." % top_depth)
+            warnings.warn("Bottom depth of %.2f is greater than maximum depth of the soil profile." % bottom_depth)
             bottom_depth = self.max_depth
 
         # Make a deep copy of the soil profile

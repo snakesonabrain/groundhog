@@ -30,6 +30,12 @@ class Test_SoilProfile(unittest.TestCase):
         )
         self.profile.title = "Test"
 
+    def test_adjustlayertransition(self):
+        self.profile.adjust_layertransition(currentdepth=5, newdepth=6)
+        self.assertEqual(
+            self.profile.loc[1, "Depth to [m]"], 6
+        )
+
     def test_layerthickness(self):
         self.profile.calculate_layerthickness()
         self.assertEqual(

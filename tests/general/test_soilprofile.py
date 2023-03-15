@@ -41,7 +41,7 @@ class Test_SoilProfile(unittest.TestCase):
         )
         self.profile.adjust_layertransition(currentdepth=0, newdepth=-1)
         self.assertEqual(
-            self.profile.loc[0, "Depth from() [m]"], -1
+            self.profile.loc[0, "Depth from [m]"], -1
         )
 
 

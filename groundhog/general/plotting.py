@@ -294,7 +294,7 @@ class LogPlot(object):
         x = self.soilprofile.soilparameter_series(parametername)[1]
         z = self.soilprofile.soilparameter_series(parametername)[0]
 
-        if legendname is None:
+        if legendname is not None:
             name = legendname
         else:
             name = parametername
@@ -654,7 +654,7 @@ class LogPlotMatplotlib(object):
 
         self.soilprofile["%s [%s]" % (parametername, units)] = x
         self.add_soilparameter_trace(
-            parameter="%s [%s]" % (parametername, units),
+            parametername="%s [%s]" % (parametername, units),
             panel_no=panel_no)
         ax.figure.canvas.draw()
 

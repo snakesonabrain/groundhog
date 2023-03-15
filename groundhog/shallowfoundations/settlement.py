@@ -170,6 +170,54 @@ def primaryconsolidationsettlement_oc(
         'e final [-]': _e_final
     }
 
+CONSOLIDATIONSETTLEMENT_MV = {
+    'initial_height': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'effective_stress_increase': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'compressibility': {'type': 'float', 'min_value': 1e-4, 'max_value': 10}
+}
+
+CONSOLIDATIONSETTLEMENT_MV_ERRORRETURN = {
+    'delta z [m]': np.nan,
+    'delta epsilon [-]': np.nan
+}
+
+
+@Validator(CONSOLIDATIONSETTLEMENT_MV, CONSOLIDATIONSETTLEMENT_MV_ERRORRETURN)
+def consolidationsettlement_mv(
+        initial_height, effective_stress_increase, compressibility,
+        **kwargs):
+    """
+    Calculates the consolidation settlement using the compressibility :math:`m_v` (inverse of constrained modulus :math:`M`).
+
+    The constrained modulus is stress-dependent and therefore the relation between :math:`M` and :math:`C_c` is also stress-dependent.
+
+    :param initial_height: Initial thickness of the layer (:math:`H_0`) [:math:`m`] - Suggested range: initial_height >= 0.0
+    :param effective_stress_increase: Increase in vertical effective stress under the given load (:math:`\\Delta sigma_{v}^{\\prime}`) [:math:`kPa`] - Suggested range: effective_stress_increase >= 0.0
+    :param compressibility: Modulus of volumetric compressibility derived from oedometer tests (:math:`m_v`) [:math:`-`] - Suggested range: 1e-4 <= compressibility <= 10 (note that the compressibility is stress-dependent)
+    
+    .. math::
+        \\Delta \\epsilon = m_v \\cdot \\Delta \\sigma_v^{\\prime}
+
+        \\Delta z = \\Delta \\epsilon \\cdot H_0
+
+        m_v = \\frac{C_c}{2.3 \\cdot (1 + e_0) \\cdot \\sigma_{v0}^{\\prime}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'delta z [m]': Consolidation settlement (:math:`\\Delta z`)  [:math:`m`]
+        - 'delta epsilon [-]': Change in strain caused by consolidation (:math:`\\delta \\epsilon`)  [:math:`-`]
+
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+
+    _delta_epsilon = compressibility * effective_stress_increase
+    _delta_z = _delta_epsilon * initial_height
+
+    return {
+        'delta z [m]': _delta_z,
+        'delta epsilon [-]': _delta_epsilon
+    }
 
 class SettlementCalculation(object):
     """
@@ -409,6 +457,25 @@ class SettlementCalculation(object):
             self.grid.elements['e0 [-]'] * \
             (1 - (self.grid.elements["delta z [m]"] / self.grid.elements["dz [m]"])) - \
             (self.grid.elements["delta z [m]"] / self.grid.elements["dz [m]"])
+        
+    def calculate_mv(self, **kwargs):
+        """
+        Calculates the consolidation settlement using the specified grid, foundation shape and loading.
+        Instead of using the compression index and recompression index, the modulus of volumetric compressibility :math:`m_v` is used.
+        """
+        for i, row in self.grid.elements.iterrows():
+            self.grid.elements.loc[i, "delta z [m]"] = consolidationsettlement_mv(
+                initial_height=row['dz [m]'],
+                effective_stress_increase=row['delta sigma v [kPa]'],
+                compressibility=row['mv [m2/kN]'],
+                **kwargs)['delta z [m]']
+        self.settlement = self.grid.elements['delta z [m]'].cumsum().iloc[-1]
+        self.grid.nodes['Vertical effective stress final [kPa]'] = \
+            self.grid.nodes['Vertical effective stress [kPa]'] + \
+            self.grid.nodes['delta sigma v [kPa]']
+        self.grid.elements['Vertical effective stress final [kPa]'] = \
+            self.grid.elements['Vertical effective stress [kPa]'] + \
+            self.grid.elements['delta sigma v [kPa]']
         
     def plot_result(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
         """

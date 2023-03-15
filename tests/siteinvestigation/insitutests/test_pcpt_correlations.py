@@ -367,4 +367,32 @@ class Test_vs_cpt_mcgannetal(unittest.TestCase):
         self.assertAlmostEqual(result['Vs [m/s]'], 331.84, 2)
         self.assertAlmostEqual(result['sigma_lnVs [-]'], 0.2367, 2)
 
+class Test_constrainedmodulus_pcpt_robertson(unittest.TestCase):
 
+    def test_constrainedmodulus_pcpt_robertson(self):
+        result = pcpt_correlations.constrainedmodulus_pcpt_robertson(
+            qt=2.1,
+            sigma_vo=150,
+            sigma_vo_eff=50,
+            ic=3
+        )
+        self.assertAlmostEqual(result['alphaM [-]'], 14, 1)
+        self.assertAlmostEqual(result['M [kPa]'], 27300, 1)
+        result = pcpt_correlations.constrainedmodulus_pcpt_robertson(
+            qt=0.5,
+            sigma_vo=150,
+            sigma_vo_eff=50,
+            ic=3, fail_silently=False
+        )
+        self.assertAlmostEqual(result['alphaM [-]'], 7, 1)
+        self.assertAlmostEqual(result['M [kPa]'], 2450, 1)
+        result = pcpt_correlations.constrainedmodulus_pcpt_robertson(
+            qt=15,
+            sigma_vo=150,
+            sigma_vo_eff=50,
+            ic=1.5
+        )
+        self.assertAlmostEqual(result['alphaM [-]'], 6.014, 3)
+        self.assertAlmostEqual(result['M [kPa]'], 89307, 0)
+        
+        

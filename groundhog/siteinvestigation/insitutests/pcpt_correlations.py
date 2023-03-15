@@ -2386,6 +2386,92 @@ def vs_cpt_mcgannetal(
         'sigma_lnVs [-]': _sigma_lnVs,
     }
 
+CONSTRAINEDMODULUS_PCPT_ROBERTSON = {
+    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'coefficient1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'qt_pivot': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+CONSTRAINEDMODULUS_PCPT_ROBERTSON_ERRORRETURN = {
+    'M [kPa]': np.nan,
+    'Isbt class number [-]': np.nan,
+    'Isbt class': None
+}
+
+
+@Validator(CONSTRAINEDMODULUS_PCPT_ROBERTSON, CONSTRAINEDMODULUS_PCPT_ROBERTSON_ERRORRETURN)
+def constrainedmodulus_pcpt_robertson(
+    qt, ic, sigma_vo, sigma_vo_eff, coefficient1=0.0188, coefficient2=0.55, coefficient3=1.68, qt_pivot=14, **kwargs):
+    """
+    Calculates the one-dimensional constrained modulus. The constrained modulus is compared to direct measurements for
+    different clays. The Bothkennar clay which is a soft silty estuarine clay is an outlier which shows an overprediction of :math:`M` with the CPT.
+
+    When used with ``apply_correlation``, use ``'M Robertson (2009)'`` as correlation name.
+
+    :param qt: Corrected cone tip resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 100.0
+    :param ic: Soil behaviour type index (:math:`I_c`) [:math:`-`] - Suggested range: 1.0 <= ic <= 5.0
+    :param sigma_vo: Total vertical stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo <= 2000.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
+    :param coefficient1: First calibration coefficient (default=0.0188)
+    :param coefficient2: Second calibration coefficient (default=0.55)
+    :param coefficient3: Third calibration coefficient (default=1.68)
+    :param qt_pivot: Value of :math:`Q_t` when the formula for :math:`\\alpha_M` changes (default=14)
+
+    .. math::
+        M = \\alpha_M \\cdot \\left( q_t - \\sigma_{v0} \\right)
+    
+        \\text{when } I_c > 2.2 \\text{:}
+
+        \\alpha_M = Q_t \\ \\text{when } Q_t \\leq 14
+
+        \\alpha_M = 14 \\ \\text{when } Q_t > 14
+
+        \\text{when } I_c \\leq 2.2
+
+        \\alpha_M = 0.0188 \\cdot \\left[ 10^{0.55 I_c  + 1.68} \\right]
+
+        Q_{t} = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
+
+
+    :returns: Dictionary with the following keys:
+
+        - 'alphaM [-]': Multiplier on net cone resistance (:math:`\\alpha_M`) [-]
+        - 'M [kPa]': Contrained modulus for one-dimensional compression (:math:`M`) [kPa]
+        - 'mv [1/kPa]': Modulus of volumetric compressiblity (:math:`m_v`) [1/kPa]
+
+    .. figure:: images/constrainedmodulus_pcpt_robertson.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        Comparison of measured and calculated values for constrained modulus for various soils
+
+    Reference - CPT guide - 7th edition - Robertson and Cabal (2022)
+
+    """
+    _Qt = (1e3 * qt - sigma_vo) / sigma_vo_eff
+    if ic > 2.2:
+        if _Qt <= qt_pivot:
+            _alphaM = _Qt
+        else:
+            _alphaM = qt_pivot
+    else:
+        _alphaM = coefficient1 * (10 ** (coefficient2 * ic + coefficient3))
+
+    _M = _alphaM * (1e3 * qt - sigma_vo)
+    _mv = 1 / _M
+
+    return {
+        'alphaM [-]': _alphaM,
+        'M [kPa]': _M,
+        'mv [1/kPa]': _mv
+    }
+
 
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
@@ -2414,5 +2500,5 @@ CORRELATIONS = {
     'Vs CPT Wride et al (2000)': vs_cpt_wrideetal,
     'Vs CPT Tonni and Simonini (2013)': vs_cpt_tonniandsimonini,
     'Vs CPT McGann et al (2018)': vs_cpt_mcgannetal,
-
+    'M Robertson (2009)': constrainedmodulus_pcpt_robertson
 }

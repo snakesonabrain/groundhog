@@ -284,11 +284,14 @@ class SettlementCalculation(object):
                     saturation=1,
                     specific_gravity=specific_gravity,
                     unitweight_water=unitweight_water)['e [-]']
-        self.soilprofile['pc from [kPa]'] = self.soilprofile['Vertical effective stress from [kPa]'] * \
-            self.soilprofile['OCR [-]']
-        self.soilprofile['pc to [kPa]'] = self.soilprofile['Vertical effective stress to [kPa]'] * \
-            self.soilprofile['OCR [-]']
-                            
+        if 'mv [1/kPa]' in self.soilprofile.numerical_soil_parameters():
+            pass
+        else:
+            self.soilprofile['pc from [kPa]'] = self.soilprofile['Vertical effective stress from [kPa]'] * \
+                self.soilprofile['OCR [-]']
+            self.soilprofile['pc to [kPa]'] = self.soilprofile['Vertical effective stress to [kPa]'] * \
+                self.soilprofile['OCR [-]']
+                                
     def plot_initial_state(self, plot_title="", e0_range=(0, 3), fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
         """
         Plots the initial stress vs depth and the initial void ratio vs depth
@@ -306,12 +309,20 @@ class SettlementCalculation(object):
             name=r'$ \sigma_{vo}^{\prime} $',
             line=dict(color='red'),
             panel_no=1)
-        self.initial_state_plot.add_trace(
-            x=self.soilprofile.soilparameter_series('pc [kPa]')[1],
-            z=self.soilprofile.soilparameter_series('pc [kPa]')[0],
-            name=r'$ \sigma_{vc}^{\prime} $',
-            line=dict(color='violet', dash='dot'),
-            panel_no=1)
+        if 'mv [1/kPa]' in self.soilprofile.numerical_soil_parameters():
+            _xaxis_title = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \text{[kPa]} $'
+            _max_stress = self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max()
+        else:
+            _xaxis_title = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \sigma_{vc}^{\prime} \ \text{[kPa]} $'
+            _max_stress = max(
+                self.soilprofile.soilparameter_series('pc [kPa]')[1].max(),
+                self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max())
+            self.initial_state_plot.add_trace(
+                x=self.soilprofile.soilparameter_series('pc [kPa]')[1],
+                z=self.soilprofile.soilparameter_series('pc [kPa]')[0],
+                name=r'$ \sigma_{vc}^{\prime} $',
+                line=dict(color='violet', dash='dot'),
+                panel_no=1)
         self.initial_state_plot.add_trace(
             x=self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1],
             z=self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[0],
@@ -319,10 +330,8 @@ class SettlementCalculation(object):
             line=dict(color='green'),
             panel_no=1)
         self.initial_state_plot.set_xaxis(
-            title=r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \sigma_{vc}^{\prime} \ \text{[kPa]} $', panel_no=1,
-            range=(0, max(
-                self.soilprofile.soilparameter_series('pc [kPa]')[1].max(),
-                self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max())))
+            title=_xaxis_title, panel_no=1,
+            range=(0, _max_stress))
         self.initial_state_plot.set_xaxis(
             title=r'$ e_0 \ \text{[-]} $', panel_no=2, range=e0_range)
         self.initial_state_plot.show()

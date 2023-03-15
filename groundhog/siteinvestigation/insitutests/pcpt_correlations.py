@@ -2398,9 +2398,9 @@ CONSTRAINEDMODULUS_PCPT_ROBERTSON = {
 }
 
 CONSTRAINEDMODULUS_PCPT_ROBERTSON_ERRORRETURN = {
+    'alphaM [-]': np.nan,
     'M [kPa]': np.nan,
-    'Isbt class number [-]': np.nan,
-    'Isbt class': None
+    'mv [1/kPa]': np.nan
 }
 
 

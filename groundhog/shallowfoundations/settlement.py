@@ -467,7 +467,7 @@ class SettlementCalculation(object):
             self.grid.elements.loc[i, "delta z [m]"] = consolidationsettlement_mv(
                 initial_height=row['dz [m]'],
                 effective_stress_increase=row['delta sigma v [kPa]'],
-                compressibility=row['mv [m2/kN]'],
+                compressibility=row['mv [1/kPa]'],
                 **kwargs)['delta z [m]']
         self.settlement = self.grid.elements['delta z [m]'].cumsum().iloc[-1]
         self.grid.nodes['Vertical effective stress final [kPa]'] = \

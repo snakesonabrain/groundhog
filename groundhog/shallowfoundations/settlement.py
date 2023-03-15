@@ -233,9 +233,20 @@ class SettlementCalculation(object):
         If a saturation is defined, it will be taken into account for the calculation of the void ratio.
         """
         self.soilprofile = soilprofile
-        for _param in ['Total unit weight [kN/m3]', 'Cc [-]', 'Cr [-]', 'OCR [-]']:
+        for _param in ['Total unit weight [kN/m3]', 'Cc [-]', 'Cr [-]', 'mv [1/kPa]','OCR [-]']:
             if not _param in self.soilprofile.numerical_soil_parameters():
-                raise KeyError("%s not defined in the soil profile" % _param)
+                if _param == 'Cc [-]' or _param == 'Cr [-]' or _param == 'OCR [-]':
+                    if 'mv [1/kPa]' in self.soilprofile.numerical_soil_parameters():
+                        pass
+                    else:
+                        raise KeyError("'mv [1/kPa]' or 'Cc [-]', 'Cr [-]' and 'OCR [-]' need to be defined")
+                if _param == 'mv [1/kPa]':
+                    if ('Cc [-]' not in self.soilprofile.numerical_soil_parameters()) or \
+                        ('Cr [-]' not in self.soilprofile.numerical_soil_parameters()) or \
+                        ('OCR [-]' not in self.soilprofile.numerical_soil_parameters()):
+                        raise KeyError("'mv [1/kPa]' or 'Cc [-]', 'Cr [-]' and 'OCR [-]' need to be defined")
+                    else:
+                        pass
                 
         if not 'S [-]' in self.soilprofile.numerical_soil_parameters():
             warnings.warn("Saturation 'S [-]' not defined. Layers above the water table will be assumed dry.")

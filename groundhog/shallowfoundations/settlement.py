@@ -5,6 +5,7 @@ __author__ = 'Bruno Stuyts'
 
 # Native Python packages
 import warnings
+from copy import deepcopy
 
 # 3rd party packages
 from mimetypes import init
@@ -16,7 +17,7 @@ from groundhog.siteinvestigation.classification.phaserelations import voidratio_
 from groundhog.general.plotting import LogPlot
 from groundhog.shallowfoundations.stressdistribution import stresses_stripload, stresses_circle, \
     stresses_rectangle
-from groundhog.general.soilprofile import CalculationGrid
+from groundhog.general.soilprofile import CalculationGrid, profile_from_dataframe
 
 
 PRIMARYCONSOLIDATIONSETTLEMENT_NC = {
@@ -232,7 +233,7 @@ class SettlementCalculation(object):
         Optionally, a column with the saturation ``S [-]`` can be defined (ranging from 0 to 1).
         If a saturation is defined, it will be taken into account for the calculation of the void ratio.
         """
-        self.soilprofile = soilprofile
+        self.soilprofile = profile_from_dataframe(deepcopy(soilprofile))
         for _param in ['Total unit weight [kN/m3]', 'Cc [-]', 'Cr [-]', 'mv [1/kPa]','OCR [-]']:
             if not _param in self.soilprofile.numerical_soil_parameters():
                 if _param == 'Cc [-]' or _param == 'Cr [-]' or _param == 'OCR [-]':

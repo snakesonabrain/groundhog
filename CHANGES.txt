@@ -1,9 +1,11 @@
-v0.10.0, TBD
+v0.10.0, 21/03/2023 - VOP
     - Added correlation for K0 to critical state friction angle according to Mesri and Hayat (1993)
     - Added correlation for K0 to plasticity index according to Kenney (1959)
     - Changed function arguments for plasticity index and OCR to comply with ``ocr`` and ``pi`` naming
     - Removed the warning for pydov import after the suggestion of a slightly inebriated Frederik Horn
     - Added functionality for selection an unlimited number of additional layers in a LogPlotMatplotlib
+    - Added functionality for calculating settlements using constrained modulus
+    - Added CPT-based correlation for constrained modulus according to Robertson (2009)
     - TODO: Add hatching patterns to LogPlot
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine

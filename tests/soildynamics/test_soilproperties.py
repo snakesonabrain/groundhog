@@ -20,7 +20,7 @@ class Test_SoilProperties(unittest.TestCase):
     def test_modulusreduction_plasticity_ishibashi(self):
         result = soilproperties.modulusreduction_plasticity_ishibashi(
             strain=0.01,
-            PI=0,
+            pi=0,
             sigma_m_eff=100
         )
         self.assertAlmostEqual(
@@ -31,7 +31,7 @@ class Test_SoilProperties(unittest.TestCase):
         )
         result = soilproperties.modulusreduction_plasticity_ishibashi(
             strain=0.01,
-            PI=100,
+            pi=100,
             sigma_m_eff=100
         )
         self.assertAlmostEqual(
@@ -42,7 +42,7 @@ class Test_SoilProperties(unittest.TestCase):
         )
         result = soilproperties.modulusreduction_plasticity_ishibashi(
             strain=0.01,
-            PI=0,
+            pi=0,
             sigma_m_eff=400
         )
         self.assertAlmostEqual(
@@ -78,8 +78,8 @@ class Test_SoilProperties(unittest.TestCase):
     def test_modulusreduction_darendeli(self):
         result = soilproperties.modulusreduction_darendeli(
             mean_effective_stress=100,
-            plasticity_index=15,
-            OCR=1,
+            pi=15,
+            ocr=1,
             N=10,
             frequency=1,
             soiltype='all'

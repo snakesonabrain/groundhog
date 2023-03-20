@@ -14,7 +14,7 @@ from groundhog.general.validation import Validator
 
 
 EARTHPRESSURECOEFFICIENTS_FRICTIONANGLE = {
-    'effective_friction_angle': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
+    'phi_eff': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
 }
 
 EARTHPRESSURECOEFFICIENTS_FRICTIONANGLE_ERRORRETURN = {
@@ -26,13 +26,13 @@ EARTHPRESSURECOEFFICIENTS_FRICTIONANGLE_ERRORRETURN = {
 
 @Validator(EARTHPRESSURECOEFFICIENTS_FRICTIONANGLE, EARTHPRESSURECOEFFICIENTS_FRICTIONANGLE_ERRORRETURN)
 def earthpressurecoefficients_frictionangle(
-    effective_friction_angle,
+    phi_eff,
      **kwargs):
 
     """
     Calculates coefficient of active and passive earth pressure based on a construction with Mohr's circle. Wall friction and wall inclination are not taken into account. The angle of the slip plane with the horizontal for the active and passive wedge are also provided.
     
-    :param effective_friction_angle: Effective friction of the soil (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 20.0 <= effective_friction_angle <= 50.0
+    :param phi_eff: Effective friction of the soil (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 20.0 <= effective_friction_angle <= 50.0
     
     .. math::
         K_a = \\frac{1 - \\sin \\varphi^{\\prime}}{1 + \\sin \\varphi^{\\prime}}
@@ -53,7 +53,7 @@ def earthpressurecoefficients_frictionangle(
     Reference - Budhu (2011). Soil mechanics and foundations. John Wiley and Sons.
 
     """
-    phi = np.radians(effective_friction_angle)
+    phi = np.radians(phi_eff)
     _Ka = (1 - np.sin(phi)) / (1 + np.sin(phi))
     _Kp = (1 + np.sin(phi)) / (1 - np.sin(phi))
     _theta_a = (np.pi / 4) + (phi / 2)
@@ -68,7 +68,7 @@ def earthpressurecoefficients_frictionangle(
 
 
 EARTHPRESSURECOEFFICIENTS_PONCELET = {
-    'effective_friction_angle': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
+    'phi_eff': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
     'interface_friction_angle': {'type': 'float', 'min_value': 15.0, 'max_value': 40.0},
     'wall_angle': {'type': 'float', 'min_value': 0.0, 'max_value': 70.0},
     'top_angle': {'type': 'float', 'min_value': 0.0, 'max_value': 70.0},
@@ -81,13 +81,13 @@ EARTHPRESSURECOEFFICIENTS_PONCELET_ERRORRETURN = {
 
 @Validator(EARTHPRESSURECOEFFICIENTS_PONCELET, EARTHPRESSURECOEFFICIENTS_PONCELET_ERRORRETURN)
 def earthpressurecoefficients_poncelet(
-    effective_friction_angle,interface_friction_angle,wall_angle,top_angle,
+    phi_eff,interface_friction_angle,wall_angle,top_angle,
      **kwargs):
 
     """
     Calculates the active and passive earth pressure coefficients for a retaining wall with friction (characterised by an interface friction angle) and an inclination to the vertical. Inclination of the ground surface on top of the retaining wall is also taken into account. Poncelet used Coulombs limit equilibrium approach to obtain expressions for coefficients of active and passive earth pressure. Note that these coefficients are applied to the effective stress and not to total stresses as used in Coulomb's limit equilibrium analysis.
     
-    :param effective_friction_angle: Effective friction angle of the soil (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 20.0 <= effective_friction_angle <= 50.0
+    :param phi_eff: Effective friction angle of the soil (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 20.0 <= effective_friction_angle <= 50.0
     :param interface_friction_angle: Interface friction angle of the wall-soil interaction (:math:`\\delta`) [:math:`deg`] - Suggested range: 15.0 <= interface_friction_angle <= 40.0
     :param wall_angle: Angle to the vertical of the portion of the wall in contact with the soil (:math:`\\eta`) [:math:`deg`] - Suggested range: 0.0 <= wall_angle <= 70.0
     :param top_angle: Angle to the horizontal of the slope on top of the wall (:math:`\\beta`) [:math:`deg`] - Suggested range: 0.0 <= top_angle <= 70.0
@@ -105,7 +105,7 @@ def earthpressurecoefficients_poncelet(
     Reference - Budhu (2011). Soil mechanics and foundations. John Wiley and Sons.
 
     """
-    phi = np.radians(effective_friction_angle)
+    phi = np.radians(phi_eff)
     delta = np.radians(interface_friction_angle)
     eta = np.radians(wall_angle)
     beta = np.radians(top_angle)
@@ -129,7 +129,7 @@ def earthpressurecoefficients_poncelet(
 
 
 EARTHPRESSURECOEFFICIENTS_RANKINE = {
-    'effective_friction_angle': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
+    'phi_eff': {'type': 'float', 'min_value': 20.0, 'max_value': 50.0},
     'wall_angle': {'type': 'float', 'min_value': 0.0, 'max_value': 70.0},
     'top_angle': {'type': 'float', 'min_value': 0.0, 'max_value': 70.0},
 }
@@ -147,13 +147,13 @@ EARTHPRESSURECOEFFICIENTS_RANKINE_ERRORRETURN = {
 
 @Validator(EARTHPRESSURECOEFFICIENTS_RANKINE, EARTHPRESSURECOEFFICIENTS_RANKINE_ERRORRETURN)
 def earthpressurecoefficients_rankine(
-    effective_friction_angle,wall_angle,top_angle,
+    phi_eff, wall_angle, top_angle,
      **kwargs):
 
     """
     The expressions for an inclined wall with sloping ground are developed by Rankine (1857) and Chu (1991). The angles of the slip planes to the horizontal can also be calculated as well as the inclinations of the resultant forces to the normal to the inclined face. Note that the wall friction is not taken into account.
     
-    :param effective_friction_angle: Effective friction angle of the soil (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 20.0 <= effective_friction_angle <= 50.0
+    :param phi_eff: Effective friction angle of the soil (:math:`\\varphi^{\\prime}`) [:math:`deg`] - Suggested range: 20.0 <= effective_friction_angle <= 50.0
     :param wall_angle: Angle to the vertical of the portion of the wall in contact with the soil (:math:`\\eta`) [:math:`deg`] - Suggested range: 0.0 <= wall_angle <= 70.0
     :param top_angle: Angle to the horizontal of the slope on top of the wall (:math:`\\beta`) [:math:`deg`] - Suggested range: 0.0 <= top_angle <= 70.0
     
@@ -199,7 +199,7 @@ def earthpressurecoefficients_rankine(
     Reference - Budhu (2011). Soil mechanics and foundations. John Wiley and Sons.
 
     """
-    phi = np.radians(effective_friction_angle)
+    phi = np.radians(phi_eff)
     eta = np.radians(wall_angle)
     beta = np.radians(top_angle)
 

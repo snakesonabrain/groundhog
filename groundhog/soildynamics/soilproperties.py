@@ -13,7 +13,7 @@ from groundhog.general.validation import Validator
 
 MODULUSREDUCTION_PLASTICITY_ISHIBASHI = {
     'strain': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
-    'PI': {'type': 'float', 'min_value': 0.0, 'max_value': 200.0},
+    'pi': {'type': 'float', 'min_value': 0.0, 'max_value': 200.0},
     'sigma_m_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 400.0},
     'multiplier_1': {'type': 'float', 'min_value': None, 'max_value': None},
     'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
@@ -34,7 +34,7 @@ MODULUSREDUCTION_PLASTICITY_ISHIBASHI_ERRORRETURN = {
 
 @Validator(MODULUSREDUCTION_PLASTICITY_ISHIBASHI, MODULUSREDUCTION_PLASTICITY_ISHIBASHI_ERRORRETURN)
 def modulusreduction_plasticity_ishibashi(
-        strain, PI, sigma_m_eff,
+        strain, pi, sigma_m_eff,
         multiplier_1=0.000102, exponent_1=0.492, multiplier_2=0.000556, exponent_2=0.4, multiplier_3=-0.0145,
         exponent_3=1.3, **kwargs):
     """
@@ -84,23 +84,23 @@ def modulusreduction_plasticity_ishibashi(
 
     strain = 0.01 * strain
 
-    if PI == 0:
+    if pi == 0:
         _n = 0
-    elif 0 < PI <= 15:
-        _n = 3.37e-6 * (PI ** 1.404)
-    elif 15 < PI <= 70:
-        _n = 7e-7 * (PI ** 1.976)
+    elif 0 < pi <= 15:
+        _n = 3.37e-6 * (pi ** 1.404)
+    elif 15 < pi <= 70:
+        _n = 7e-7 * (pi ** 1.976)
     else:
-        _n = 2.7e-5 * (PI ** 1.115)
+        _n = 2.7e-5 * (pi ** 1.115)
 
     _m = 0.272 * (1 - np.tanh(np.log((multiplier_2 / strain) ** exponent_2))) * \
-        np.exp(multiplier_3 * (PI ** exponent_3))
+        np.exp(multiplier_3 * (pi ** exponent_3))
 
     _K = 0.5 * (1 + np.tanh(np.log(((multiplier_1 + _n) / strain) ** exponent_1)))
 
     _G_over_Gmax = min(_K * (sigma_m_eff ** _m), 1)
 
-    _damping = 100 * 0.333 * 0.5 * (1 + np.exp(-0.0145 * (PI ** 1.3))) * \
+    _damping = 100 * 0.333 * 0.5 * (1 + np.exp(-0.0145 * (pi ** 1.3))) * \
                (0.586 * (_G_over_Gmax ** 2) - 1.547 * _G_over_Gmax + 1)
     return {
         'G/Gmax [-]': _G_over_Gmax,
@@ -346,8 +346,8 @@ def dampingratio_sandgravel_seed(
 
 MODULUSREDUCTION_DARENDELI = {
     'mean_effective_stress': {'type': 'float', 'min_value': 0.0, 'max_value': 1600.0},
-    'plasticity_index': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
-    'OCR': {'type': 'float', 'min_value': 1.0, 'max_value': 20.0},
+    'pi': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+    'ocr': {'type': 'float', 'min_value': 1.0, 'max_value': 20.0},
     'N': {'type': 'float', 'min_value': 1.0, 'max_value': None},
     'frequency': {'type': 'float', 'min_value': 0.05, 'max_value': 100.0},
     'soiltype': {'type': 'string', 'options': ('sand', 'fine sand', 'silt', 'clay', 'all'), 'regex': None},
@@ -366,10 +366,10 @@ MODULUSREDUCTION_DARENDELI_ERRORRETURN = {
 
 @Validator(MODULUSREDUCTION_DARENDELI, MODULUSREDUCTION_DARENDELI_ERRORRETURN)
 def modulusreduction_darendeli(
-        mean_effective_stress,plasticity_index,OCR,N,frequency,soiltype,
+        mean_effective_stress, pi, ocr,N,frequency,soiltype,
         min_strain=0.0001,max_strain=1.0,no_points=250,custom_coefficients=None, **kwargs):
 
-    """
+    """ 
     Darendeli (2001) proposed a comprehensive framework for estimating the modulus reduction curve and damping curve for sand, fine sand, silt and clay based on extensive laboratory testing. The framework is initially based on the work by Hardin and Drnevich but extends the formulation to include the effect of soil type, plasticity, overconsolidation ratio, stress ratio, loading frequency and number of cycles applied.
 
     The author used a Bayesian approach to calibrate the parameters of the parametric equations and also formulated expressions to estimate the standard deviation on the estimates. Parameters for individual soil types can be used as well as parameters calibrated to the entire credible dataset (using ``'all'`` for ``soiltype``).
@@ -377,8 +377,8 @@ def modulusreduction_darendeli(
     The formulation is based on Masing damping but takes into account the damping at small strains, which  is not zero but difficult to estimate from resonant column or cyclic DSS tests. The Masing damping at large strains is also adjusted to be in line with experimental observations (Masing damping overestimates the damping ratio at large strains).
 
     :param mean_effective_stress: Mean effective stress at the depth under consideration (:math:`\\sigma_0^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= mean_effective_stress <= 1000.0
-    :param plasticity_index: Plasticity index (difference between liquid limit and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 0.0 <= plasticity_index <= 60.0
-    :param OCR: Overconsolidation ratio of the soil (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= OCR <= 20.0
+    :param pi: Plasticity index (difference between liquid limit and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 0.0 <= plasticity_index <= 60.0
+    :param ocr: Overconsolidation ratio of the soil (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= OCR <= 20.0
     :param N: Number of cycles (:math:`N`) [:math:`-`] - Suggested range: N >= 1.0
     :param frequency: Loading frequency (:math:`f`) [:math:`Hz`] - Suggested range: 0.05 <= frequency <= 20.0
     :param soiltype: Soil type used for calculating modulus reduction and damping curves - Options: ('sand', 'fine sand', 'silt', 'clay', 'all')
@@ -466,10 +466,10 @@ def modulusreduction_darendeli(
     sigma_0_eff = mean_effective_stress / 100 # Stresses in formulae are in atm
 
     _gamma_r = \
-        (params['phi1'] + params['phi2'] * plasticity_index * (OCR ** params['phi3'])) * (sigma_0_eff ** params['phi4'])
+        (params['phi1'] + params['phi2'] * pi * (ocr ** params['phi3'])) * (sigma_0_eff ** params['phi4'])
     _a = params['phi5']
     _Dmin = \
-        (params['phi6'] + params['phi7'] * plasticity_index * (OCR ** params['phi8'])) * \
+        (params['phi6'] + params['phi7'] * pi * (ocr ** params['phi8'])) * \
         (sigma_0_eff ** params['phi9']) * \
         (1 + params['phi10'] * np.log(frequency))
     _b = params['phi11'] + params['phi12'] * np.log(N)

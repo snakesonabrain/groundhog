@@ -132,6 +132,21 @@ class SoilProfile(pd.DataFrame):
         if include_bottom:
             transitions = np.append(transitions, self[self.depth_to_col].iloc[-1])
         return transitions
+    
+    def adjust_layertransition(self, currentdepth, newdepth, tolerance=1e-3):
+        """
+        Adjusts the depth of a layer transition.
+        
+        :param currentdepth: Current depth of the layer transition
+        :param newdepth: Desired new depth of the layer transition
+        :param tolerance: Offset above and below ``currentdepth`` in which a layer transition is sought (to cope with number precision issues)
+        """
+        layer_above_index = self[(self[self.depth_to_col] > (currentdepth - tolerance)) & 
+                           (self[self.depth_to_col] < (currentdepth + tolerance))].index
+        layer_below_index = self[(self[self.depth_from_col] > (currentdepth - tolerance)) & 
+                           (self[self.depth_from_col] < (currentdepth + tolerance))].index
+        self.loc[layer_above_index, self.depth_to_col] = newdepth
+        self.loc[layer_below_index, self.depth_from_col] = newdepth
 
     def calculate_layerthickness(self, layerthicknesscol="Layer thickness [m]"):
         """
@@ -665,11 +680,11 @@ class SoilProfile(pd.DataFrame):
         :return: Deep copy of the ``SoilProfile`` between the specified bounds
         """
         if top_depth < self.min_depth:
-            warnings.warn("Top depth of %.2f is smaller than minimum depth of the soil profile." % bottom_depth)
+            warnings.warn("Top depth of %.2f is smaller than minimum depth of the soil profile." % top_depth)
             top_depth = self.min_depth
 
         if bottom_depth > self.max_depth:
-            warnings.warn("Bottom depth of %.2f is greater than maximum depth of the soil profile." % top_depth)
+            warnings.warn("Bottom depth of %.2f is greater than maximum depth of the soil profile." % bottom_depth)
             bottom_depth = self.max_depth
 
         # Make a deep copy of the soil profile

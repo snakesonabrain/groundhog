@@ -5,6 +5,7 @@ __author__ = 'Bruno Stuyts'
 
 # Native Python packages
 import warnings
+from copy import deepcopy
 
 # 3rd party packages
 from mimetypes import init
@@ -16,7 +17,7 @@ from groundhog.siteinvestigation.classification.phaserelations import voidratio_
 from groundhog.general.plotting import LogPlot
 from groundhog.shallowfoundations.stressdistribution import stresses_stripload, stresses_circle, \
     stresses_rectangle
-from groundhog.general.soilprofile import CalculationGrid
+from groundhog.general.soilprofile import CalculationGrid, profile_from_dataframe
 
 
 PRIMARYCONSOLIDATIONSETTLEMENT_NC = {
@@ -170,6 +171,54 @@ def primaryconsolidationsettlement_oc(
         'e final [-]': _e_final
     }
 
+CONSOLIDATIONSETTLEMENT_MV = {
+    'initial_height': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'effective_stress_increase': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'compressibility': {'type': 'float', 'min_value': 1e-4, 'max_value': 10}
+}
+
+CONSOLIDATIONSETTLEMENT_MV_ERRORRETURN = {
+    'delta z [m]': np.nan,
+    'delta epsilon [-]': np.nan
+}
+
+
+@Validator(CONSOLIDATIONSETTLEMENT_MV, CONSOLIDATIONSETTLEMENT_MV_ERRORRETURN)
+def consolidationsettlement_mv(
+        initial_height, effective_stress_increase, compressibility,
+        **kwargs):
+    """
+    Calculates the consolidation settlement using the compressibility :math:`m_v` (inverse of constrained modulus :math:`M`).
+
+    The constrained modulus is stress-dependent and therefore the relation between :math:`M` and :math:`C_c` is also stress-dependent.
+
+    :param initial_height: Initial thickness of the layer (:math:`H_0`) [:math:`m`] - Suggested range: initial_height >= 0.0
+    :param effective_stress_increase: Increase in vertical effective stress under the given load (:math:`\\Delta sigma_{v}^{\\prime}`) [:math:`kPa`] - Suggested range: effective_stress_increase >= 0.0
+    :param compressibility: Modulus of volumetric compressibility derived from oedometer tests (:math:`m_v`) [:math:`-`] - Suggested range: 1e-4 <= compressibility <= 10 (note that the compressibility is stress-dependent)
+    
+    .. math::
+        \\Delta \\epsilon = m_v \\cdot \\Delta \\sigma_v^{\\prime}
+
+        \\Delta z = \\Delta \\epsilon \\cdot H_0
+
+        m_v = \\frac{C_c}{2.3 \\cdot (1 + e_0) \\cdot \\sigma_{v0}^{\\prime}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'delta z [m]': Consolidation settlement (:math:`\\Delta z`)  [:math:`m`]
+        - 'delta epsilon [-]': Change in strain caused by consolidation (:math:`\\delta \\epsilon`)  [:math:`-`]
+
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+
+    _delta_epsilon = compressibility * effective_stress_increase
+    _delta_z = _delta_epsilon * initial_height
+
+    return {
+        'delta z [m]': _delta_z,
+        'delta epsilon [-]': _delta_epsilon
+    }
 
 class SettlementCalculation(object):
     """
@@ -184,10 +233,21 @@ class SettlementCalculation(object):
         Optionally, a column with the saturation ``S [-]`` can be defined (ranging from 0 to 1).
         If a saturation is defined, it will be taken into account for the calculation of the void ratio.
         """
-        self.soilprofile = soilprofile
-        for _param in ['Total unit weight [kN/m3]', 'Cc [-]', 'Cr [-]', 'OCR [-]']:
+        self.soilprofile = profile_from_dataframe(deepcopy(soilprofile))
+        for _param in ['Total unit weight [kN/m3]', 'Cc [-]', 'Cr [-]', 'mv [1/kPa]','OCR [-]']:
             if not _param in self.soilprofile.numerical_soil_parameters():
-                raise KeyError("%s not defined in the soil profile" % _param)
+                if _param == 'Cc [-]' or _param == 'Cr [-]' or _param == 'OCR [-]':
+                    if 'mv [1/kPa]' in self.soilprofile.numerical_soil_parameters():
+                        pass
+                    else:
+                        raise KeyError("'mv [1/kPa]' or 'Cc [-]', 'Cr [-]' and 'OCR [-]' need to be defined")
+                if _param == 'mv [1/kPa]':
+                    if ('Cc [-]' not in self.soilprofile.numerical_soil_parameters()) or \
+                        ('Cr [-]' not in self.soilprofile.numerical_soil_parameters()) or \
+                        ('OCR [-]' not in self.soilprofile.numerical_soil_parameters()):
+                        raise KeyError("'mv [1/kPa]' or 'Cc [-]', 'Cr [-]' and 'OCR [-]' need to be defined")
+                    else:
+                        pass
                 
         if not 'S [-]' in self.soilprofile.numerical_soil_parameters():
             warnings.warn("Saturation 'S [-]' not defined. Layers above the water table will be assumed dry.")
@@ -225,11 +285,14 @@ class SettlementCalculation(object):
                     saturation=1,
                     specific_gravity=specific_gravity,
                     unitweight_water=unitweight_water)['e [-]']
-        self.soilprofile['pc from [kPa]'] = self.soilprofile['Vertical effective stress from [kPa]'] * \
-            self.soilprofile['OCR [-]']
-        self.soilprofile['pc to [kPa]'] = self.soilprofile['Vertical effective stress to [kPa]'] * \
-            self.soilprofile['OCR [-]']
-                            
+        if 'mv [1/kPa]' in self.soilprofile.numerical_soil_parameters():
+            pass
+        else:
+            self.soilprofile['pc from [kPa]'] = self.soilprofile['Vertical effective stress from [kPa]'] * \
+                self.soilprofile['OCR [-]']
+            self.soilprofile['pc to [kPa]'] = self.soilprofile['Vertical effective stress to [kPa]'] * \
+                self.soilprofile['OCR [-]']
+                                
     def plot_initial_state(self, plot_title="", e0_range=(0, 3), fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
         """
         Plots the initial stress vs depth and the initial void ratio vs depth
@@ -247,12 +310,20 @@ class SettlementCalculation(object):
             name=r'$ \sigma_{vo}^{\prime} $',
             line=dict(color='red'),
             panel_no=1)
-        self.initial_state_plot.add_trace(
-            x=self.soilprofile.soilparameter_series('pc [kPa]')[1],
-            z=self.soilprofile.soilparameter_series('pc [kPa]')[0],
-            name=r'$ \sigma_{vc}^{\prime} $',
-            line=dict(color='violet', dash='dot'),
-            panel_no=1)
+        if 'mv [1/kPa]' in self.soilprofile.numerical_soil_parameters():
+            _xaxis_title = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \text{[kPa]} $'
+            _max_stress = self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max()
+        else:
+            _xaxis_title = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \sigma_{vc}^{\prime} \ \text{[kPa]} $'
+            _max_stress = max(
+                self.soilprofile.soilparameter_series('pc [kPa]')[1].max(),
+                self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max())
+            self.initial_state_plot.add_trace(
+                x=self.soilprofile.soilparameter_series('pc [kPa]')[1],
+                z=self.soilprofile.soilparameter_series('pc [kPa]')[0],
+                name=r'$ \sigma_{vc}^{\prime} $',
+                line=dict(color='violet', dash='dot'),
+                panel_no=1)
         self.initial_state_plot.add_trace(
             x=self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1],
             z=self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[0],
@@ -260,10 +331,8 @@ class SettlementCalculation(object):
             line=dict(color='green'),
             panel_no=1)
         self.initial_state_plot.set_xaxis(
-            title=r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \sigma_{vc}^{\prime} \ \text{[kPa]} $', panel_no=1,
-            range=(0, max(
-                self.soilprofile.soilparameter_series('pc [kPa]')[1].max(),
-                self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max())))
+            title=_xaxis_title, panel_no=1,
+            range=(0, _max_stress))
         self.initial_state_plot.set_xaxis(
             title=r'$ e_0 \ \text{[-]} $', panel_no=2, range=e0_range)
         self.initial_state_plot.show()
@@ -409,6 +478,25 @@ class SettlementCalculation(object):
             self.grid.elements['e0 [-]'] * \
             (1 - (self.grid.elements["delta z [m]"] / self.grid.elements["dz [m]"])) - \
             (self.grid.elements["delta z [m]"] / self.grid.elements["dz [m]"])
+        
+    def calculate_mv(self, **kwargs):
+        """
+        Calculates the consolidation settlement using the specified grid, foundation shape and loading.
+        Instead of using the compression index and recompression index, the modulus of volumetric compressibility :math:`m_v` is used.
+        """
+        for i, row in self.grid.elements.iterrows():
+            self.grid.elements.loc[i, "delta z [m]"] = consolidationsettlement_mv(
+                initial_height=row['dz [m]'],
+                effective_stress_increase=row['delta sigma v [kPa]'],
+                compressibility=row['mv [1/kPa]'],
+                **kwargs)['delta z [m]']
+        self.settlement = self.grid.elements['delta z [m]'].cumsum().iloc[-1]
+        self.grid.nodes['Vertical effective stress final [kPa]'] = \
+            self.grid.nodes['Vertical effective stress [kPa]'] + \
+            self.grid.nodes['delta sigma v [kPa]']
+        self.grid.elements['Vertical effective stress final [kPa]'] = \
+            self.grid.elements['Vertical effective stress [kPa]'] + \
+            self.grid.elements['delta sigma v [kPa]']
         
     def plot_result(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
         """

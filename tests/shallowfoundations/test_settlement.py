@@ -83,3 +83,19 @@ class Test_settlement(unittest.TestCase):
             calc.settlement,
             0.086,
             3)
+        
+    def test_settlement_calculation_mv(self):
+        sp = SoilProfile({
+            'Depth from [m]': [0, 4.2],
+            'Depth to [m]': [4.2, 20],
+            'Soil type': ['Clay', 'Clay'],
+            'Total unit weight [kN/m3]': [15, 17],
+            'mv [1/kPa]': [1e-3, 2e-3]
+        })
+        calc = settlement.SettlementCalculation(sp)
+        calc.calculate_initial_state(waterlevel=0.8)
+        calc.create_grid()
+        calc.set_foundation(shape='rectangular', length=8, width=5)
+        calc.calculate_foundation_stress(applied_stress=100)
+        calc.calculate_mv()
+        self.assertAlmostEqual(calc.settlement, 0.864, 3)

@@ -229,8 +229,8 @@ def cv_liquidlimit_usnavy(
 
 
 GMAX_PLASTICITYOCR_ANDERSEN = {
-    'PI': {'type': 'float', 'min_value': 0.0, 'max_value': 160.0},
-    'OCR': {'type': 'float', 'min_value': 1.0, 'max_value': 40.0},
+    'pi': {'type': 'float', 'min_value': 0.0, 'max_value': 160.0},
+    'ocr': {'type': 'float', 'min_value': 1.0, 'max_value': 40.0},
     'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
     'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
     'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
@@ -247,14 +247,14 @@ GMAX_PLASTICITYOCR_ANDERSEN_ERRORRETURN = {
 
 @Validator(GMAX_PLASTICITYOCR_ANDERSEN, GMAX_PLASTICITYOCR_ANDERSEN_ERRORRETURN)
 def gmax_plasticityocr_andersen(
-        PI,OCR,sigma_vo_eff,
+        pi, ocr, sigma_vo_eff,
         atmospheric_pressure=100.0,coefficient_1=30.0,coefficient_2=75.0,coefficient_3=0.03,coefficient_4=0.5,coefficient_5=0.9, **kwargs):
 
     """
     Calculates the small-strain shear modulus for cohesive soils based on plasticity index, effective overburden pressure and OCR. The proposed relation is calibrated on a number of shear wave velocity tests on clay samples with different plasticity index and OCR.
 
-    :param PI: Plasticity index (difference between liquid limit and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 0.0 <= PI <= 160.0
-    :param OCR: Overconsolidation ratio of the clay (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= OCR <= 40.0
+    :param pi: Plasticity index (difference between liquid limit and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 0.0 <= PI <= 160.0
+    :param ocr: Overconsolidation ratio of the clay (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= OCR <= 40.0
     :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: 0.0 <= sigma_vo_eff <= 1000.0
     :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
     :param coefficient_1: First calibration coefficient (:math:``) [:math:`-`] (optional, default= 30.0)
@@ -285,9 +285,62 @@ def gmax_plasticityocr_andersen(
     """
 
     _sigma_0_ref = atmospheric_pressure * ((sigma_vo_eff / atmospheric_pressure) ** coefficient_5)
-    _Gmax = _sigma_0_ref * (coefficient_1 + (coefficient_2 / (0.01 * PI + coefficient_3))) * (OCR ** coefficient_4)
+    _Gmax = _sigma_0_ref * (coefficient_1 + (coefficient_2 / (0.01 * pi + coefficient_3))) * (ocr ** coefficient_4)
 
     return {
         'sigma_0_ref [kPa]': _sigma_0_ref,
         'Gmax [kPa]': _Gmax,
+    }
+
+
+K0_PLASTICITY_KENNEY = {
+    'pi': {'type': 'float', 'min_value': 5, 'max_value': 80},
+    'ocr': {'type': 'float', 'min_value': 1, 'max_value': 30},
+    'coeff_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coeff_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coeff_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coeff_4': {'type': 'float', 'min_value': None, 'max_value': None}
+}
+
+K0_PLASTICITY_KENNEY_ERRORRETURN = {
+    'K0 [-]': np.nan,
+}
+
+@Validator(K0_PLASTICITY_KENNEY, K0_PLASTICITY_KENNEY_ERRORRETURN)
+def k0_plasticity_kenney(
+        pi, ocr=1, coeff_1=0.19, coeff_2=0.233, coeff_3=-281, coeff_4=1.85, **kwargs):
+    """
+    Calculates the coefficient of lateral earthpressure at rest for normally and overconsolidated clay.
+    Kenney (1959) presented a formula for coefficient of lateral earth pressure at rest for normally consolidated clay.
+    The plasticity index :math:`\\text{PI}` was used as a basis for this correlation.
+    This relation was modified for the effect of overconsolidation as shown by Alpan (1967).
+    The exponent on OCR shows a linear variation with plasticity index.
+
+    :param pi: Plasticity index (:math:`\\text{PI}`) [:math:`pct`] - Suggested range: 5 <= PI <= 80
+    :param ocr: Overconsolidation ratio (:math:`\\text{OCR}`) [:math:`-`] (optional, default= 1, suggested range: 1 <= OCR < 30)
+    :param coeff_1: First calibration coefficient (optional, default=0.19)
+    :param coeff_2: Second calibration coefficient (optional, default=0.233)
+    :param coeff_3: First calibration coefficient (optional, default=-281)
+    :param coeff_4: Second calibration coefficient (optional, default=1.85)
+
+    .. math::
+        K_{0,NC} = 0.19 + 0.233 \\log_{10} I_p
+
+        I_p = -281 \\log_{10} \\left( 1.85 \\lambda \\right)
+
+    :returns: Dictionary with the following keys:
+
+        - 'K0 NC [-]': Coefficient of lateral earth pressure at rest for normally consolidated conditions (:math:`K_{0,NC}`)  [:math:`-`]
+        - 'K0 [-]': Coefficient of lateral earth pressure at rest (:math:`K_0`)  [:math:`-`]
+
+    Reference - Alpan (1967) THE EMPIRICAL EVALUATION OF THE COEFFICIENT K0 AND K0R. Soils and Foundations. Volume 7, Issue 1
+
+    """
+    _K0_NC = coeff_1 + coeff_2 * np.log10(pi)
+    _exponent = (1 / coeff_4) * (10 ** (pi / coeff_3))
+    _K0 = (_K0_NC) * (ocr ** _exponent)
+
+    return {
+        'K0 NC [-]': _K0_NC,
+        'K0 [-]': _K0,
     }

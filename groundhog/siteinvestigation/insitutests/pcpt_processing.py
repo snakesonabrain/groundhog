@@ -17,13 +17,6 @@ from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly.offline import iplot
-try:
-    import pydov
-    from owslib.fes import PropertyIsEqualTo
-    from pydov.search.sondering import SonderingSearch
-except:
-    warnings.warn('pydov package not available. Import of CPT data from Databank Ondergrond Vlaanderen is not possible.'
-                  'Install pydov to enable this functionality')
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
@@ -892,6 +885,13 @@ class PCPTProcessing(InsituTestProcessing):
         :param name: Unique identifier of the CPT in pydov
         :return: Sets the `data` attribute of the PCPTProcessing object
         """
+        try:
+            import pydov
+            from owslib.fes import PropertyIsEqualTo
+            from pydov.search.sondering import SonderingSearch
+        except:
+            raise IOError("Package pydov not available. Install it first: https://pydov.readthedocs.io/en/stable/")
+
         sondering = SonderingSearch()
         query = PropertyIsEqualTo(propertyname='sondeernummer',
                                   literal=name)

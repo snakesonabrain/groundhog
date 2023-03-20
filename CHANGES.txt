@@ -1,14 +1,23 @@
+v0.10.0, 21/03/2023 - VOP
+    - Added correlation for K0 to critical state friction angle according to Mesri and Hayat (1993)
+    - Added correlation for K0 to plasticity index according to Kenney (1959)
+    - Changed function arguments for plasticity index and OCR to comply with ``ocr`` and ``pi`` naming
+    - Removed the warning for pydov import after the suggestion of a slightly inebriated Frederik Horn
+    - Added functionality for selection an unlimited number of additional layers in a LogPlotMatplotlib
+    - Added functionality for calculating settlements using constrained modulus
+    - Added CPT-based correlation for constrained modulus according to Robertson (2009)
+    - TODO: Add hatching patterns to LogPlot
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+
 v0.9.0, 02/02/2023 - Groundhog day 2023
     - Added shearwavevelocity_compressionindex_cha for estimate shear wave velocity when stress conditions and packing density are known
     - Refactoring of code for element properties in a CalculationGrid object
     - Added axial capacity basic code and notebook
     - Added hatching to Matplotlib logplots
     - Added stress dilatancy theory according to Bolton (1986)
-    - TODO: Add hatching patterns to LogPlot
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Implement soil parameter name conventions across groundhog
-    - TODO: Add soil type classification according to Schneider et al (2008)
     
 v0.8.0, 28/08/2022 - ISFOG2020 release
     - Improved margin settings for PSD plots

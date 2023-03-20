@@ -440,9 +440,9 @@ def undrainedshearstrength_spt_salgado(
 
     """
     if np.math.isnan(alpha_prime_override):
-        PI = [15, 20, 25, 30, 40, 60]
+        pi = [15, 20, 25, 30, 40, 60]
         alpha = [0.068,  0.055, 0.048, 0.045, 0.044, 0.043]
-        _alpha_prime = np.interp(plasticity_index, PI, alpha)
+        _alpha_prime = np.interp(plasticity_index, pi, alpha)
     else:
         _alpha_prime = alpha_prime_override
 

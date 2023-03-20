@@ -180,6 +180,7 @@ class LogPlot(object):
     def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
                  fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
                  soiltypelegend=True,
+                 soiltypecolumn="Soil type",
                  **kwargs):
         """
         Initializes a figure with a minilog on the side.
@@ -188,6 +189,7 @@ class LogPlot(object):
         :param logwidth: Width of the minilog as a ratio to the total width of the figure (default=0.05)
         :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
         :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
+        :param soiltypecolumn: Column name used to identify the soil type. The entries in this column need to correspond to keys in ``fillcolordict``
         :param kwargs: Optional keyword arguments for the make_subplots method
         """
         self.soilprofile = soilprofile
@@ -207,7 +209,7 @@ class LogPlot(object):
         _layers = []
         for i, row in soilprofile.iterrows():
             try:
-                _fillcolor = fillcolordict[row['Soil type']]
+                _fillcolor = fillcolordict[row[soiltypecolumn]]
             except:
                 _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
             _y0 = row['Depth from [m]']
@@ -215,7 +217,7 @@ class LogPlot(object):
             _layers.append(
                 dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
 
-        for _soiltype in soilprofile['Soil type'].unique():
+        for _soiltype in soilprofile[soiltypecolumn].unique():
             try:
                 _fillcolor = fillcolordict[_soiltype]
             except:
@@ -292,7 +294,7 @@ class LogPlot(object):
         x = self.soilprofile.soilparameter_series(parametername)[1]
         z = self.soilprofile.soilparameter_series(parametername)[0]
 
-        if legendname is None:
+        if legendname is not None:
             name = legendname
         else:
             name = parametername
@@ -348,7 +350,8 @@ class LogPlotMatplotlib(object):
     def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
                  fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey', 'Silt': 'green'},
                  hatchpatterns={"Sand": "...", "Clay": '////', 'Rock':'oo', 'Silt': '|||'},
-                 soiltypelegend=True, figheight=6, plot_layer_transitions=True, showgrid=True,
+                 soiltypelegend=True, soiltypecolumn='Soil type',
+                 figheight=6, plot_layer_transitions=True, showgrid=True,
                  **kwargs):
         """
         Initializes a figure with a minilog on the side.
@@ -358,6 +361,7 @@ class LogPlotMatplotlib(object):
         :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
         :param hatchpatterns: Matplotlib letters used for hatching of the soil types
         :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
+        :param soiltypecolumn: Column name used to identify the soil type. The entries in this column need to correspond to keys in ``fillcolordict``
         :param figheight: Figure height in inches (default=6in)
         :param plot_layer_transitions: Boolean determining whether layer transitions need to be plotted or not
         :param showgrid: Boolean determining whether a grid is shown on the plot panels or not (default=True)
@@ -381,16 +385,16 @@ class LogPlotMatplotlib(object):
         _color_assignment = dict()
         for i, row in soilprofile.iterrows():
             try:
-                _fillcolor = fillcolordict[row['Soil type']]
-                _color_assignment[row['Soil type']] = _fillcolor
+                _fillcolor = fillcolordict[row[soiltypecolumn]]
+                _color_assignment[row[soiltypecolumn]] = _fillcolor
             except:
-                if row['Soil type'] in _color_assignment.keys():
-                    _fillcolor = _color_assignment[row['Soil type']]
+                if row[soiltypecolumn] in _color_assignment.keys():
+                    _fillcolor = _color_assignment[row[soiltypecolumn]]
                 else:
                     _fillcolor = BRIGHTCOLORS[i % 7]
-                    _color_assignment[row['Soil type']] = _fillcolor
+                    _color_assignment[row[soiltypecolumn]] = _fillcolor
             try:
-                _hatch = hatchpatterns[row['Soil type']]
+                _hatch = hatchpatterns[row[soiltypecolumn]]
             except:
                 _hatch = None
                 
@@ -401,7 +405,7 @@ class LogPlotMatplotlib(object):
                 label='_nolegend_', edgecolor="black", hatch=_hatch)
             
         _legend_handles = []
-        for _soiltype in soilprofile['Soil type'].unique():
+        for _soiltype in soilprofile[soiltypecolumn].unique():
             try:
                 _fillcolor = _color_assignment[_soiltype]
             except:
@@ -601,7 +605,36 @@ class LogPlotMatplotlib(object):
                     (_y, _y), color='grey', ls="--")
             self.soilprofile.insert_layer_transition(_y)
         ax.figure.canvas.draw()
-        
+
+    def select_layering(self, panel_no=1, precision=2, stop_threshold=0):
+        """
+        Allows for the selection of layer transitions for the ``SoilProfile`` object.
+        The number of additional transition is controlled by how often the user clicks.
+        Click on the desired layer transition location in the specified panel (default ``panel_no=1``).
+        The selection stops when the user clicks on a point with x-coordinate below the ``stop_threshold``.
+        The depth of the layer transition is rounded according to the ``precision`` argument. Default=2
+        for cm accuracy."""
+        ax = self.axes[panel_no]
+
+        final = False
+
+        while not final:
+            xy = plt.ginput(1)
+            x = [p[0] for p in xy]
+            y = [round(p[1], precision) for p in xy]
+                
+            if x[0] < stop_threshold:
+                final = True
+            else:
+                for _y in y:
+                    for i in range(self.axes.__len__() - 1):
+                        line = self.axes[i+1].plot(
+                            self.axes[i+1].get_xlim(),
+                            (_y, _y), color='grey', ls="--")
+                    self.soilprofile.insert_layer_transition(_y)
+            ax.figure.canvas.draw()
+    
+
     def select_constant(self, panel_no, parametername, units, nan_tolerance=0.1):
         """
         Selects a constant value in each layer. Click the desired value in each layer, working from the top down.
@@ -621,7 +654,7 @@ class LogPlotMatplotlib(object):
 
         self.soilprofile["%s [%s]" % (parametername, units)] = x
         self.add_soilparameter_trace(
-            parameter="%s [%s]" % (parametername, units),
+            parametername="%s [%s]" % (parametername, units),
             panel_no=panel_no)
         ax.figure.canvas.draw()
 

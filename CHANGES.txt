@@ -1,3 +1,12 @@
+v0.11.0, TBD
+    - Added explicit specification of epsilon_b to the De Beer pile resistance calculation
+    - Added a file with optional requirements (optional-requirements.txt) for pydov and geotexxx
+    - TODO: Add hatching patterns to LogPlot
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+
 v0.10.0, 21/03/2023 - VOP
     - Added correlation for K0 to critical state friction angle according to Mesri and Hayat (1993)
     - Added correlation for K0 to plasticity index according to Kenney (1959)
@@ -6,11 +15,6 @@ v0.10.0, 21/03/2023 - VOP
     - Added functionality for selection an unlimited number of additional layers in a LogPlotMatplotlib
     - Added functionality for calculating settlements using constrained modulus
     - Added CPT-based correlation for constrained modulus according to Robertson (2009)
-    - TODO: Add hatching patterns to LogPlot
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Implement soil parameter name conventions across groundhog
-    - TODO: Add soil type classification according to Schneider et al (2008)
 
 v0.9.0, 02/02/2023 - Groundhog day 2023
     - Added shearwavevelocity_compressionindex_cha for estimate shear wave velocity when stress conditions and packing density are known

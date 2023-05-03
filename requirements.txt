@@ -1,4 +1,4 @@
-pandas>=1.0.0
+pandas>=1.0.0,<2.0
 plotly==4.7.1
 scipy>=1.4.1
 xlrd==1.2.0

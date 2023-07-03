@@ -1873,7 +1873,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data.to_excel(writer, sheet_name='Data', index=False)
 
         # Close the Pandas Excel writer and output the Excel file.
-        writer.save()
+        writer.close()
     # endregion
 
 

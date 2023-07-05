@@ -1864,7 +1864,7 @@ class PCPTProcessing(InsituTestProcessing):
             })
 
         # Create a Pandas Excel writer using XlsxWriter as the engine.
-        writer = pd.ExcelWriter(output_path, engine='xlsxwriter')
+        writer = pd.ExcelWriter(output_path, engine='openpyxl')
 
         # Write each dataframe to a different worksheet.
         loc_df.to_excel(writer, sheet_name='Location data', index=False)

@@ -1,6 +1,6 @@
 pandas>=1.0.0
 plotly==4.7.1
-scipy==1.4.1
+scipy==1.10.0
 xlrd==1.2.0
 openpyxl==3.0.3
 jinja2>=2.0.0

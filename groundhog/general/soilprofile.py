@@ -573,7 +573,7 @@ class SoilProfile(pd.DataFrame):
                     if rule == 'min':
                         self.loc[i, parameter] = selected_values[~np.isnan(selected_values)].min()
                     elif rule == 'mean':
-                        self.loc[i, parameter] = selected_values.mean()
+                        self.loc[i, parameter] = selected_values[~np.isnan(selected_values)].mean()
                     elif rule == 'max':
                         self.loc[i, parameter] = selected_values[~np.isnan(selected_values)].max()
                     else:

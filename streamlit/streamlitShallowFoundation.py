@@ -2,6 +2,9 @@
 
 import streamlit as st
 
+import sys
+sys.path.append("../groundhog")
+
 def streamlitShallowFoundation():
     from groundhog.shallowfoundations.capacity import (
         ShallowFoundationCapacityDrained,
@@ -10,7 +13,7 @@ def streamlitShallowFoundation():
 
 
     st.title("Groundhog Bearing Capacity Calculations")
-    cols = st.beta_columns([1, 1, 1])
+    cols = st.columns([1, 1, 1])
 
     with cols[0]:
         FOUNDATION_GEOMETRY = st.selectbox(

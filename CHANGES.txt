@@ -2,6 +2,8 @@ v0.11.0, TBD
     - Added explicit specification of epsilon_b to the De Beer pile resistance calculation
     - Added a file with optional requirements (optional-requirements.txt) for pydov and geotexxx
     - Small modifications for automatic soil parameter selection to cope with NaN values
+    - Changed fillcolordict for pile capacity profiles
+    - Set plugged unit end bearing for Alm & Hamre equal to coring end bearing for consistent axcap results
     - TODO: Add hatching patterns to LogPlot
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine

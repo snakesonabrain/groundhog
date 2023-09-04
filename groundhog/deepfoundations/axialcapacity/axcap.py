@@ -382,7 +382,7 @@ class AxCapCalculation(object):
         """
         Plots shaft resistance, tip resistance and total pile resistance for all pile penetrations.
         """
-        all_penetrations_plot = LogPlot(soilprofile=self.sp, no_panels=3, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'})
+        all_penetrations_plot = LogPlot(soilprofile=self.sp, no_panels=3, fillcolordict=fillcolordict)
 
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rs compression plugged [kN]"],

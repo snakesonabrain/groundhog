@@ -887,7 +887,7 @@ class PCPTProcessing(InsituTestProcessing):
         """
         try:
             import pydov
-            from owslib.fes import PropertyIsEqualTo
+            from owslib.fes2 import PropertyIsEqualTo
             from pydov.search.sondering import SonderingSearch
         except:
             raise IOError("Package pydov not available. Install it first: https://pydov.readthedocs.io/en/stable/")

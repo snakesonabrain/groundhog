@@ -7,3 +7,4 @@ jinja2
 xlsxwriter
 pyproj
 groundhog
+matplotlib

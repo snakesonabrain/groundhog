@@ -1,9 +1,9 @@
-pandas>=1.0.0
+pandas
 plotly
-scipy==1.4.1
-xlrd==1.2.0
-openpyxl==3.0.3
-jinja2>=2.0.0
-xlsxwriter==1.3.9
-pyproj>=2.6
+scipy
+xlrd
+openpyxl
+jinja2
+xlsxwriter
+pyproj
 groundhog

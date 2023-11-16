@@ -4,6 +4,8 @@ v0.11.0, TBD
     - Small modifications for automatic soil parameter selection to cope with NaN values
     - Changed fillcolordict for pile capacity profiles
     - Set plugged unit end bearing for Alm & Hamre equal to coring end bearing for consistent axcap results
+    - TODO: Revisit design profiles for PCPTProcessing objects and associated log plotting
+    - TODO: Deprecate all "old" plotting functionality for parameters in favour of mini-log syntax
     - TODO: Add hatching patterns to LogPlot
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine

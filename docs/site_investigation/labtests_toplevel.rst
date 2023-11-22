@@ -1,4 +1,4 @@
-Laboratory testing
+zLaboratory testing
 ================================
 
 
@@ -8,3 +8,5 @@ Laboratory testing
    samplepreparation
 
    indextests
+
+   compressibility

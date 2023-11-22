@@ -13,10 +13,6 @@ from scipy.optimize import brentq
 from groundhog.general.validation import Validator
 
 
-
-
-
-
 PCPT_NORMALISATIONS = {
     'measured_qc': {'type': 'float', 'min_value': 0.0, 'max_value': 150.0},
     'measured_fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},

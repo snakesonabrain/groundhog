@@ -198,6 +198,15 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[600, "ft [MPa]"], self.pandas_pcpt.data.loc[600, "fs [MPa]"], 4
         )
 
+    def test_pcpt_normalisation_plotting(self):
+        """
+        Test normalisation of the PCPT data
+        :return:
+        """
+        self.test_pcpt_mapping()
+        self.pandas_pcpt.normalise_pcpt()
+        self.pandas_pcpt.plot_robertson_chart()
+        
     def test_pcpt_normalisation_withsleeve(self):
         """
         Test normalisation of the PCPT data with correction for sleeve

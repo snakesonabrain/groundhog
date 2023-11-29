@@ -13,7 +13,6 @@ import pandas as pd
 from plotly import tools
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.offline import iplot
 
 # Project imports
 from groundhog.general.validation import check_layer_overlap
@@ -341,7 +340,7 @@ class KoppejanCalculation(object):
             margin=plot_margin,
             legend=dict(orientation=legend_orientation, x=legend_x, y=legend_y))
         if show_fig:
-            iplot(self.shaft_fig, filename='shaftplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            self.shaft_fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_baseconstruction(
             self, plot_width=500, plot_height=600, plot_title=None, plot_margin=dict(t=50, l=50, b=50), show_fig=True,
@@ -409,5 +408,5 @@ class KoppejanCalculation(object):
                              margin=plot_margin,
                              hovermode='closest')
         if show_fig:
-            iplot(self.base_fig, filename='depthplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            self.base_fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 

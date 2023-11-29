@@ -1,2 +1,2 @@
 include LICENSE README
-recursive-include geotechnics/siteinvestigation/images *.png
+recursive-include groundhog/siteinvestigation/images *.png

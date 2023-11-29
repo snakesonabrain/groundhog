@@ -14,7 +14,6 @@ import numpy as np
 from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.offline import iplot
 import matplotlib.pyplot as plt
 
 # Project imports
@@ -1193,7 +1192,7 @@ def plot_fence_diagram(
         if show_annotations:
             fig['layout'].update(annotations=_annotations)
         if showfig:
-            iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
         return fig
 

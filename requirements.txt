@@ -9,3 +9,4 @@ pyproj>=2.6
 streamlit
 nose
 matplotlib
+Pillow

@@ -11,7 +11,6 @@ import pandas as pd
 from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.offline import iplot
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
@@ -321,7 +320,7 @@ class SPTProcessing(InsituTestProcessing):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='sptrawplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_properties_withlog(self, prop_keys, plot_ranges, plot_ticks,
                                 legend_titles=None, axis_titles=None, showfig=True, showlayers=True, **kwargs):
@@ -398,5 +397,5 @@ class SPTProcessing(InsituTestProcessing):
             pass
 
         if showfig:
-            iplot(fig, filename='logplot')
+            fig.show()
         return fig

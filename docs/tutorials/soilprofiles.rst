@@ -29,7 +29,7 @@ This tutorial demonstrates this functionality.
     import plotly.io as pio
     import plotly.figure_factory as ff
     from plotly.colors import DEFAULT_PLOTLY_COLORS
-    from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+    from plotly.offline import init_notebook_mode
     init_notebook_mode()
 
 
@@ -409,7 +409,7 @@ mini-log.
         showfig=False)
 
     fig.append_trace(su_trace, 1, 4)
-    iplot(fig)
+    fig.show()
 
 
 .. figure:: images/tutorial_profile_2.png
@@ -790,7 +790,7 @@ soil parameters.
 
     qc_grid_trace = go.Scatter(x=grid['qc [MPa]'], y=grid['z [m]'], mode='markers', name='Gridded qc')
     fig.append_trace(qc_grid_trace, 1, 3)
-    iplot(fig)
+    fig.show()
 
 .. figure:: images/tutorial_profile_10.png
         :figwidth: 500.0

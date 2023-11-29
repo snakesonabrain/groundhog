@@ -11,7 +11,6 @@ import traceback
 # 3rd party packages
 from jinja2 import Environment, BaseLoader
 import plotly.graph_objs as go
-from plotly.offline import plot, iplot
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly import subplots
 import numpy as np
@@ -169,7 +168,7 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None, hide_all_lege
             _fig['layout']['xaxis%i' % (i + 2)].update(range=xranges[i])
 
     if showfig:
-        iplot(_fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+        _fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
     return _fig
 
 class LogPlot(object):

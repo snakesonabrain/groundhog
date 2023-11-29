@@ -27,7 +27,7 @@ output in the notebook and interactive plotting (Plotly).
     import plotly.io as pio
     import plotly.figure_factory as ff
     from plotly.colors import DEFAULT_PLOTLY_COLORS
-    from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+    from plotly.offline import init_notebook_mode
     init_notebook_mode()
 
 
@@ -202,7 +202,7 @@ We can plot the result of the vertical stress calculation:
             x=0.2,
             y=-0.2,
             ))
-    iplot(fig, filename='plot', config={'showLink': False})
+    fig.show()
 
 
 .. figure:: images/tutorial_pile_stresses.png
@@ -237,7 +237,7 @@ procedure.
         x=df['qb[MN/m²]'], y=df['Diepte[m]'], showlegend=True, mode='lines', name='CPTEX',
         line=dict(width=2, color='black', dash='dot'))
     calc.base_plot.append_trace(trace_cptex, 1, 1)
-    iplot(calc.base_plot, filename='baseplot', config={'showLink': False})
+    calc.base_plot.show()
 
 .. figure:: images/tutorial_pile_1.png
         :figwidth: 500.0

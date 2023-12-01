@@ -11,7 +11,6 @@ import traceback
 # 3rd party packages
 from jinja2 import Environment, BaseLoader
 import plotly.graph_objs as go
-from plotly.offline import plot, iplot
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 from plotly import subplots
 import numpy as np
@@ -169,7 +168,7 @@ def plot_with_log(x=[[],], z=[[],], names=[[],], showlegends=None, hide_all_lege
             _fig['layout']['xaxis%i' % (i + 2)].update(range=xranges[i])
 
     if showfig:
-        iplot(_fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+        _fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
     return _fig
 
 class LogPlot(object):
@@ -181,6 +180,7 @@ class LogPlot(object):
                  fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
                  soiltypelegend=True,
                  soiltypecolumn="Soil type",
+                 line_width=1,
                  **kwargs):
         """
         Initializes a figure with a minilog on the side.
@@ -190,6 +190,7 @@ class LogPlot(object):
         :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
         :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
         :param soiltypecolumn: Column name used to identify the soil type. The entries in this column need to correspond to keys in ``fillcolordict``
+        :param line_width: Line width for the boundary between layers
         :param kwargs: Optional keyword arguments for the make_subplots method
         """
         self.soilprofile = soilprofile
@@ -215,7 +216,7 @@ class LogPlot(object):
             _y0 = row['Depth from [m]']
             _y1 = row['Depth to [m]']
             _layers.append(
-                dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1))
+                dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1, line_width=line_width))
 
         for _soiltype in soilprofile[soiltypecolumn].unique():
             try:
@@ -350,7 +351,7 @@ class LogPlotMatplotlib(object):
     def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
                  fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey', 'Silt': 'green'},
                  hatchpatterns={"Sand": "...", "Clay": '////', 'Rock':'oo', 'Silt': '|||'},
-                 soiltypelegend=True, soiltypecolumn='Soil type',
+                 soiltypelegend=True, soiltypecolumn='Soil type', edgecolor='black',
                  figheight=6, plot_layer_transitions=True, showgrid=True,
                  **kwargs):
         """
@@ -362,6 +363,7 @@ class LogPlotMatplotlib(object):
         :param hatchpatterns: Matplotlib letters used for hatching of the soil types
         :param soiltypelegend: Boolean determining whether legend entries need to be shown for the soil types in the log
         :param soiltypecolumn: Column name used to identify the soil type. The entries in this column need to correspond to keys in ``fillcolordict``
+        :param edgecolor: Color of the edge of a layer
         :param figheight: Figure height in inches (default=6in)
         :param plot_layer_transitions: Boolean determining whether layer transitions need to be plotted or not
         :param showgrid: Boolean determining whether a grid is shown on the plot panels or not (default=True)
@@ -402,7 +404,7 @@ class LogPlotMatplotlib(object):
             _y1 = row['Depth to [m]']
             self.axes[0].fill(
                 [0.0,0.0,1.0,1.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
-                label='_nolegend_', edgecolor="black", hatch=_hatch)
+                label='_nolegend_', edgecolor=edgecolor, hatch=_hatch)
             
         _legend_handles = []
         for _soiltype in soilprofile[soiltypecolumn].unique():
@@ -415,7 +417,7 @@ class LogPlotMatplotlib(object):
                 if soiltypelegend:
                     _legend_entry, = self.axes[0].fill(
                         [-11.0,-11.0,-10.0,-10.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
-                        label=_soiltype, edgecolor="black")
+                        label=_soiltype, edgecolor=edgecolor)
                     _legend_handles.append(_legend_entry)
             except:
                 pass

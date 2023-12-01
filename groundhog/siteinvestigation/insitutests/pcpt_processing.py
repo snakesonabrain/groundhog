@@ -10,13 +10,13 @@ import warnings
 from copy import deepcopy
 import json
 import re
+import PIL
 
 # 3rd party packages
 import pandas as pd
 from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.offline import iplot
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
@@ -59,6 +59,8 @@ GEF_COLINFO = {
     '19': 'sigma_vo [MPa]',
     '20': 'sigma_vo_eff [MPa]'
 }
+
+IMG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'images')
 
 
 class InsituTestProcessing(object):
@@ -887,7 +889,7 @@ class PCPTProcessing(InsituTestProcessing):
         """
         try:
             import pydov
-            from owslib.fes import PropertyIsEqualTo
+            from owslib.fes2 import PropertyIsEqualTo
             from pydov.search.sondering import SonderingSearch
         except:
             raise IOError("Package pydov not available. Install it first: https://pydov.readthedocs.io/en/stable/")
@@ -1146,7 +1148,7 @@ class PCPTProcessing(InsituTestProcessing):
                       friction_ratio_panel=3,
                       plot_height=700, plot_width=1000, return_fig=False,
                       plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,
-                      hydrostaticcolor=None, show_hydrostatic_legend=False, plot_layers=True):
+                      hydrostaticcolor=None, show_hydrostatic_legend=False, waterlevel_override=0):
         """
         Plots the raw PCPT data using the Plotly package. This generates an interactive plot.
 
@@ -1172,6 +1174,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param color: Color to be used for plotting (default=None for default plotly colors)
         :param color: Color to be used for plotting the hydrostatic pressure (default=None for default plotly colors)
         :param show_hydrostatic_legend: Boolean determining whether to show the hydrostatic pressure in the legend
+        :param waterlevel_override: If a waterlevel is not specified in a soil profile which is mapped to the CPT, this can be used to get the water table at the correct elevation (default=0m for water level at the surface, >0 for water level below groundlevel)
         :return:
         """
 
@@ -1231,8 +1234,18 @@ class PCPTProcessing(InsituTestProcessing):
             if plot_friction_ratio and friction_ratio_panel == 3:
                 pass
             else:
+                try:
+                    waterlevel = self.waterlevel
+                    if waterlevel is None:
+                        waterlevel = waterlevel_override
+                except:
+                    waterlevel = waterlevel_override
+                
+                self.waterpressures = 0.001 * (self.data['z [m]'] - waterlevel) * self.waterunitweight
+                self.positivewaterpressures = np.array([0 if i < 0 else i for i in self.waterpressures])
+
                 trace3 = go.Scatter(
-                    x=0.001 * self.data['z [m]'] * self.waterunitweight,
+                    x=self.positivewaterpressures,
                     y=self.data['z [m]'],
                     line=dict(color=hydrostaticcolor, dash='dot'),
                     showlegend=show_hydrostatic_legend, mode='lines', name=r'$ u_{hydrostatic} $')
@@ -1298,7 +1311,7 @@ class PCPTProcessing(InsituTestProcessing):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='pcptplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
 
     def plot_normalised_pcpt(
@@ -1389,7 +1402,7 @@ class PCPTProcessing(InsituTestProcessing):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='pcptnormalisedplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_properties(
             self, prop_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
@@ -1478,7 +1491,7 @@ class PCPTProcessing(InsituTestProcessing):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='propertiesplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     def plot_properties_withlog(self, prop_keys, plot_ranges, plot_ticks,
             legend_titles=None, axis_titles=None, showfig=True, showlayers=True, **kwargs):
@@ -1556,7 +1569,7 @@ class PCPTProcessing(InsituTestProcessing):
             pass
 
         if showfig:
-            iplot(fig, filename='logplot')
+            fig.show()
         return fig
 
     def plot_robertson_chart(self, start_depth=None, end_depth=None,
@@ -1569,6 +1582,8 @@ class PCPTProcessing(InsituTestProcessing):
         to a specific depth range (by specifying `start_depth` and `end_depth`. The color coding is based on the layer.
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
+        frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFr.png'))
+        frbq_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonBq.png'))
 
         if start_depth is None:
             start_depth = self.data["z [m]"].min()
@@ -1618,7 +1633,7 @@ class PCPTProcessing(InsituTestProcessing):
             images=[
                 # Image for Qt-Fr relation
                 dict(
-                    source=os.path.join(backgroundimagedir, 'robertsonFr.png'),
+                    source=frqt_img,
                     xref='x',
                     yref='y',
                     x=-1,
@@ -1631,7 +1646,7 @@ class PCPTProcessing(InsituTestProcessing):
                 ),
                 # Image for Qt-Bq relation
                 dict(
-                    source=os.path.join(backgroundimagedir, 'robertsonBq.png'),
+                    source=frbq_img,
                     xref='x2',
                     yref='y2',
                     x=-0.6,
@@ -1647,7 +1662,7 @@ class PCPTProcessing(InsituTestProcessing):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='robertson', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     # endregion
 
@@ -1812,7 +1827,7 @@ class PCPTProcessing(InsituTestProcessing):
         if return_fig:
             return fig
         else:
-            iplot(fig, filename='propertiesplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     # endregion
 
@@ -1864,7 +1879,7 @@ class PCPTProcessing(InsituTestProcessing):
             })
 
         # Create a Pandas Excel writer using XlsxWriter as the engine.
-        writer = pd.ExcelWriter(output_path, engine='xlsxwriter')
+        writer = pd.ExcelWriter(output_path, engine='openpyxl')
 
         # Write each dataframe to a different worksheet.
         loc_df.to_excel(writer, sheet_name='Location data', index=False)
@@ -1873,7 +1888,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.data.to_excel(writer, sheet_name='Data', index=False)
 
         # Close the Pandas Excel writer and output the Excel file.
-        writer.save()
+        writer.close()
     # endregion
 
 
@@ -2083,7 +2098,7 @@ def plot_longitudinal_profile(
         )
 
     if showfig:
-        iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
+        fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     return fig
 
@@ -2301,7 +2316,7 @@ def plot_combined_longitudinal_profile(
     fig['layout'].update(shapes=_layers_profile)
 
     if showfig:
-        iplot(fig, filename='longitudinalcombinedplot', config=GROUNDHOG_PLOTTING_CONFIG)
+        fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
     return fig
 

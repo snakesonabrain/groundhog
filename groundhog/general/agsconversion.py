@@ -766,7 +766,7 @@ AGS_TABLES_SHORTHANDS = {
         'SCPT_CPO': 'sigma_vo',
         'SCPT_CPOD': 'sigma_vo_eff',
         'SCPT_QNET': 'qn',
-        'SCPT_FRRC': 'Rf',
+        'SCPT_FRRC': 'Rf corrected',
         'SCPT_EXPP': 'u-u0',
         'SCPT_BQ': 'Bq',
         'SCPT_ISPP': 'u0',
@@ -828,7 +828,7 @@ AGS_TABLES_SHORTHANDS = {
         'SPEC_DESC': 'Description',
         'SPEC_PREP': 'Preparation',
         'LDEN_TYPE': 'Test type',
-        'LDEN_SMTY': 'Sample type',
+        'LDEN_SMTY': 'Specimen type',
         'LDEN_MC': 'Water content',
     },
     'LLPL': {

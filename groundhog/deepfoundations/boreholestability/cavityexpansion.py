@@ -14,7 +14,6 @@ import pandas as pd
 from plotly import tools
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.offline import iplot
 
 # Project imports
 from groundhog.general.validation import Validator

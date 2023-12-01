@@ -1,0 +1,2 @@
+pydov==3.1.0
+geotexxx

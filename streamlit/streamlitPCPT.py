@@ -6,7 +6,7 @@ from groundhog.siteinvestigation.insitutests.pcpt_processing import PCPTProcessi
 from groundhog.general.soilprofile import SoilProfile, profile_from_dataframe
 
 st.set_page_config(page_title="Groundhog PCPT processing",layout='wide')
-cols = st.beta_columns([1, 3])
+cols = st.columns([1, 3])
 
 with cols[0]:
 
@@ -23,7 +23,7 @@ with cols[0]:
         help="Upload the file format selected above. Currently, only one file is accepted.",
     )
 
-    columns_expander = st.beta_expander(label="Column overrides")
+    columns_expander = st.expander(label="Column overrides")
     with columns_expander:
         Z_COLUMN = st.text_input("Depth column override (default 'z [m]')", None)
 

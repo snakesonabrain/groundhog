@@ -198,6 +198,15 @@ class Test_PCPTProcessing(unittest.TestCase):
             self.pandas_pcpt.data.loc[600, "ft [MPa]"], self.pandas_pcpt.data.loc[600, "fs [MPa]"], 4
         )
 
+    def test_pcpt_normalisation_plotting(self):
+        """
+        Test normalisation of the PCPT data
+        :return:
+        """
+        self.test_pcpt_mapping()
+        self.pandas_pcpt.normalise_pcpt()
+        self.pandas_pcpt.plot_robertson_chart()
+        
     def test_pcpt_normalisation_withsleeve(self):
         """
         Test normalisation of the PCPT data with correction for sleeve
@@ -285,6 +294,16 @@ class Test_PCPTProcessing(unittest.TestCase):
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[605, "Gmax sand [kPa]"], 107283, 0
         )
+
+class Test_pydov_loading(unittest.TestCase):
+
+    def test_pydov_import(self):
+        """
+        Test CPT import from pydov
+        """
+        cpt = pcpt_processing.PCPTProcessing('DOV example')
+        cpt.load_pydov('GEO-87/143-SVI', z_key='lengte')
+        self.assertEqual(cpt.data['sondeernummer'].iloc[1], 'GEO-87/143-SVI')      
 
 class Test_GEFReading(unittest.TestCase):
 

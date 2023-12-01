@@ -173,7 +173,7 @@ def unitendbearing_sand_almhamre(
     :returns: Dictionary with the following keys:
 
         - 'q_b_coring [kPa]': Unit end bearing for pile driving (:math:`q_{b,sand}`)  [:math:`kPa`]
-        - 'q_b_plugged [kPa]': Not applicable [:math:`kPa`]
+        - 'q_b_plugged [kPa]': Taken equal to the coring unit end bearing but tubular piles are not assumed to be driven in a plugged manner [:math:`kPa`]
         - 'plugged []': Determines whether the pile is plugged (False for driving piles)
         - 'internal_friction []': Determines whether internal friction is taken into account (True by default for Alm & Hamre formula)
 
@@ -183,7 +183,7 @@ def unitendbearing_sand_almhamre(
     """
 
     _q_b_coring = multiplier * (1000 * qt) * ((1000 * qt / sigma_vo_eff) ** exponent)
-    _q_b_plugged = 0
+    _q_b_plugged = _q_b_coring
     _plugged = False
     _internal_friction = True
 

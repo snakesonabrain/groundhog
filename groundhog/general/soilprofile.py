@@ -14,7 +14,6 @@ import numpy as np
 from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.offline import iplot
 import matplotlib.pyplot as plt
 
 # Project imports
@@ -539,18 +538,18 @@ class SoilProfile(pd.DataFrame):
                 # Multiple values in each layer
                 if linearvariation:
                     fit_coeff = np.polyfit(
-                        x=selected_depths,
-                        y=selected_values,
+                        x=selected_depths[~np.isnan(selected_values)],
+                        y=selected_values[~np.isnan(selected_values)],
                         deg=1)
                     fit_func = np.poly1d(fit_coeff)
-                    residuals = np.array(selected_values) - fit_func(selected_depths)
+                    residuals = np.array(selected_values[~np.isnan(selected_values)]) - fit_func(selected_depths[~np.isnan(selected_values)])
                     sorted_residuals = np.sort(residuals)
                     if rule == 'min':
                         # TODO: Double-check routine for trend selection
                         selected_points = (
                             np.array(residuals) <= sorted_residuals[1])
-                        zs = selected_depths[selected_points]
-                        xs = selected_values[selected_points]
+                        zs = selected_depths[~np.isnan(selected_values)][selected_points]
+                        xs = selected_values[~np.isnan(selected_values)][selected_points]
                         self.loc[i, parameter.replace(' [', ' from [')] = \
                             xs[0] + ((xs[1] - xs[0]) / (zs[1] - zs[0])) * (row[self.depth_from_col] - zs[0])
                         self.loc[i, parameter.replace(' [', ' to [')] = \
@@ -561,8 +560,8 @@ class SoilProfile(pd.DataFrame):
                     elif rule == 'max':
                         selected_points = (
                                 np.array(residuals) >= sorted_residuals[-2])
-                        zs = selected_depths[selected_points]
-                        xs = selected_values[selected_points]
+                        zs = selected_depths[~np.isnan(selected_values)][selected_points]
+                        xs = selected_values[~np.isnan(selected_values)][selected_points]
                         self.loc[i, parameter.replace(' [', ' from [')] = \
                             xs[0] + ((xs[1] - xs[0]) / (zs[1] - zs[0])) * (row[self.depth_from_col] - zs[0])
                         self.loc[i, parameter.replace(' [', ' to [')] = \
@@ -571,11 +570,11 @@ class SoilProfile(pd.DataFrame):
                         raise ValueError("Rule %s unknown. Rule should be one of 'min', 'mean' or 'max'" % rule)
                 else:
                     if rule == 'min':
-                        self.loc[i, parameter] = selected_values.min()
+                        self.loc[i, parameter] = selected_values[~np.isnan(selected_values)].min()
                     elif rule == 'mean':
-                        self.loc[i, parameter] = selected_values.mean()
+                        self.loc[i, parameter] = selected_values[~np.isnan(selected_values)].mean()
                     elif rule == 'max':
-                        self.loc[i, parameter] = selected_values.max()
+                        self.loc[i, parameter] = selected_values[~np.isnan(selected_values)].max()
                     else:
                         raise ValueError("Rule %s unknown. Rule should be one of 'min', 'mean' or 'max'" % rule)
 
@@ -1193,7 +1192,7 @@ def plot_fence_diagram(
         if show_annotations:
             fig['layout'].update(annotations=_annotations)
         if showfig:
-            iplot(fig, filename='longitudinalplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
         return fig
 

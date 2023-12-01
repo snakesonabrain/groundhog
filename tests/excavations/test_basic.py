@@ -9,8 +9,6 @@ import os
 
 # 3rd party packages
 import numpy as np
-import pandas as pd
-from pyrsistent import b
 
 # Project imports
 from groundhog.excavations import basic

@@ -15,7 +15,6 @@ import pandas as pd
 from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
-from plotly.offline import iplot
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG

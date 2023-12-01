@@ -16,7 +16,6 @@ try:
     from plotly import tools, subplots
     import plotly.graph_objs as go
     from plotly.colors import DEFAULT_PLOTLY_COLORS
-    from plotly.offline import iplot
 except:
     warnings.warn('Plotly could not be imported. Install plotly using conda (conda install plotly) to enable interactive plotting of results')
 
@@ -471,7 +470,7 @@ class DeBeerCalculation(object):
                                         margin=plot_margin,
                                         legend=dict(orientation=legend_orientation, x=legend_x, y=legend_y))
         if show_fig:
-            iplot(self.base_plot, filename='baseplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            self.base_plot.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
 
     def correct_shaft_qc(self, cone_type="E"):
@@ -619,7 +618,7 @@ class DeBeerCalculation(object):
                                         margin=plot_margin,
                                         legend=dict(orientation=legend_orientation, x=legend_x, y=legend_y))
         if show_fig:
-            iplot(self.unit_shaft_plot, filename='shaftplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            self.unit_shaft_plot.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
 
     def set_shaft_base_factors(self, alpha_b_tertiary_clay, alpha_b_other,
@@ -644,7 +643,7 @@ class DeBeerCalculation(object):
                 self.layering.loc[i, "alpha_s"] = alpha_s_other
                 self.layering.loc[i, "alpha_b"] = alpha_b_other
 
-    def calculate_pile_resistance(self, pile_penetration, base_area, circumference, beta_base=1, lambda_base=1):
+    def calculate_pile_resistance(self, pile_penetration, base_area, circumference, beta_base=1, lambda_base=1, epsilon_b=1):
         """
         Calculates the pile capacity for a given penetration. In Eurocode 7 terms, this is the calculated pile resistance.
 
@@ -659,7 +658,7 @@ class DeBeerCalculation(object):
         :param circumference: Circumference of the pile shaft [m]
         :param beta_base: Beta factor taking into account the shape of the pile base (default=1 for circular debeer)
         :param lambda_base: Lambda factor taking into account enlarged pile bases (default=1 for uniform cross-sections)
-
+        :param epsilon_b: Factor taking into account pile bases in stiff tertiary clay (default=1 for pile based not in stiff Tertiary clay)
 
         .. math::
             R_b = \\alpha_b \\cdot \\epsilon_b \\cdot \\beta \\cdot \\lambda \\cdot A_b \\cdot q_b
@@ -695,10 +694,7 @@ class DeBeerCalculation(object):
         self.capacity_calc['Layer thickness [m]'] = self.capacity_calc['Depth to [m]'] - self.capacity_calc['Depth from [m]']
         # Base resistance calculation
         self.qb_selected = np.interp(pile_penetration, self.depth_qb, self.qb)
-        if self.capacity_calc['Tertiary clay'].iloc[-1]:
-            self.epsilon_b = max(1 - 0.01 * ((self.diameter_pile / self.diameter_cone) - 1), 0.476)
-        else:
-            self.epsilon_b = 1
+        self.epsilon_b = epsilon_b
         self.Rb = self.capacity_calc['alpha_b'].iloc[-1] * self.epsilon_b * beta_base * \
                           lambda_base * base_area * (1000 * self.qb_selected)
 

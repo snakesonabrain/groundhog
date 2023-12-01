@@ -10,7 +10,6 @@ import warnings
 import numpy as np
 from plotly import subplots
 import plotly.graph_objs as go
-from plotly.offline import iplot
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 
 # Project imports
@@ -1462,7 +1461,7 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
         fig['layout'].update(title=plot_title)
 
         if showfig:
-            iplot(fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
         return fig
 
@@ -1608,7 +1607,7 @@ class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
         fig['layout'].update(title=plot_title)
 
         if showfig:
-            iplot(fig, filename='logplot', config=GROUNDHOG_PLOTTING_CONFIG)
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
         return fig
 

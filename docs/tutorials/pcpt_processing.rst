@@ -22,7 +22,7 @@ soil mechanical parameters an easily be applied.
     import plotly.io as pio
     import plotly.figure_factory as ff
     from plotly.colors import DEFAULT_PLOTLY_COLORS
-    from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+    from plotly.offline import init_notebook_mode
     init_notebook_mode()
 
 .. code:: ipython3

@@ -43,11 +43,11 @@ def roottimemethod(times, settlements, drainagelength, initialguess_override=np.
     The following procedure is applied:
 
     #. Plot the displacement gage readings versus square root of times.
-    #. Draw the best straight line through the initial part of the curve intersecting the ordinate (displacement reading) at $ O $ and the abscissa (:math:`\sqrt{\text{time}}`) at  :math:`A`.
+    #. Draw the best straight line through the initial part of the curve intersecting the ordinate (displacement reading) at :math:`O` and the abscissa (:math:`\\sqrt{\\text{time}}`) at  :math:`A`.
     #. Note the time at point :math:`A`; let us say it is :math:`\sqrt{t_A}`.
-    #. Locate a point :math:`B`, :math:`1.15 \sqrt{t_A}`, on the abscissa.
+    #. Locate a point :math:`B`, :math:`1.15 \\sqrt{t_A}`, on the abscissa.
     #. Join :math:`OB`.
-    #. The intersection of the line :math:`OB` with the curve, point :math:`C`, gives the displacement gage reading and the time for 90% consolidation (:math:`t_{90}`). You should note that the value read off the abscissa is :math:`\sqrt{t_{90}}`. Now when $:math:`U` = 90%,  :math:`T_v` = 0.848 and from one-dimensional consolidation equation, we obtain:
+    #. The intersection of the line :math:`OB` with the curve, point :math:`C`, gives the displacement gage reading and the time for 90% consolidation (:math:`t_{90}`). You should note that the value read off the abscissa is :math:`\\sqrt{t_{90}}`. Now when :math:`U` = 90%,  :math:`T_v` = 0.848 and from one-dimensional consolidation equation, we obtain:
    
     .. math::
         c_v = \\frac{0.848 H_{dr}^2}{t_{90}}
@@ -64,7 +64,7 @@ def roottimemethod(times, settlements, drainagelength, initialguess_override=np.
     :param times: Array with time values in seconds, increasing from 0s at the start of the test
     :param settlements: Array with settlement values, increasing from 0 at the origin. The units are not important as only the time for 90% consolidation is determined.
     :param drainagelength: Drainage length for the consolidation (:math:`H_{dr}`) [m] - Suggested range: drainagelength > 0
-    :param initialguess_override: Override for the initial guess for :math:`\sqrt{t_{90}}`, default=``np.nan``
+    :param initialguess_override: Override for the initial guess for :math:`\\sqrt{t_{90}}`, default=np.nan
 
     .. figure:: images/root_time.png
         :figwidth: 500.0
@@ -176,8 +176,6 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
     Calculates the log-time construction for determining the coefficient of consolidation for an oedometer test
     (or any other soil mechanical test involving consolidation).
 
-    The following procedure is applied:
-
     The following steps need to be performed:
 
    #. Project the straight portions of the primary consolidation and secondary compression to intersect at :math:`A`. The ordinate of A, :math:`d_{100}`, is the displacement gage reading for 100% primary consolidation.
@@ -187,7 +185,7 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
    #. You will recall that the time factor for 50% consolidation is 0.197, and from the one-dimensional consolidation equation we obtain:
 
     .. math::
-        c_v = \frac{0.197 H_{dr}^2}{t_{50}}
+        c_v = \\frac{0.197 H_{dr}^2}{t_{50}}
 
     Because the construction relies heavily on the laboratory data and the judgement of the user, a semi-automated procedure is followed in which the user first selects
     two points on primary consolidation part, then two points on the secondary consolidation part and finally a point B close to the origin of the curve.
@@ -202,14 +200,14 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
     :param times: Array with time values in seconds, increasing from 0s at the start of the test
     :param settlements: Array with settlement values, increasing from 0 at the origin. The units are not important as only the time for 90% consolidation is determined.
     :param drainagelength: Drainage length for the consolidation (:math:`H_{dr}`) [m] - Suggested range: drainagelength > 0
-    :param initialguess_override: Override for the initial guess for :math:`\sqrt{t_{90}}`, default=``np.nan``
+    :param initialguess_override: Override for the initial guess for :math:`\\sqrt{t_{100}}`, default=np.nan
 
-    .. figure:: images/root_time.png
+    .. figure:: images/log_time.png
         :figwidth: 500.0
         :width: 450.0
         :align: center
 
-        Root-time construction
+        Log-time construction
 
     Reference - Budhu (2011). Soil mechanics and foundations. John Wiley and Sons.
     """

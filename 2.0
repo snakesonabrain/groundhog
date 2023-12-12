@@ -1,5 +1,0 @@
-Requirement already satisfied: pandas in ./venv/lib/python3.10/site-packages (1.5.3)
-Requirement already satisfied: python-dateutil>=2.8.1 in ./venv/lib/python3.10/site-packages (from pandas) (2.8.2)
-Requirement already satisfied: pytz>=2020.1 in ./venv/lib/python3.10/site-packages (from pandas) (2023.3)
-Requirement already satisfied: numpy>=1.21.0 in ./venv/lib/python3.10/site-packages (from pandas) (1.25.0)
-Requirement already satisfied: six>=1.5 in ./venv/lib/python3.10/site-packages (from python-dateutil>=2.8.1->pandas) (1.16.0)

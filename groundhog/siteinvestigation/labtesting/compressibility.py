@@ -189,8 +189,9 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
     .. math::
         c_v = \frac{0.197 H_{dr}^2}{t_{50}}
 
-    Because the construction relies heavily on the laboratory data and the judgement of the user, a semi-automated procedure is followed in which the user selects
-    the origin :math:`O` and point :math:`A` in an interactive matplotlib plot. Any notebook needs to ensure that matplotlib plots are generated with the ``qt`` backend using the following magic command:
+    Because the construction relies heavily on the laboratory data and the judgement of the user, a semi-automated procedure is followed in which the user first selects
+    two points on primary consolidation part, then two points on the secondary consolidation part and finally a point B close to the origin of the curve.
+    Any notebook needs to ensure that matplotlib plots are generated with the ``qt`` backend using the following magic command:
 
     .. code-block:: python
 

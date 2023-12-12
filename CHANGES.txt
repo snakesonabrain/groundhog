@@ -1,10 +1,7 @@
-v0.11.0, TBD
-    - Added explicit specification of epsilon_b to the De Beer pile resistance calculation
-    - Added a file with optional requirements (optional-requirements.txt) for pydov and geotexxx
-    - Small modifications for automatic soil parameter selection to cope with NaN values
-    - Changed fillcolordict for pile capacity profiles
-    - Set plugged unit end bearing for Alm & Hamre equal to coring end bearing for consistent axcap results
-    - Added functions for semi-automated processing of consolidation timeseries based on root-time and log-time method
+v0.12.0, TBD
+    - Corrected an error in the docstring of the logtime method (groundhog.siteinvestigation.labtesting.compressibility)
+    - Added Readthedocs configuration file (.readthedocs.yaml)
+    - Added article on semi-automated processing of consolidation data (root-time and log-time methods)
     - TODO: Revisit design profiles for PCPTProcessing objects and associated log plotting
     - TODO: Deprecate all "old" plotting functionality for parameters in favour of mini-log syntax
     - TODO: Add hatching patterns to LogPlot
@@ -12,6 +9,14 @@ v0.11.0, TBD
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine
     - TODO: Implement soil parameter name conventions across groundhog
     - TODO: Add soil type classification according to Schneider et al (2008)
+
+v0.11.0, 01/11/2023 - The Nordic release
+    - Added explicit specification of epsilon_b to the De Beer pile resistance calculation
+    - Added a file with optional requirements (optional-requirements.txt) for pydov and geotexxx
+    - Small modifications for automatic soil parameter selection to cope with NaN values
+    - Changed fillcolordict for pile capacity profiles
+    - Set plugged unit end bearing for Alm & Hamre equal to coring end bearing for consistent axcap results
+    - Added functions for semi-automated processing of consolidation timeseries based on root-time and log-time method
 
 v0.10.0, 21/03/2023 - VOP
     - Added correlation for K0 to critical state friction angle according to Mesri and Hayat (1993)

@@ -266,7 +266,7 @@ class ConsolidationCalculation(object):
         \\alpha = \\frac{c_v \\Delta t}{(\\Delta z)^2} < \\frac{1}{2}
 
 
-    Usually, :mathm:`\\alpha = 0.25` is used to determine the timestep.
+    Usually, :math:`\\alpha = 0.25` is used to determine the timestep.
 
     The discretisation in space and time is done as follows where the number of timesteps is usually calculated from a chosen node offset:
 

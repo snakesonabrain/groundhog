@@ -1828,9 +1828,9 @@ def vs_cpt_hegazymayne(
     :param multiplier_ic: Multiplier on soil behaviour type index (:math:``) [:math:`-`] (optional, default= 1.786)
 
     .. math::
-        q_{c1N} = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
+        Q_{t,N} = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
 
-        I_c = \\left[ (3.47 - \\log q_{c1N} )^2 + ( \\log F_r + 1.22 )^2 \\right]^{0.5}
+        I_c = \\left[ (3.47 - \\log Q_{t,N} )^2 + ( \\log F_r + 1.22 )^2 \\right]^{0.5}
 
         \\text{if } I_c \\leq 2.6
 

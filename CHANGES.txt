@@ -2,6 +2,7 @@ v0.12.0, TBD
     - Corrected an error in the docstring of the logtime method (groundhog.siteinvestigation.labtesting.compressibility)
     - Added Readthedocs configuration file (.readthedocs.yaml)
     - Added article on semi-automated processing of consolidation data (root-time and log-time methods)
+    - Added a peak_picker function for selecting the peak in a load-displacement curve
     - TODO: Revisit design profiles for PCPTProcessing objects and associated log plotting
     - TODO: Deprecate all "old" plotting functionality for parameters in favour of mini-log syntax
     - TODO: Add hatching patterns to LogPlot

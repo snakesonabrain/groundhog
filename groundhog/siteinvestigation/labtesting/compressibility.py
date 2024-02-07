@@ -81,6 +81,9 @@ def roottimemethod(times, settlements, drainagelength, initialguess_override=np.
 
     settlement_abcis = 1.1 * settlements.max()
 
+    # Close all open plots
+    plt.close('all')
+
     # Generate the plot
     if showfig:
         plt.figure(1, figsize=(12,6))
@@ -219,6 +222,9 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
 
     if ignore_warnings:
         warnings.filterwarnings('ignore')
+
+    # Close all open plots
+    plt.close('all')
 
     # Generate the plot
     if showfig:

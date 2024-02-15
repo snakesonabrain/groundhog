@@ -10,7 +10,7 @@ from copy import deepcopy
 # 3rd party packages
 import numpy as np
 import pandas as pd
-from plotly import tools
+from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 
@@ -293,7 +293,7 @@ class KoppejanCalculation(object):
         :param legend_y: y-coordinate of the legend (plot is between 0 and 1, default=-0.05 to be below the plot)
         :return: Sets the attribute ``shaft_fig`` of the ``KoppejanCalculation`` object
         """
-        self.shaft_fig = tools.make_subplots(rows=1, cols=4, print_grid=False, shared_yaxes=True)
+        self.shaft_fig = subplots.make_subplots(rows=1, cols=4, print_grid=False, shared_yaxes=True)
         trace1a = go.Scatter(x=self.data["qc [MPa]"], y=self.data["z [m]"],
                              showlegend=True, mode='lines', name=r'$ q_c $')
         self.shaft_fig.append_trace(trace1a, 1, 1)
@@ -357,7 +357,7 @@ class KoppejanCalculation(object):
         :param y_range: Range of y-values to be used for the plotting (default=None which causes ``reversed`` to be used
         :return: Sets the attribute ``base_fig`` of the ``KoppejanCalculation`` object
         """
-        self.base_fig = tools.make_subplots(rows=1, cols=1, print_grid=False, shared_yaxes=True)
+        self.base_fig = subplots.make_subplots(rows=1, cols=1, print_grid=False, shared_yaxes=True)
         trace1 = go.Scatter(
             x=self.data['qc [MPa]'], y=self.data['z [m]'], showlegend=True, mode='lines',
             name=r'$ q_c $')

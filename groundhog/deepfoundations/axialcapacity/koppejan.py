@@ -132,7 +132,7 @@ class KoppejanCalculation(object):
                 lambda qc, qclim: min(qc, qclim),
                 self.data["qc [MPa]"], self.data["qclim [MPa]"]))
         # Determine the grid size increments
-        self.data["dz [m]"] = self.data.diff()["z [m]"]
+        self.data["dz [m]"] = self.data["z [m]"].diff()
         # Calculate unit shaft friction
         self.data["tau s max [kPa]"] = 1000.0 * alpha_s * self.data["qc selected [MPa]"]
         # Calculate shaft friction increments by integrating over the pile circumference

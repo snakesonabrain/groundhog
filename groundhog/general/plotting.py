@@ -213,8 +213,8 @@ class LogPlot(object):
                 _fillcolor = fillcolordict[row[soiltypecolumn]]
             except:
                 _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
-            _y0 = row['Depth from [m]']
-            _y1 = row['Depth to [m]']
+            _y0 = row[self.soilprofile.depth_from_col]
+            _y1 = row[self.soilprofile.depth_to_col]
             _layers.append(
                 dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1, line_width=line_width))
 
@@ -400,8 +400,8 @@ class LogPlotMatplotlib(object):
             except:
                 _hatch = None
                 
-            _y0 = row['Depth from [m]']
-            _y1 = row['Depth to [m]']
+            _y0 = row[self.soilprofile.depth_from_col]
+            _y1 = row[self.soilprofile.depth_to_col]
             self.axes[0].fill(
                 [0.0,0.0,1.0,1.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
                 label='_nolegend_', edgecolor=edgecolor, hatch=_hatch)

@@ -51,7 +51,24 @@ SOIL_PARAMETER_MAPPING = {
     'API relative density description': 'api_relativedensity',
     'Limiting unit skin friction [kPa]': 'fs_lim',
     'Limiting unit end bearing [kPa]': 'qb_lim',
-    'Tension modifier [-]': 'tension_modifier'
+    'Tension modifier [-]': 'tension_modifier',
+    'Borehole diameter [mm]': 'borehole_diameter',
+    'Rod length [m]': 'rod_length',
+    'Country': 'country',
+    'Hammer type': 'hammertype',
+    'Hammer release': 'hammerrelease',
+    'Sampler type': 'samplertype',
+    'Vertical total stress [kPa]': 'sigma_vo',
+    'Vertical effective stress [kPa]': 'sigma_vo_eff',
+    'N [-]': 'N',
+    'N1_60 [-]': 'N1_60',
+    'eta H [%]': 'eta_H',
+    'eta B [-]': 'eta_B',
+    'eta S [-]': 'eta_S',
+    'eta R [-]': 'eta_R',
+    'd50 [mm]': 'd_50',
+    'N60 [-]': 'N_60',
+    'Granular': 'granular'
 }
 
 def map_depth_properties(target_df, layering_df, target_z_key=None,

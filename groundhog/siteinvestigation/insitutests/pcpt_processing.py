@@ -1702,8 +1702,6 @@ class PCPTProcessing(InsituTestProcessing):
         :return: Adds a column with key `outkey` to the dataframe with PCPT data
         """
         
-
-
         for resultkey in outputs:
             header = outputs[resultkey]
             if header in self.data.columns:

@@ -14,7 +14,7 @@ from plotly.colors import DEFAULT_PLOTLY_COLORS
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
-from groundhog.general.parameter_mapping import map_depth_properties, merge_two_dicts, reverse_dict
+from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.spt_correlations import *
 from groundhog.siteinvestigation.insitutests.pcpt_processing import InsituTestProcessing
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
@@ -29,7 +29,7 @@ DEFAULT_SPT_PROPERTIES = SoilProfile({
     'Hammer type': ['Safety', ],
     'Hammer release': ['Rope and pulley',],
     'Sampler type': ['Standard sampler', ],
-    'eta H [-]': [np.nan,],
+    'eta H [%]': [np.nan,],
     'eta B [-]': [np.nan,],
     'eta S [-]': [np.nan,],
     'eta R [-]': [np.nan,]
@@ -226,7 +226,7 @@ class SPTProcessing(InsituTestProcessing):
 
     # region Correlations
 
-    def apply_correlation(self, name, outkey, resultkey, apply_for_soiltypes='all', **kwargs):
+    def apply_correlation(self, name, outputs, apply_for_soiltypes='all', **kwargs):
         """
         Applies a correlation to the given SPT data. The name of the correlation needs to be chosen from the following available correlations.
         Each correlation corresponds to a function in the `spt_correlations` module.
@@ -234,30 +234,45 @@ class SPTProcessing(InsituTestProcessing):
         types to which the correlation can be applied can be specified with the `apply_for_soiltypes` keyword argument.
         A list with the soil types for which the correlation needs to be applied can be provided.
 
-            - Overburden correction Liao and Whitman (1986) (`overburdencorrection_spt_liaowhitman`) - Calculation of overburden correction according to Liao & Whitman (1986)
-            - N60 correction (`spt_N60_correction`) - Correction of measured SPT N number to an equivalent N60 at energy ratio of 60%
-
+            - Overburden correction Liao and Whitman (1986): `overburdencorrection_spt_liaowhitman`,
+            - Overburden correction ISO 22476-3: `overburdencorrection_spt_ISO`
+            - N60 correction: `spt_N60_correction`
+            - Relative density Kulhawy and Mayne (1990): `relativedensity_spt_kulhawymayne`
+            - Relative density class Terzaghi and Peck (1967): `relativedensityclass_spt_terzaghipeck`
+            - Undrained shear strength class Terzaghi and Peck (1967): `undrainedshearstrengthclass_spt_terzaghipeck`
+            - Undrained shear strength Salgado (2008): `undrainedshearstrength_spt_salgado`
+            - Friction angle Kulhawy and Mayne (1990): `frictionangle_spt_kulhawymayne`
+            - Friction angle PHT (1974): `frictionangle_spt_PHT`
+    
         Note that certain correlations require either the application of preceding correlations
 
         :param name: Name of the correlation according to the list defined above
-        :param outkey: Key used to the output column
-        :param resultkey: Key of the output dictionary of the correlation to be used
+        :param outputs: a dict of keys and values where keys are the same as the keys in the correlation, values are the table headers you want
         :param apply_for_soiltypes: List with soil types to which the correlation needs the be applied.
         :param kwargs: Optional keyword arguments for the correlation.
         :return: Adds a column with key `outkey` to the dataframe with SPT data
         """
 
-        if outkey in self.data.columns:
-            self.data.drop(outkey, axis=1, inplace=True)
+        for resultkey in outputs:
+            header = outputs[resultkey]
+            if header in self.data.columns:
+                self.data.drop(header, axis=1, inplace=True)
 
-        self.data.rename(columns=SPT_KEY_MAPPING, inplace=True)
+        self.data.rename(columns=SOIL_PARAMETER_MAPPING, inplace=True)
+
         for i, row in self.data.iterrows():
             if apply_for_soiltypes == 'all' or row['Soil type'] in apply_for_soiltypes:
                 params = merge_two_dicts(kwargs, dict(row))
-                self.data.loc[i, outkey] = CORRELATIONS[name](**params)[resultkey]
+                results = CORRELATIONS[name](**params)
+                for resultkey in outputs:
+                    header = outputs[resultkey]
+                    self.data.loc[i, header] = results[resultkey]
             else:
-                self.data.loc[i, outkey] = np.nan
-        self.data.rename(columns=reverse_dict(SPT_KEY_MAPPING), inplace=True)
+                for resultkey in outputs:
+                    header = outputs[resultkey]
+                    self.data.loc[i, header] = np.nan
+                    
+        self.data.rename(columns=reverse_dict(SOIL_PARAMETER_MAPPING), inplace=True)
     # endregion
 
     def plot_raw_spt(self, n_range=(0, 100), n_tick=10, z_range=None, z_tick=2,

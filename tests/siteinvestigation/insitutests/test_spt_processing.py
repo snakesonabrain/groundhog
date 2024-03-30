@@ -83,10 +83,13 @@ class Test_SPTProcessing(unittest.TestCase):
         self.pandas_spt.map_properties(layer_profile=layers)
         self.pandas_spt.apply_correlation(
             name='Overburden correction Liao and Whitman (1986)',
-            outkey='N1 [-]',
-            resultkey='N1 [-]'
+            outputs={'N1 [-]': 'N1 [-]', 'CN [-]': 'CN [-]'}
         )
-        self.assertAlmostEqual(self.pandas_spt.data['N1 [-]'].iloc[0], 20.5, 1)
+        
+        self.assertAlmostEqual(self.pandas_spt.data['N1 [-]'].iloc[0], 7, 1)
+        self.assertAlmostEqual(self.pandas_spt.data['N1 [-]'].iloc[1], 12.6, 1)
+        self.assertAlmostEqual(self.pandas_spt.data['CN [-]'].iloc[0], 1, 1)
+
 
     def test_spt_N60correction(self):
         """
@@ -99,8 +102,7 @@ class Test_SPTProcessing(unittest.TestCase):
         self.pandas_spt.map_properties(layer_profile=layers)
         self.pandas_spt.apply_correlation(
             name='N60 correction',
-            outkey='N60 [-]',
-            resultkey='N60 [-]'
+            outputs={'N60 [-]': 'N60 [-]'}
         )
         self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[0], 7 * 60 * 1 * 1 * 0.75 / 60, 1)
         self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[-1], 53 * 60 * 1 * 1 * 1 / 60, 1)
@@ -115,14 +117,19 @@ class Test_SPTProcessing(unittest.TestCase):
         self.test_pandas_spt_creation()
 
         spt_custom_props = spt_processing.DEFAULT_SPT_PROPERTIES
-        spt_custom_props['eta H [-]'].iloc[0] = 50
+        spt_custom_props['eta H [%]'].iat[0] = 50
 
         self.pandas_spt.map_properties(layer_profile=layers, spt_profile=spt_custom_props)
+        
         self.pandas_spt.apply_correlation(
             name='N60 correction',
-            outkey='N60 [-]',
-            resultkey='N60 [-]'
+            outputs={'N60 [-]': 'N60 [-]',
+             'eta_H [-]': 'eta H [-]',
+             'eta_B [-]': 'eta B [-]',
+             'eta_S [-]': 'eta S [-]',
+             'eta_R [-]': 'eta R [-]'}
         )
+        
         self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[0], 7 * 50 * 1 * 1 * 0.75 / 60, 1)
         self.assertAlmostEqual(self.pandas_spt.data['N60 [-]'].iloc[-1], 53 * 50 * 1 * 1 * 1 / 60, 1)
 
@@ -139,8 +146,7 @@ class Test_SPTProcessing(unittest.TestCase):
         self.pandas_spt.map_properties(layer_profile=layers)
         self.pandas_spt.apply_correlation(
             name='N60 correction',
-            outkey='N60 [-]',
-            resultkey='N60 [-]'
+            outputs={'N60 [-]': 'N60 [-]'}
         )
         self.assertTrue(np.math.isnan(self.pandas_spt.data['N60 [-]'].iloc[2]))
 

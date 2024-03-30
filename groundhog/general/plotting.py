@@ -213,8 +213,8 @@ class LogPlot(object):
                 _fillcolor = fillcolordict[row[soiltypecolumn]]
             except:
                 _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
-            _y0 = row['Depth from [m]']
-            _y1 = row['Depth to [m]']
+            _y0 = row[self.soilprofile.depth_from_col]
+            _y1 = row[self.soilprofile.depth_to_col]
             _layers.append(
                 dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1, line_width=line_width))
 
@@ -400,8 +400,8 @@ class LogPlotMatplotlib(object):
             except:
                 _hatch = None
                 
-            _y0 = row['Depth from [m]']
-            _y1 = row['Depth to [m]']
+            _y0 = row[self.soilprofile.depth_from_col]
+            _y1 = row[self.soilprofile.depth_to_col]
             self.axes[0].fill(
                 [0.0,0.0,1.0,1.0],[_y0, _y1, _y1, _y0], fill=True, color=_fillcolor,
                 label='_nolegend_', edgecolor=edgecolor, hatch=_hatch)
@@ -684,3 +684,52 @@ class LogPlotMatplotlib(object):
             parametername="%s [%s]" % (parametername, units),
             panel_no=panel_no)
         ax.figure.canvas.draw()
+
+def peak_picker(x, y, correct_selected_point=True):
+    """
+    Generates an interactive Matplotlib plot which allows you to pick the peak from a graph with e.g. load-displacement data
+
+    :param x: Array with x-values
+    :param y: Array with y-values
+    :param correct_selected_point: Boolean determining whether a correction is applied to interpolate the peak based on the selected value of X for the peak
+
+    :returns: Dictionary with the following keys:
+
+        - 'x100': x-coordinate of the peak
+        - 'y100': y-coordinate of the peak
+        - 'x50': x-coordinate where y reached 50% of its peak y
+        - 'y50': y-coordinate with y equal to 50% of the peak y
+    """
+    # Coerce to Numpy arrays
+    x = np.array(x)
+    y = np.array(y)
+    # Close all open figures
+    plt.close('all')
+    # Generate the figure for peak picking
+    plt.figure(1, figsize=(8,12))
+    plt.plot(x, y)
+    plt.xlabel('$ x $', size=15)
+    plt.ylabel('$ y $', size=15)
+
+    # Click on the peak
+    xy = plt.ginput(1)
+    # Calculate derived quantities
+    x100 = xy[0][0]
+    if correct_selected_point:
+        y100 = np.interp(x100, x, y)
+    else:
+        y100 = xy[0][1]
+    prepeak_x = x[np.where(x <= x100)]
+    prepeak_y = y[np.where(x <= x100)]
+    y50 = 0.5 * y100
+    x50 = np.interp(y50, prepeak_y, prepeak_x)
+
+    plt.scatter([x50, x100], [y50, y100], c='red')
+    
+    return {
+        'x100': x100,
+        'y100': y100,
+        'x50': x50,
+        'y50': y50,
+        'plot': plt.gcf()
+    }

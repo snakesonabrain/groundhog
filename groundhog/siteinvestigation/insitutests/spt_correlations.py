@@ -11,26 +11,6 @@ import numpy as np
 # Project imports
 from groundhog.general.validation import Validator
 
-SPT_KEY_MAPPING = {
-    'Borehole diameter [mm]': 'borehole_diameter',
-    'Rod length [m]': 'rod_length',
-    'Country': 'country',
-    'Hammer type': 'hammertype',
-    'Hammer release': 'hammerrelease',
-    'Sampler type': 'samplertype',
-    'Vertical total stress [kPa]': 'sigma_vo',
-    'Vertical effective stress [kPa]': 'sigma_vo_eff',
-    'N [-]': 'N',
-    'N_1_60 [-]': 'N_1_60',
-    'eta H [-]': 'eta_H',
-    'eta B [-]': 'eta_B',
-    'eta S [-]': 'eta_S',
-    'eta R [-]': 'eta_R',
-    'd50 [mm]': 'd_50',
-    'PI [%]': 'plasticity_index',
-    'N60 [-]': 'N_60'
-}
-
 OVERBURDENCORRECTION_SPT_LIAOWHITMAN = {
     'N': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
@@ -44,7 +24,7 @@ OVERBURDENCORRECTION_SPT_LIAOWHITMAN_ERRORRETURN = {
 
 @Validator(OVERBURDENCORRECTION_SPT_LIAOWHITMAN, OVERBURDENCORRECTION_SPT_LIAOWHITMAN_ERRORRETURN)
 def overburdencorrection_spt_liaowhitman(
-        N, sigma_vo_eff,
+        N, sigma_vo_eff, granular=True,
         atmospheric_pressure=100.0, **kwargs):
 
     """
@@ -57,6 +37,7 @@ def overburdencorrection_spt_liaowhitman(
 
     :param N: Field value of SPT N number (:math:`N`) or corrected value :math:`N_{60}` [:math:`-`] - Suggested range: N >= 0.0
     :param sigma_vo_eff: Effective overburden pressure (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param granular: Boolean defining whether the soil behaves in a granular or not. If the behaviour is not granular, the correction factor is taken equal to 1.
     :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
 
     .. math::
@@ -73,7 +54,10 @@ def overburdencorrection_spt_liaowhitman(
 
     """
 
-    _CN = np.sqrt(1 / (sigma_vo_eff / atmospheric_pressure))
+    if granular:
+        _CN = np.sqrt(1 / (sigma_vo_eff / atmospheric_pressure))
+    else:
+        _CN = 1
     _N1 = _CN * N
 
     return {
@@ -99,6 +83,7 @@ SPT_N60_CORRECTION = {
 SPT_N60_CORRECTION_ERRORRETURN = {
     'N60 [-]': np.nan,
     'eta_H [pct]': np.nan,
+    'eta_H [-]': np.nan,
     'eta_B [-]': np.nan,
     'eta_S [-]': np.nan,
     'eta_R [-]': np.nan,
@@ -186,7 +171,8 @@ def spt_N60_correction(
     :returns: Dictionary with the following keys:
 
         - 'N60 [-]': SPT N number corrected to 60pct efficiency (:math:`N_{60}`)  [:math:`-`]
-        - 'eta_H [pct]': Correction factor for hammer efficiency (:math:`\\eta_H`)  [:math:`pct`]
+        - 'eta_H [%]': Correction factor for hammer efficiency (:math:`\\eta_H`)  [:math:`pct`]
+        - 'eta_H [-]': : Correction factor for hammer efficiency (:math:`\\eta_H`)  [:math:`-`]
         - 'eta_B [-]': Correction factor for borehole diameter (:math:`\\eta_B`)  [:math:`-`]
         - 'eta_S [-]': Correction factor for sampler type (:math:`\\eta_S`)  [:math:`-`]
         - 'eta_R [-]': Correction factor for rod length (:math:`\\eta_R`)  [:math:`-`]
@@ -194,6 +180,7 @@ def spt_N60_correction(
     Reference - J. Ameratunga et al., Correlations of Soil and Rock Properties in Geotechnical Engineering, Developments in Geotechnical Engineering, DOI 10.1007/978-81-322-2629-1_4
 
     """
+    
     # Hammer efficiency correction
     if np.math.isnan(eta_H):
         if country == 'Japan':
@@ -292,7 +279,8 @@ def spt_N60_correction(
 
     return {
         'N60 [-]': _N60,
-        'eta_H [pct]': _eta_H,
+        'eta_H [%]': _eta_H,
+        'eta_H [-]': 0.01 * _eta_H,
         'eta_B [-]': _eta_B,
         'eta_S [-]': _eta_S,
         'eta_R [-]': _eta_R,
@@ -300,7 +288,7 @@ def spt_N60_correction(
 
 
 RELATIVEDENSITY_SPT_KULHAWYMAYNE = {
-    'N_1_60': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'N1_60': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
     'd_50': {'type': 'float', 'min_value': 0.002, 'max_value': 20.0},
     'calibration_factor_1': {'type': 'float', 'min_value': None, 'max_value': None},
     'calibration_factor_2': {'type': 'float', 'min_value': None, 'max_value': None},
@@ -319,7 +307,7 @@ RELATIVEDENSITY_SPT_KULHAWYMAYNE_ERRORRETURN = {
 
 @Validator(RELATIVEDENSITY_SPT_KULHAWYMAYNE, RELATIVEDENSITY_SPT_KULHAWYMAYNE_ERRORRETURN)
 def relativedensity_spt_kulhawymayne(
-        N_1_60, d_50,
+        N1_60, d_50,
         calibration_factor_1=60.0,
         calibration_factor_2=25.0,
         time_since_deposition=1.0,
@@ -330,7 +318,7 @@ def relativedensity_spt_kulhawymayne(
 
     Note that stress and energy corrections need to be applied to the raw SPT data before applying the correlation.
 
-    :param N_1_60: SPT number corrected for overburden stress and energy (:math:`(N_1)_{60}`) [:math:`-`] - Suggested range: 0.0 <= N_1_60 <= 100.0
+    :param N1_60: SPT number corrected for overburden stress and energy (:math:`(N_1)_{60}`) [:math:`-`] - Suggested range: 0.0 <= N_1_60 <= 100.0
     :param d_50: Median grain size (:math:`d_{50}`) [:math:`mm`] - Suggested range: 0.002 <= d_50 <= 20.0
     :param calibration_factor_1: First calibration factor (:math:``) [:math:`-`] (optional, default= 60.0)
     :param calibration_factor_2: Second calibration factor (:math:``) [:math:`-`] (optional, default= 25.0)
@@ -373,7 +361,7 @@ def relativedensity_spt_kulhawymayne(
         _C_OCR = ocr ** 0.18
     else:
         _C_OCR = cocr_override
-    _Dr = np.sqrt(N_1_60 / ((calibration_factor_1 + calibration_factor_2 * np.log10(d_50)) * _C_A * _C_OCR))
+    _Dr = np.sqrt(N1_60 / ((calibration_factor_1 + calibration_factor_2 * np.log10(d_50)) * _C_A * _C_OCR))
     _Dr_pct = 100 * _Dr
 
 
@@ -386,7 +374,7 @@ def relativedensity_spt_kulhawymayne(
 
 
 UNDRAINEDSHEARSTRENGTH_SPT_SALGADO = {
-    'plasticity_index': {'type': 'float', 'min_value': 15.0, 'max_value': 60.0},
+    'pi': {'type': 'float', 'min_value': 15.0, 'max_value': 60.0},
     'N_60': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
     'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
     'alpha_prime_override': {'type': 'float', 'min_value': 0.0, 'max_value': None},
@@ -399,7 +387,7 @@ UNDRAINEDSHEARSTRENGTH_SPT_SALGADO_ERRORRETURN = {
 
 @Validator(UNDRAINEDSHEARSTRENGTH_SPT_SALGADO, UNDRAINEDSHEARSTRENGTH_SPT_SALGADO_ERRORRETURN)
 def undrainedshearstrength_spt_salgado(
-        plasticity_index, N_60,
+        pi, N_60,
         atmospheric_pressure=100.0,alpha_prime_override=np.nan, **kwargs):
 
     """
@@ -423,7 +411,7 @@ def undrainedshearstrength_spt_salgado(
     +--------+-------------------------------+
 
 
-    :param plasticity_index: Plasticity index (difference between liquid and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 15.0 <= plasticity_index <= 60.0
+    :param pi: Plasticity index (difference between liquid and plastic limit) (:math:`PI`) [:math:`pct`] - Suggested range: 15.0 <= plasticity_index <= 60.0
     :param N_60: SPT number corrected to 60% energy ratio (:math:`N_{60}`) [:math:`-`] - Suggested range: 0.0 <= N_60 <= 100.0
     :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
     :param alpha_prime_override: Override for direct specification of the alpha prime factor (:math:`\\alpha^{\\prime}`) [:math:`-`] - Suggested range: alpha_prime_override >= 0.0 (optional, default= np.nan)
@@ -440,9 +428,9 @@ def undrainedshearstrength_spt_salgado(
 
     """
     if np.math.isnan(alpha_prime_override):
-        pi = [15, 20, 25, 30, 40, 60]
-        alpha = [0.068,  0.055, 0.048, 0.045, 0.044, 0.043]
-        _alpha_prime = np.interp(plasticity_index, pi, alpha)
+        _pi = [15, 20, 25, 30, 40, 60]
+        _alpha = [0.068,  0.055, 0.048, 0.045, 0.044, 0.043]
+        _alpha_prime = np.interp(pi, _pi, _alpha)
     else:
         _alpha_prime = alpha_prime_override
 
@@ -502,10 +490,294 @@ def frictionangle_spt_kulhawymayne(
         'Phi [deg]': _phi,
     }
 
+
+RELATIVEDENSITYCLASS_N = {
+    'N': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+}
+
+RELATIVEDENSITYCLASS_N_ERRORRETURN = {
+    'Dr class': None,
+}
+
+@Validator(RELATIVEDENSITYCLASS_N, RELATIVEDENSITYCLASS_N_ERRORRETURN)
+def relativedensityclass_spt_terzaghipeck(
+    N,
+     **kwargs):
+
+    """
+    Defines the relative density class for SPT measurements in cohesionless soils based on the uncorrected N-number
+
+    +-----------------+-----------------------------+
+    | N (uncorrected) | Relative density category   |
+    +=================+=============================+
+    |   <= 4          |         Very loose          |
+    +-----------------+-----------------------------+
+    |   4 < N <= 10   |         Loose               |
+    +-----------------+-----------------------------+
+    |   10 < N <= 30  |         Medium dense        |
+    +-----------------+-----------------------------+
+    |   30 < N <= 50  |         Dense               |
+    +-----------------+-----------------------------+
+    |   N <= 50       |         Very dense          |
+    +-----------------+-----------------------------+
+    
+    :param N: Uncorrected SPT N number (:math:`N`) [-] - Suggested range: 0.0 <= N <= 60.0
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Dr class': Relative density class (:math:`D_r`) 
+    
+    Reference - Terzaghi K, Peck RB (1967) Soil mechanics in engineering practice, 2nd edn. Wiley, New York
+
+    """
+    if N <= 4:
+        _Dr_class = 'Very loose'
+    elif 4 < N <= 10:
+        _Dr_class = 'Loose'
+    elif 10 < N <= 30:
+        _Dr_class = 'Medium dense'
+    elif 30 < N <= 50:
+        _Dr_class = 'Dense'
+    elif N > 50:
+        _Dr_class = 'Very dense'
+    else:
+        _Dr_class = None
+    return {
+        'Dr class': _Dr_class,
+    }
+
+
+OVERBURDENCORRECTION_SPT_ISO = {
+    'N': {'type': 'int', 'min_value': 0.0, 'max_value': 60.0},
+    'sigma_vo_eff': {'type': 'float', 'min_value': 25.0, 'max_value': 400.0},
+}
+
+OVERBURDENCORRECTION_SPT_ISO_ERRORRETURN = {
+    'CN [-]': np.nan,
+    'N1 [-]': np.nan,
+}
+
+@Validator(OVERBURDENCORRECTION_SPT_ISO, OVERBURDENCORRECTION_SPT_ISO_ERRORRETURN)
+def overburdencorrection_spt_ISO(N, sigma_vo_eff, granular=True, **kwargs):
+
+    """
+    Corrects the SPT N number or corrected N number (:math:`N_{60}`) for the effect of overburden pressure in granular soils. The multiplier :math:`C_N` is calculated and applied to N or :math:`N_{60}`.
+    Note that :math:`C_N` should be limited to 2 and preferably be kept below 1.5. In the function, a lower limit on the vertical effective stress of 25kPa is used in the validation to achieve this.
+    
+    :param N: Uncorrected or corrected SPT N number (:math:`N or N_{60}`) [-] - Suggested range: 0.0 <= N <= 60.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{v0}^{\\prime}`) [kPa] - Suggested range: 25.0 <= sigma_vo_eff <= 400.0
+    :param granular: Boolean defining whether the soil is granular or not. If the soil is not granular, the correction factor is taken equal to 1
+    .. math::
+        C_N = \\sqrt{\\frac{98}{\\sigma_{v0}^{\\prime}}}
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'CN [-]': Multiplier on SPT N number (:math:`C_N`)  [-]
+        - 'N1 [-]': Corrected N number (:math:`N_1 or \\left( N_1 \\right)_{60}`)  [-]
+    
+    Reference - BS EN ISO 22476-3
+
+    """
+    
+    if granular:
+        _CN = np.sqrt(98 / sigma_vo_eff)
+    else:
+        _CN = 1
+    _N1 = N * _CN
+
+    return {
+        'CN [-]': _CN,
+        'N1 [-]': _N1,
+    }
+
+
+FRICTIONANGLE_SPT_PHT = {
+    'N1_60': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+    'intercept': {'type': 'float', 'min_value': 23.0, 'max_value': 35.0},
+    'multiplier': {'type': 'float', 'min_value': 0.1, 'max_value': 0.7},
+    'multiplier_quadratic': {'type': 'float', 'min_value': 0.0001, 'max_value': 0.001},
+}
+
+FRICTIONANGLE_SPT_PHT_ERRORRETURN = {
+    'Phi [deg]': np.nan,
+}
+
+@Validator(FRICTIONANGLE_SPT_PHT, FRICTIONANGLE_SPT_PHT_ERRORRETURN)
+def frictionangle_spt_PHT(N1_60, intercept=27.1, multiplier=0.3, multiplier_quadratic=0.00054, **kwargs):
+
+    """
+    Correlation proposed by Peck, Hanson and Thornburn (1974) and mentioned by Wolff (1989)
+    
+    :param N1_60: Corrected SPT N value (:math:`\\left( N_1 \\right)_{60}`) [-] - Suggested range: 0.0 <= N1_60 <= 60.0
+    :param intercept: Intercept at N=0 (:math:`-`) [deg] - Suggested range: 23.0 <= intercept <= 35.0 (optional, default= 27.1)
+    :param multiplier: Multiplier on linear term (:math:`-`) [deg/blow] - Suggested range: 0.1 <= multiplier <= 0.7 (optional, default= 0.3)
+    :param multiplier_quadratic: Multiplier on the quadratic term (:math:`-`) [deg/blow^2] - Suggested range: 0.0001 <= multiplier_quadratic <= 0.001 (optional, default= 0.00054)
+    
+    .. math::
+        \\varphi^{\\prime} = 27.1 + 0.3 \\cdot \\left( N_1 \\right)_{60} - 0.00054 \\cdot \\left( N_1 \\right)_{60}^2
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Phi [deg]': Friction angle derived from SPT (:math:`\\varphi^{\\prime}`)  [deg]
+    
+    Reference - Peck, Hanson and Thornburn (1974). Foundation Engineering.
+
+    """
+    
+    _Phi = intercept + multiplier * N1_60 - multiplier_quadratic * (N1_60 ** 2)
+
+    return {
+        'Phi [deg]': _Phi,
+    }
+
+
+YOUNGSMODULUS_SPT_AASHTO = {
+    'N1_60': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+    'soiltype': {'type': 'string', 'options': ("Silts", "Clean sands", "Coarse sands", "Gravels"), 'regex': None},
+    'multiplier_silts': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier_cleansand': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier_coarsesand': {'type': 'float', 'min_value': None, 'max_value': None},
+    'multiplier_gravel': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+YOUNGSMODULUS_SPT_AASHTO_ERRORRETURN = {
+    'Es [MPa]': np.nan,
+}
+
+@Validator(YOUNGSMODULUS_SPT_AASHTO, YOUNGSMODULUS_SPT_AASHTO_ERRORRETURN)
+def youngsmodulus_spt_AASHTO(N1_60, soiltype, multiplier_silts=0.4, multiplier_cleansand=0.7, multiplier_coarsesand=1.0, multiplier_gravel=1.1, **kwargs):
+
+    """
+    Calculates the Young's modulus based on corrected SPT number for various soil types.
+
+    +-----------------------------------------------------+------------------------+---------------------------+
+    | Soil type                                           | Soil type (short name) | :math:`E_s` [MPa]         |
+    +=====================================================+========================+===========================+
+    | Silts, sandy silts, slightly cohesive mixtures      | Silts                  |  :math:`0.4 ( N_1 )_{60}` |
+    +-----------------------------------------------------+------------------------+---------------------------+
+    | Clean fine to medium sands and slightly silty sands | Clean sands            |  :math:`0.7 ( N_1 )_{60}` |
+    +-----------------------------------------------------+------------------------+---------------------------+
+    | Coarse sands and sands with little gravel           | Coarse sands           |  :math:`1.0 ( N_1 )_{60}` |
+    +-----------------------------------------------------+------------------------+---------------------------+
+    | Sandy gravel and gravels                            | Gravels                |  :math:`1.1 ( N_1 )_{60}` |
+    +-----------------------------------------------------+------------------------+---------------------------+
+    
+    :param N1_60: Corrected SPT N number (:math:`\\left( N_1 \\right)_{60}`) [-] - Suggested range: 0.0 <= N1_60 <= 60.0
+    :param soiltype: Soil type - Options: ("Silts", "Clean sands", "Coarse sands", "Gravels")
+    :param multiplier_silts: Multiplier on the silty soils (:math:`-`) [-] (optional, default= 0.4)
+    :param multiplier_cleansand: Multiplier on the clean find sands (:math:`-`) [-] (optional, default= 0.7)
+    :param multiplier_coarsesand: Multiplier on the coarse sands (:math:`-`) [-] (optional, default= 1.0)
+    :param multiplier_gravel: Multiplier on the gravels (:math:`-`) [-] (optional, default= 1.1)
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Es [MPa]': Young's modulus (:math:`E_s`)  [MPa]
+    
+    Reference - AASHTO 1997 - LRFD
+
+    """
+    
+    if soiltype == "Silts":
+        _Es = multiplier_silts * N1_60
+    elif soiltype == "Clean sands":
+        _Es = multiplier_cleansand * N1_60
+    elif soiltype == "Coarse sands":
+        _Es = multiplier_coarsesand * N1_60
+    elif soiltype == "Gravels":
+        _Es = multiplier_gravel * N1_60
+    else:
+        raise ValueError("Soil type not recognised") 
+
+    return {
+        'Es [MPa]': _Es,
+    }
+
+UNDRAINEDSHEARSTRENGTHCLASS_N = {
+    'N': {'type': 'float', 'min_value': 0.0, 'max_value': 60.0},
+}
+
+UNDRAINEDSHEARSTRENGTHCLASS_N_ERRORRETURN = {
+    'Consistency class': None,
+    'qu min [kPa]': np.nan,
+    'qu max [kPa]': np.nan
+}
+
+@Validator(UNDRAINEDSHEARSTRENGTHCLASS_N, UNDRAINEDSHEARSTRENGTHCLASS_N_ERRORRETURN)
+def undrainedshearstrengthclass_spt_terzaghipeck(N, **kwargs):
+
+    """
+    Defines the relative density class for SPT measurements in cohesionless soils based on the uncorrected N-number
+
+    +-----------------+-------------+-------------------+
+    | N (uncorrected) | Consistency | :math:`q_u` [kPa] |
+    +=================+=============+===================+
+    |   <= 2          | Very soft   | < 25              | 
+    +-----------------+-------------+-------------------+
+    |   2 < N <= 4    | Soft        | 25 - 50           |
+    +-----------------+-------------+-------------------+
+    |   4 < N <= 8    | Medium      | 50 - 100          |
+    +-----------------+-------------+-------------------+
+    |   8 < N <= 15   | Stiff       | 100 - 200         |
+    +-----------------+-------------+-------------------+
+    |   15 < N <= 30  | Very stiff  | 200 - 400         |
+    +-----------------+-------------+-------------------+
+    |   N > 30        | Hard        | > 400             |
+    +-----------------+-------------+-------------------+
+
+    :param N: Uncorrected SPT N number (:math:`N`) [-] - Suggested range: 0.0 <= N <= 60.0
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Consistency class': Consistency class
+        - 'qu min [kPa]': Minimum value for ultimate axial stress in a UCS test
+        - 'qu max [kPa]': Maximum value for ultimate axial stress in a UCS test
+    
+    Reference - Terzaghi K, Peck RB (1967) Soil mechanics in engineering practice, 2nd edn. Wiley, New York
+
+    """
+    if N <= 2:
+        _consistency_class = 'Very soft'
+        _qu_min = np.nan
+        _qu_max = 25
+    elif 2 < N <= 4:
+        _consistency_class = 'Soft'
+        _qu_min = 25
+        _qu_max = 50
+    elif 4 < N <= 8:
+        _consistency_class = 'Medium'
+        _qu_min = 50
+        _qu_max = 100
+    elif 8 < N <= 15:
+        _consistency_class = 'Stiff'
+        _qu_min = 100
+        _qu_max = 200
+    elif 15 < N <= 30:
+        _consistency_class = 'Very stiff'
+        _qu_min = 200
+        _qu_max = 400
+    elif N > 30:
+        _consistency_class = 'Hard'
+        _qu_min = 400
+        _qu_max = np.nan
+    else:
+        _consistency_class = None
+        _qu_min = np.nan
+        _qu_max = np.nan
+    return {
+        'Consistency class': _consistency_class,
+        'qu min [kPa]': _qu_min,
+        'qu max [kPa]': _qu_max
+    }
+
+
 CORRELATIONS = {
     'Overburden correction Liao and Whitman (1986)': overburdencorrection_spt_liaowhitman,
+    'Overburden correction ISO 22476-3': overburdencorrection_spt_ISO,
     'N60 correction': spt_N60_correction,
     'Relative density Kulhawy and Mayne (1990)': relativedensity_spt_kulhawymayne,
+    'Relative density class Terzaghi and Peck (1967)': relativedensityclass_spt_terzaghipeck,
+    'Undrained shear strength class Terzaghi and Peck (1967)': undrainedshearstrengthclass_spt_terzaghipeck,
     'Undrained shear strength Salgado (2008)': undrainedshearstrength_spt_salgado,
-    'Friction angle Kulhawy and Mayne (1990)': frictionangle_spt_kulhawymayne
+    'Friction angle Kulhawy and Mayne (1990)': frictionangle_spt_kulhawymayne,
+    'Friction angle PHT (1974)': frictionangle_spt_PHT
 }

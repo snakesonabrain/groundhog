@@ -1,4 +1,6 @@
 v0.13.0, TBD
+    - Ensured the cv arrays in consolidation calcs are treated as Numpy arrays
+    - Increased the timeout for interactive parameter selection to two minutes
     - TODO: Add hatching patterns to LogPlot
     - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
     - TODO: Property mapping takes too much times for CPTs, improve speed of routine

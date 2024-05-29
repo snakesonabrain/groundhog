@@ -46,3 +46,13 @@ class Test_Categories(unittest.TestCase):
             categories.uscs_categories('OL')['Soil type'],
             "Organic clays organic silt-clays of low plasticity"
         )
+
+    def test_samplequality_voidratio_lunne(self):
+        self.assertEqual(
+            categories.samplequality_voidratio_lunne(voidratio=1.0, voidratio_change=0.1, ocr=1.5)['Quality category'],
+            'Poor'
+        )
+        self.assertEqual(
+            categories.samplequality_voidratio_lunne(voidratio=1.0, voidratio_change=0.11, ocr=3)['Quality category'],
+            'Very poor'
+        )

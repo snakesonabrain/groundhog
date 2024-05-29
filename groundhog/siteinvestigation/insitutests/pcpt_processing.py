@@ -953,11 +953,9 @@ class PCPTProcessing(InsituTestProcessing):
                 second_data = obj.data
             else:
                 raise ValueError("Invalid option for argument 'keep'. Choose from 'first', 'second' or 'both'")
-        else:
-            pass
 
         # Second PCPT below first one
-        if (z_min_second < z_max_first) and (z_max_second > z_max_first):
+        elif (z_min_second < z_max_first) and (z_max_second > z_max_first):
             if keep == 'first':
                 first_data = self.data
                 second_data = obj.data[obj.data["z [m]"] > z_max_first]
@@ -969,8 +967,13 @@ class PCPTProcessing(InsituTestProcessing):
                 second_data = obj.data
             else:
                 raise ValueError("Invalid option for argument 'keep'. Choose from 'first', 'second' or 'both'")
+        # Other cases
+        
         else:
-            pass
+            first_data = self.data
+            second_data = obj.data
+    
+        
 
         # Combine data
         self.data = pd.concat([first_data, second_data])

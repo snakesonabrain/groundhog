@@ -34,7 +34,7 @@ MOHRCOULOMB_TRIAXIAL_COMPRESSION_ERRORRETURN = {
 }
 
 @Validator(MOHRCOULOMB_TRIAXIAL_COMPRESSION, MOHRCOULOMB_TRIAXIAL_COMPRESSION_ERRORRETURN)
-def mohrcoulomb_triaxial_compression(sigma_3, cohesion, phi, **kwargs):
+def mohrcoulomb_triaxial_compression(sigma_3, cohesion, phi, latex_titles=True,**kwargs):
 
     """
     Calculates Mohr's circle and the orientation of the failure plane for a situation in which the radial (effective) stress is kept constant. A Mohr-Coulomb failure criterion with (effective) cohesion and (effective) friction angle is used.
@@ -45,6 +45,7 @@ def mohrcoulomb_triaxial_compression(sigma_3, cohesion, phi, **kwargs):
     :param sigma_3: Radial stress (total or effective) (:math:`\\sigma_3`) [kPa] - Suggested range: sigma_3 >= 0.0
     :param cohesion: Cohesion (total or effective) (:math:`c`) [kPa] - Suggested range: cohesion >= 0.0
     :param phi: Friction angle (total or effective) (:math:`\\varphi`) [deg] - Suggested range: 0.0 <= phi <= 90.0
+    :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
     
     .. math::
         \\tau_f = c + \\sigma \\tan \\varphi
@@ -130,10 +131,16 @@ def mohrcoulomb_triaxial_compression(sigma_3, cohesion, phi, **kwargs):
         showlegend=True, mode='lines', name='Orientation of selected plane', line=dict(dash='dot'))
     fig.append_trace(_data, 1, 2)
 
-    fig['layout']['xaxis1'].update(title=r'$ \sigma \ \text{[kPa]}$')
-    fig['layout']['yaxis1'].update(title=r'$ \tau \ \text{[kPa]}$', scaleanchor='x', scaleratio=1.0)
-    fig['layout']['xaxis2'].update(title=r'$ X $')
-    fig['layout']['yaxis2'].update(title=r'$ Y $', scaleanchor='x2', scaleratio=1.0)
+    if latex_titles:
+        fig['layout']['xaxis1'].update(title=r'$ \sigma \ \text{[kPa]}$')
+        fig['layout']['yaxis1'].update(title=r'$ \tau \ \text{[kPa]}$', scaleanchor='x', scaleratio=1.0)
+        fig['layout']['xaxis2'].update(title=r'$ X $')
+        fig['layout']['yaxis2'].update(title=r'$ Y $', scaleanchor='x2', scaleratio=1.0)
+    else:
+        fig['layout']['xaxis1'].update(title='sigma [kPa]')
+        fig['layout']['yaxis1'].update(title='tau [kPa]', scaleanchor='x', scaleratio=1.0)
+        fig['layout']['xaxis2'].update(title='X')
+        fig['layout']['yaxis2'].update(title='Y', scaleanchor='x2', scaleratio=1.0)
     fig['layout'].update(height=500, width=900)
     _plot = fig
 
@@ -185,7 +192,7 @@ MOHRCOULOMB_TRIAXIAL_EXTENSION_ERRORRETURN = {
 }
 
 @Validator(MOHRCOULOMB_TRIAXIAL_EXTENSION, MOHRCOULOMB_TRIAXIAL_EXTENSION_ERRORRETURN)
-def mohrcoulomb_triaxial_extension(sigma_1, cohesion, phi, **kwargs):
+def mohrcoulomb_triaxial_extension(sigma_1, cohesion, phi, latex_titles=True, **kwargs):
 
     """
     Calculates Mohr's circle and the orientation of the failure plane for a situation in which the axial (effective) stress is reduced and the radial stress is kept constant, the axial stress then becomes the minor principal stress. A Mohr-Coulomb failure criterion with (effective) cohesion and (effective) friction angle is used.
@@ -196,6 +203,7 @@ def mohrcoulomb_triaxial_extension(sigma_1, cohesion, phi, **kwargs):
     :param sigma_1: Radial stress (total or effective) (:math:`\\sigma_1`) [kPa] - Suggested range: sigma_1 >= 0.0
     :param cohesion: Cohesion (total or effective) (:math:`c`) [kPa] - Suggested range: cohesion >= 0.0
     :param phi: Friction angle (total or effective) (:math:`\\varphi`) [deg] - Suggested range: 0.0 <= phi <= 90.0
+    :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
     
     .. math::
         \\tau_f = c + \\sigma \\tan \\varphi
@@ -280,10 +288,16 @@ def mohrcoulomb_triaxial_extension(sigma_1, cohesion, phi, **kwargs):
         showlegend=True, mode='lines', name='Orientation of selected plane', line=dict(dash='dot'))
     fig.append_trace(_data, 1, 2)
 
-    fig['layout']['xaxis1'].update(title=r'$ \sigma \ \text{[kPa]}$')
-    fig['layout']['yaxis1'].update(title=r'$ \tau \ \text{[kPa]}$', scaleanchor='x', scaleratio=1.0)
-    fig['layout']['xaxis2'].update(title=r'$ X $')
-    fig['layout']['yaxis2'].update(title=r'$ Y $', scaleanchor='x2', scaleratio=1.0)
+    if latex_titles:
+        fig['layout']['xaxis1'].update(title=r'$ \sigma \ \text{[kPa]}$')
+        fig['layout']['yaxis1'].update(title=r'$ \tau \ \text{[kPa]}$', scaleanchor='x', scaleratio=1.0)
+        fig['layout']['xaxis2'].update(title=r'$ X $')
+        fig['layout']['yaxis2'].update(title=r'$ Y $', scaleanchor='x2', scaleratio=1.0)
+    else:
+        fig['layout']['xaxis1'].update(title='sigma [kPa]')
+        fig['layout']['yaxis1'].update(title='tau [kPa]', scaleanchor='x', scaleratio=1.0)
+        fig['layout']['xaxis2'].update(title='X')
+        fig['layout']['yaxis2'].update(title='Y', scaleanchor='x2', scaleratio=1.0)
     fig['layout'].update(height=500, width=900)
     _plot = fig
 

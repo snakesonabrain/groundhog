@@ -379,7 +379,7 @@ class ConsolidationCalculation(object):
             self.u_steps.append(u)
             
     def plot_results(self, plot_title="", showfig=True, xtitle=r'$ \Delta u \ \text{[kPa]} $',
-                     ytitle=r'$ z \ \text{[m]} $'):
+                     ytitle=r'$ z \ \text{[m]} $', latex_titles=True):
         self.fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
         for j, i in enumerate(self.output_indices):
             try:
@@ -390,6 +390,9 @@ class ConsolidationCalculation(object):
                 self.fig.append_trace(_data, 1, 1)
             except Exception as err:
                 print(str(err), i)
+        if not latex_titles:
+            xtitle = 'delta u [kPa]'
+            ytitle = 'z [m]'
         self.fig['layout']['xaxis1'].update(title=xtitle)
         self.fig['layout']['yaxis1'].update(title=ytitle, range=(self.z.max(), 0))
         self.fig['layout'].update(height=500, width=600,

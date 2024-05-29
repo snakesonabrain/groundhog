@@ -416,7 +416,7 @@ class DeBeerCalculation(object):
                              plot_title=None, plot_height=800, plot_width=600,
                              plot_margin=dict(t=100, l=50, b=50), show_fig=True,
                              x_range=None, x_tick=None, y_range=None, y_tick=None,
-                             legend_orientation='h', legend_x=0.05, legend_y=-0.05):
+                             legend_orientation='h', legend_x=0.05, legend_y=-0.05, latex_titles=True):
         """
         Plots the base resistance construction according to De Beer
 
@@ -434,8 +434,10 @@ class DeBeerCalculation(object):
         :param legend_orientation: Orientation of the legend (default=``'h'`` for horizontal)
         :param legend_x: x Position of the legend (default=0.05 for 5% from plot left edge)
         :param legend_y: y Position of the legend (default=-0.05 for 5% below plot bottom)
+        :param latex_titles: Boolean determining whether trace names and axis titles are shown as LaTeX (default = True)
         :return: Creates the Plotly figure ``base_plot`` as an attribute of the object
         """
+        # TODO: Change LaTeX
         self.base_plot = subplots.make_subplots(rows=1, cols=1, print_grid=False)
         traceqc = go.Scatter(x=self.qc_raw, y=self.depth_raw,
                              showlegend=True, mode='lines', name=r'$ q_c $')

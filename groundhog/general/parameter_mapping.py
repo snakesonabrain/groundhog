@@ -68,7 +68,8 @@ SOIL_PARAMETER_MAPPING = {
     'eta R [-]': 'eta_R',
     'd50 [mm]': 'd_50',
     'N60 [-]': 'N_60',
-    'Granular': 'granular'
+    'Granular': 'granular',
+    'Void ratio [-]': 'voidratio',
 }
 
 def map_depth_properties(target_df, layering_df, target_z_key=None,

@@ -210,3 +210,73 @@ def uscs_categories(
         'Soil type': _soiltype,
     }
 
+SAMPLEQUALITY_VOIDRATIO_LUNNE = {
+    'voidratio': {'type': 'float', 'min_value': 0.3, 'max_value': 3},
+    'voidratio_change': {'type': 'float', 'min_value': -1, 'max_value': 1},
+    'ocr': {'type': 'float', 'min_value': 1, 'max_value': 4}
+}
+
+
+SAMPLEQUALITY_VOIDRATIO_LUNNE_ERRORRETURN = {
+    'delta e/e0 [-]': np.nan,
+    'Quality category': None,
+}
+
+
+
+@Validator(SAMPLEQUALITY_VOIDRATIO_LUNNE, SAMPLEQUALITY_VOIDRATIO_LUNNE_ERRORRETURN)
+def samplequality_voidratio_lunne(voidratio, voidratio_change, ocr, **kwargs):
+    """
+    Determines the sample quality for clays based on the change in void ratio when consolidating the sample back to the initial vertical effective stress.
+    The classification is based on testing of soft marine clays sampled with different methods.
+
+    +-------+-----------------------------------------------------------------+
+    | OCR   |                    :math:`\Delta e / e_0`                       |
+    |       +------------------------+--------------+-------------+-----------+
+    |       | Very good to excellent | Good to fair | Poor        | Very poor |
+    +-------+------------------------+--------------+-------------+-----------+
+    | 1 - 2 |         < 0.04         |  0.04 - 0.07 | 0.07 - 0.14 |   > 0.14  |
+    +-------+------------------------+--------------+-------------+-----------+
+    | 2 - 4 |         < 0.03         |  0.03 - 0.05 | 0.05 - 0.10 |   > 0.10  |
+    +-------+------------------------+--------------+-------------+-----------+
+
+    :param voidratio: Initial void ratio (:math:`e_0`) [-] - Suggested range: 0.3 <= voidratio <= 3.0
+    :param voidratio_change: Change in void ratio when consolidating to in-situ stress (:math:`\\Delta e`) [-] - Suggested range: -1 <= voidratio <= 1
+    :param ocr: Overconsolidation ratio (:math:`\\text{OCR}`) [-] - Suggested range: 1 <= voidratio <= 4.0
+
+    :returns: Dictionary with the following keys:
+
+        - 'delta e/e0 [-]': Ratio used for classification
+        - 'Quality category': Quality category according to Lunne et al.
+
+    Reference - Lunne, T., et al. "Effects of sample disturbance on consolidation behaviour of soft marine Norwegian clays." Geotechnical and geophysical site characterization: proceedings of the third international conference on site characterization ISC. Vol. 3. 2008.
+
+    """
+
+    
+    _delta_e_ratio = np.abs(voidratio_change / voidratio)
+
+    if ocr < 2:
+        if _delta_e_ratio < 0.04:
+            _category = 'Very good to excellent'
+        elif 0.04 <= _delta_e_ratio < 0.07:
+            _category = 'Good to fair'
+        elif 0.07 <= _delta_e_ratio < 0.14:
+            _category = 'Poor'
+        else:
+            _category = 'Very poor'
+    else:
+        if _delta_e_ratio < 0.03:
+            _category = 'Very good to excellent'
+        elif 0.03 <= _delta_e_ratio < 0.05:
+            _category = 'Good to fair'
+        elif 0.05 <= _delta_e_ratio < 0.10:
+            _category = 'Poor'
+        else:
+            _category = 'Very poor'
+
+    return {
+        'delta e/e0 [-]': _delta_e_ratio,
+        'Quality category': _category
+    }
+

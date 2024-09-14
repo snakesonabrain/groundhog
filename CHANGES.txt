@@ -5,6 +5,7 @@ v0.13.0, TBD
     - Added formula for calculation of void ratio from dry density
     - Added conversions between unit weight and density
     - Added conversions between void ratio and water content
+    - Added CPT-based correlation for Vs according to Stuyts et al (2024)
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

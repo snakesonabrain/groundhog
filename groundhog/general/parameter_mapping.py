@@ -59,8 +59,6 @@ SOIL_PARAMETER_MAPPING = {
     'Hammer type': 'hammertype',
     'Hammer release': 'hammerrelease',
     'Sampler type': 'samplertype',
-    'Vertical total stress [kPa]': 'sigma_vo',
-    'Vertical effective stress [kPa]': 'sigma_vo_eff',
     'N [-]': 'N',
     'N1_60 [-]': 'N1_60',
     'eta H [%]': 'eta_H',

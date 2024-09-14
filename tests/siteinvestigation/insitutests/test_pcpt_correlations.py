@@ -396,3 +396,15 @@ class Test_constrainedmodulus_pcpt_robertson(unittest.TestCase):
         self.assertAlmostEqual(result['M [kPa]'], 89307, 0)
         
         
+class Test_vs_cpt_stuytsal(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_stressdependent_stuyts(
+            sigma_vo_eff=100, ic=1.5, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 261.67, 2)
+
+        result = pcpt_correlations.vs_stressdependent_stuyts(
+            sigma_vo_eff=100, ic=3.0, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 181.13, 2)

@@ -216,6 +216,46 @@ def dryunitweight_watercontent(
     }
 
 
+VOIDRATIO_DRYDENSITY = {
+    'dry_density': {'type': 'float', 'min_value': 1000.0, 'max_value': 2000.0},
+    'specific_gravity': {'type': 'float', 'min_value': 2.4, 'max_value': 2.9},
+    'water_density': {'type': 'float', 'min_value': 900.0, 'max_value': 1100.0},
+}
+
+VOIDRATIO_DRYDENSITY_ERRORRETURN = {
+    'Void ratio [-]': np.nan,
+}
+
+@Validator(VOIDRATIO_DRYDENSITY, VOIDRATIO_DRYDENSITY_ERRORRETURN)
+def voidratio_drydensity(
+    dry_density,
+    specific_gravity=2.65,water_density=1000.0, **kwargs):
+
+    """
+    Calculates void ratio when the specific gravity and the dry density are known
+    
+    :param dry_density: Dry density of the sample (:math:`\\rho_d`) [kg/m3] - Suggested range: 1000.0 <= dry_density <= 2000.0
+    :param specific_gravity: Specific gravity (:math:`G_s`) [-] - Suggested range: 2.4 <= specific_gravity <= 2.9 (optional, default= 2.65)
+    :param water_density: Density of water (:math:`\\rho_w`) [kg/m3] - Suggested range: 900.0 <= water_density <= 1100.0 (optional, default= 1000.0)
+    
+    .. math::
+        e = G_s \\cdot \\frac{\\rho_w}{\\rho_d} - 1
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Void ratio [-]': Void ratio (:math:`e`)  [-]
+    
+    Reference - Budhu (2011) Introduction to soil mechanics and foundations.
+
+    """
+    
+    _voidratio = (specific_gravity * (water_density / dry_density)) - 1
+
+    return {
+        'Void ratio [-]': _voidratio,
+    }
+
+
 BULKUNITWEIGHT_DRYUNITWEIGHT = {
     'dryunitweight': {'type': 'float', 'min_value': 1.0, 'max_value': 15.0},
     'watercontent': {'type': 'float', 'min_value': 0.0, 'max_value': 4.0},
@@ -396,3 +436,157 @@ def unitweight_watercontent_saturated(
     }
 
 
+DENSITY_UNITWEIGHT = {
+    'gamma': {'type': 'float', 'min_value': 0.0, 'max_value': 30.0},
+    'g': {'type': 'float', 'min_value': 9.7, 'max_value': 10.0},
+}
+
+DENSITY_UNITWEIGHT_ERRORRETURN = {
+    'Density [kg/m3]': np.nan,
+}
+
+@Validator(DENSITY_UNITWEIGHT, DENSITY_UNITWEIGHT_ERRORRETURN)
+def density_unitweight(gamma, g=9.81, **kwargs):
+
+    """
+    Converts unit weight (in kN/m3) to density (in kg/m3)
+    
+    :param gamma: Unit weight (:math:`\\gamma`) [kN/m3] - Suggested range: 0.0 <= gamma <= 30.0
+    :param g: Acceleration of gravity (:math:`g`) [m/s2] - Suggested range: 9.7 <= g <= 10.0 (optional, default= 9.81)
+    
+    .. math::
+        \\rho = \\frac{\\gamma}{g}
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Density [kg/m3]': Density (:math:`\\rho`)  [kg/m3]
+    
+    Reference - Budhu (2011) Introduction to soil mechanics and foundations.
+
+    """
+    
+    _density = 1e3 * gamma / g
+
+    return {
+        'Density [kg/m3]': _density,
+    }
+
+
+UNITWEIGHT_DENSITY = {
+    'density': {'type': 'float', 'min_value': 0.0, 'max_value': 3000.0},
+    'g': {'type': 'float', 'min_value': 9.7, 'max_value': 11.0},
+}
+
+UNITWEIGHT_DENSITY_ERRORRETURN = {
+    'Unit weight [kN/m3]': np.nan,
+}
+
+@Validator(UNITWEIGHT_DENSITY, UNITWEIGHT_DENSITY_ERRORRETURN)
+def unitweight_density(density, g=9.81, **kwargs):
+
+    """
+    Converts density (in kg/m3) to unit weight (kN/m3)
+    
+    :param density: Density of the sample (:math:`\\rho`) [kg/m3] - Suggested range: 0.0 <= density <= 3000.0
+    :param g: Acceleration due to gravity (:math:`g`) [m/s2] - Suggested range: 9.7 <= g <= 11.0 (optional, default= 9.81)
+    
+    .. math::
+        \\gamma = \\rho \\cdot g
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Unit weight [kN/m3]': Unit weight of the sample (:math:`\\gamma`)  [kN/m3]
+    
+    Reference - Budhu (2011) Introduction to soil mechanics and foundations.
+
+    """
+    
+    _unitweight = density * g / 1e3
+
+    return {
+        'Unit weight [kN/m3]': _unitweight,
+    }
+
+
+WATERCONTENT_VOIDRATIO = {
+    'voidratio': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'saturation': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
+    'specific_gravity': {'type': 'float', 'min_value': 2.4, 'max_value': 3.0},
+}
+
+WATERCONTENT_VOIDRATIO_ERRORRETURN = {
+    'Water content [-]': np.nan,
+    'Water content [%]': np.nan
+}
+
+@Validator(WATERCONTENT_VOIDRATIO, WATERCONTENT_VOIDRATIO_ERRORRETURN)
+def watercontent_voidratio(
+    voidratio,
+    saturation=1.0,specific_gravity=2.65, **kwargs):
+
+    """
+    Calculates the water content of a sample from it's void ratio. By default, full saturation is assumed.
+    
+    :param voidratio: Void ratio of the sample (:math:`e`) [-] - Suggested range: voidratio >= 0.0
+    :param saturation: Saturation of the sample (:math:`S`) [-] - Suggested range: 0.0 <= saturation <= 1.0 (optional, default= 1.0)
+    :param specific_gravity: Specific gravity (:math:`G_s`) [-] - Suggested range: 2.4 <= specific_gravity <= 3.0 (optional, default= 2.65)
+    
+    .. math::
+        w = \\frac{S \\cdot e}{G_s}
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Water content [-]': Water content of the sample (:math:`w`)  [-]
+        - 'Water content [%]': Water content of the sample (:math:`w`)  [%]
+
+    
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+    
+    _water_content = saturation * voidratio / specific_gravity
+
+    return {
+        'Water content [-]': _water_content,
+        'Water content [%]': 100 * _water_content,
+    }
+
+
+VOIDRATIO_WATERCONTENT = {
+    'water_content': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'saturation': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
+    'specific_gravity': {'type': 'float', 'min_value': 2.3, 'max_value': 3.0},
+}
+
+VOIDRATIO_WATERCONTENT_ERRORRETURN = {
+    'Void ratio [-]': np.nan,
+}
+
+@Validator(VOIDRATIO_WATERCONTENT, VOIDRATIO_WATERCONTENT_ERRORRETURN)
+def voidratio_watercontent(
+    water_content,
+    saturation=1.0,specific_gravity=2.65, **kwargs):
+
+    """
+    Calculates the void ratio of a sample from the water content. By default, full saturation is assumed but this can be modified
+    
+    :param water_content: Water content of the sample (:math:`w`) [-] - Suggested range: 0.0 <= water_content <= 2.0
+    :param saturation: Saturation of the sample (:math:`S`) [-] - Suggested range: 0.0 <= saturation <= 1.0 (optional, default= 1.0)
+    :param specific_gravity: Specific gravity of the sample (:math:`G_s`) [-] - Suggested range: 2.3 <= specific_gravity <= 3.0 (optional, default= 2.65)
+    
+    .. math::
+        e = \\frac{w \\cdot G_s}{S}
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Void ratio [-]': Void ratio of the sample (:math:`e`)  [-]
+    
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+    
+    _void_ratio = water_content * specific_gravity / saturation
+
+    return {
+        'Void ratio [-]': _void_ratio,
+    }

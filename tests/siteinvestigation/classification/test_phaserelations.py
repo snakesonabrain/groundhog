@@ -99,3 +99,27 @@ class Test_PhaseRelations(unittest.TestCase):
             phaserelations.unitweight_watercontent_saturated(water_content=0.4)['gamma [kN/m3]'],
             18.01, 2
         )
+
+    def test_density_unitweight(self):
+        self.assertAlmostEqual(
+            phaserelations.density_unitweight(
+                gamma=20, g=10)['Density [kg/m3]'],
+                2000, 1)
+        
+    def test_unitweight_density(self):
+        self.assertAlmostEqual(
+            phaserelations.unitweight_density(
+                density=2000, g=10)['Unit weight [kN/m3]'],
+                20, 1)
+        
+    def test_watercontent_voidratio(self):
+        self.assertAlmostEqual(
+            phaserelations.watercontent_voidratio(
+                voidratio=1)['Water content [-]'],
+                0.377, 3)
+        
+    def test_voidratio_watercontent(self):
+        self.assertAlmostEqual(
+            phaserelations.voidratio_watercontent(
+                water_content=0.377)['Void ratio [-]'],
+                1, 1)

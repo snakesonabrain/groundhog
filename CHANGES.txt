@@ -1,6 +1,9 @@
 v0.13.0, TBD
     - Ensured the cv arrays in consolidation calcs are treated as Numpy arrays
     - Increased the timeout for interactive parameter selection to two minutes
+    - Added formula for calculation of void ratio from dry density
+    - Added conversions between unit weight and density
+    - Added conversions between void ratio and water content
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

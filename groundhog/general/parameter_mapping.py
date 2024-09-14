@@ -25,6 +25,7 @@ SOIL_PARAMETER_MAPPING = {
     'Effective pressure [kPa]': 'p_eff',
     'Effective unit weight [kN/m3]': 'gamma_eff',
     'Total unit weight [kN/m3]': 'gamma_tot',
+    'Unit weight [kN/m3]': 'gamma',
     'Ic [-]': 'ic',
     'Dr [-]': 'relative_density',
     'Gmax [kPa]': 'gmax',
@@ -70,6 +71,13 @@ SOIL_PARAMETER_MAPPING = {
     'N60 [-]': 'N_60',
     'Granular': 'granular',
     'Void ratio [-]': 'voidratio',
+    'Dry density [kg/m3]': 'dry_density',
+    'Bulk density [kg/m3]': 'bulk_density',
+    'Water density [kg/m3]': 'water_density',
+    'Density [kg/m3]': 'density',
+    'Gs [-]': 'specific_gravity',
+    'S [-]': 'saturation',
+    'Water content [%]': 'water_content'
 }
 
 def map_depth_properties(target_df, layering_df, target_z_key=None,

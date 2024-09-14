@@ -263,7 +263,7 @@ class KoppejanCalculation(object):
         self.qcavg = 0.5 * (0.5 * (self.qcI + self.qcII) + self.qcIII)
         self.qbmax = min(15.0, alpha_p * base_coefficient * crosssection_coefficient * self.qcavg)
 
-        if coring and np.math.isnan(wall_thickness):
+        if coring and np.isnan(wall_thickness):
             raise ValueError("For a coring pile, a wall thickness needs to be provided (in mm)")
 
         if coring:

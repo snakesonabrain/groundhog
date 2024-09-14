@@ -21,12 +21,12 @@ API_UNIT_SHAFT_FRICTION_SAND_RP2GEO = {
 }
 
 API_UNIT_SHAFT_FRICTION_SAND_RP2GEO_ERRORRETURN = {
-    'f_s_comp_out [kPa]': np.NaN,
-    'f_s_comp_in [kPa]': np.NaN,
-    'f_s_tens_out [kPa]': np.NaN,
-    'f_s_tens_in [kPa]': np.NaN,
-    'f_s_lim [kPa]': np.NaN,
-    'beta [-]': np.NaN,
+    'f_s_comp_out [kPa]': np.nan,
+    'f_s_comp_in [kPa]': np.nan,
+    'f_s_tens_out [kPa]': np.nan,
+    'f_s_tens_in [kPa]': np.nan,
+    'f_s_lim [kPa]': np.nan,
+    'beta [-]': np.nan,
 }
 
 @Validator(API_UNIT_SHAFT_FRICTION_SAND_RP2GEO, API_UNIT_SHAFT_FRICTION_SAND_RP2GEO_ERRORRETURN)
@@ -104,12 +104,12 @@ API_UNIT_SHAFT_FRICTION_CLAY = {
 }
 
 API_UNIT_SHAFT_FRICTION_CLAY_ERRORRETURN = {
-    'f_s_comp_out [kPa]': np.NaN,
-    'f_s_comp_in [kPa]': np.NaN,
-    'f_s_tens_out [kPa]': np.NaN,
-    'f_s_tens_in [kPa]': np.NaN,
-    'psi [-]': np.NaN,
-    'alpha [-]': np.NaN,
+    'f_s_comp_out [kPa]': np.nan,
+    'f_s_comp_in [kPa]': np.nan,
+    'f_s_tens_out [kPa]': np.nan,
+    'f_s_tens_in [kPa]': np.nan,
+    'psi [-]': np.nan,
+    'alpha [-]': np.nan,
 }
 
 @Validator(API_UNIT_SHAFT_FRICTION_CLAY, API_UNIT_SHAFT_FRICTION_CLAY_ERRORRETURN)

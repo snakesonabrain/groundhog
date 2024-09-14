@@ -26,15 +26,15 @@ PCPT_NORMALISATIONS = {
 }
 
 PCPT_NORMALISATIONS_ERRORRETURN = {
-    'qt [MPa]': np.NaN,
-    'qc [MPa]': np.NaN,
-    'u2 [MPa]': np.NaN,
-    'Delta u2 [MPa]': np.NaN,
-    'Rf [pct]': np.NaN,
-    'Bq [-]': np.NaN,
-    'Qt [-]': np.NaN,
-    'Fr [-]': np.NaN,
-    'qnet [MPa]': np.NaN,
+    'qt [MPa]': np.nan,
+    'qc [MPa]': np.nan,
+    'u2 [MPa]': np.nan,
+    'Delta u2 [MPa]': np.nan,
+    'Rf [pct]': np.nan,
+    'Bq [-]': np.nan,
+    'Qt [-]': np.nan,
+    'Fr [-]': np.nan,
+    'qnet [MPa]': np.nan,
 }
 
 
@@ -778,8 +778,8 @@ FRICTIONANGLE_OVERBURDEN_KLEVEN = {
 }
 
 FRICTIONANGLE_OVERBURDEN_KLEVEN_ERRORRETURN = {
-    'phi [deg]': np.NaN,
-    'sigma_m [kPa]': np.NaN
+    'phi [deg]': np.nan,
+    'sigma_m [kPa]': np.nan
 }
 
 @Validator(FRICTIONANGLE_OVERBURDEN_KLEVEN, FRICTIONANGLE_OVERBURDEN_KLEVEN_ERRORRETURN)
@@ -934,7 +934,7 @@ def ocr_cpt_lunne(Qt, Bq=np.nan, **kwargs):
             0.671677717, 0.749877749, 0.810239222, 0.8645448, 0.942964248
         ]))
 
-    if np.math.isnan(Bq):
+    if np.isnan(Bq):
         _OCR_Bq_LE = np.nan
         _OCR_Bq_BE = np.nan
         _OCR_Bq_HE = np.nan

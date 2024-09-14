@@ -1059,7 +1059,7 @@ class PCPTProcessing(InsituTestProcessing):
                     push_data = self.data[self.data['Push'] == _push]
                     _push_z_min = push_data["z [m]"].min()
                     for i, row in push_data.iterrows():
-                        if np.math.isnan(area_ratio_override):
+                        if np.isnan(area_ratio_override):
                             area_ratio = row['area ratio [-]']
                         else:
                             area_ratio = area_ratio_override
@@ -1131,7 +1131,7 @@ class PCPTProcessing(InsituTestProcessing):
                     self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
                         (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
                     )
-                    if np.math.isnan(self.data.loc[i, "ft [MPa]"]):
+                    if np.isnan(self.data.loc[i, "ft [MPa]"]):
                         self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
                 except:
                     self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']

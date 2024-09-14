@@ -165,7 +165,7 @@ def verticalcapacity_undrained_api(effective_length, effective_width, su_base, s
     else:
         # Correction factors for linearly increasing su
         dimensionless_increase = su_increase * effective_width / su_base
-        if not np.math.isnan(factor_f_override):
+        if not np.isnan(factor_f_override):
             F_factor = factor_f_override
         else:
             if 0.0 <= dimensionless_increase <= 25.0:
@@ -190,7 +190,7 @@ def verticalcapacity_undrained_api(effective_length, effective_width, su_base, s
         i_c = 0.5 - 0.5 * (1.0 - horizontal_load / (su_base * effective_length * effective_width)) ** 0.5
         s_c = s_cv * (1.0 - 2.0 * i_c) * (effective_width / effective_length)
         su2 = F_factor * (bearing_capacity_factor * su_base + 0.25 * su_increase * effective_width) / bearing_capacity_factor
-        if np.math.isnan(su_above_base):
+        if np.isnan(su_above_base):
             raise ValueError("Undrained shear strength above base (su_above_base) must be specified for linearly increasing undrained shear strength cases")
         d_c = 0.3 * (su_above_base / su2) * np.arctan(base_depth / effective_width)
         b_c = 2.0 * np.radians(foundation_inclination) / (np.pi + 2.0)
@@ -484,7 +484,7 @@ def slidingcapacity_drained_api(vertical_load, effective_friction_angle, effecti
     """
     base_capacity = vertical_load * np.tan(np.radians(effective_friction_angle))
     K_p = (np.tan(np.radians(45.0 + 0.5 * effective_friction_angle))) ** 2.0
-    if np.math.isnan(reaction_factor_override):
+    if np.isnan(reaction_factor_override):
         K_rd = K_p - (1.0 / K_p)
     else:
         K_rd = reaction_factor_override
@@ -559,14 +559,14 @@ def effectivearea_rectangle_api(length, width, vertical_load=np.nan, moment_leng
     Reference - API RP 2GEO, 2011. API RP 2GEO Geotechnical and Foundation Design Considerations
     
     """
-    if (not np.math.isnan(vertical_load)) and (not np.math.isnan(moment_length)) and \
-            (not np.math.isnan(moment_width)) and np.math.isnan(eccentricity_length) and \
-            np.math.isnan(eccentricity_width):
+    if (not np.isnan(vertical_load)) and (not np.isnan(moment_length)) and \
+            (not np.isnan(moment_width)) and np.isnan(eccentricity_length) and \
+            np.isnan(eccentricity_width):
         e1 = moment_length / vertical_load
         e2 = moment_width / vertical_load
-    elif (not np.math.isnan(eccentricity_length)) and (not np.math.isnan(eccentricity_width)) and \
-            np.math.isnan(moment_length) and np.math.isnan(moment_width) and \
-            np.math.isnan(vertical_load):
+    elif (not np.isnan(eccentricity_length)) and (not np.isnan(eccentricity_width)) and \
+            np.isnan(moment_length) and np.isnan(moment_width) and \
+            np.isnan(vertical_load):
         e1 = eccentricity_length
         e2 = eccentricity_width
     else:
@@ -634,11 +634,11 @@ def effectivearea_circle_api(foundation_radius, vertical_load=np.nan, overturnin
     Reference - API RP 2GEO, 2011. API RP 2GEO Geotechnical and Foundation Design Considerations
 
     """
-    if not np.math.isnan(overturning_moment) and (not np.math.isnan(vertical_load)) and \
-            np.math.isnan(eccentricity):
+    if not np.isnan(overturning_moment) and (not np.isnan(vertical_load)) and \
+            np.isnan(eccentricity):
         e2 = overturning_moment / vertical_load
-    elif np.math.isnan(overturning_moment) and np.math.isnan(vertical_load) and \
-            not np.math.isnan(eccentricity):
+    elif np.isnan(overturning_moment) and np.isnan(vertical_load) and \
+            not np.isnan(eccentricity):
         e2 = eccentricity
     else:
         raise ValueError("Eccentricity needs to be specified either through moment or direct specification")
@@ -731,7 +731,7 @@ def envelope_drained_api(vertical_effective_stress,
 
     """
 
-    if np.math.isnan(effective_friction_angle_sliding):
+    if np.isnan(effective_friction_angle_sliding):
         effective_friction_angle_sliding = effective_friction_angle - 5
 
     _inclinations = np.linspace(0.0, 90.0, 100)
@@ -1223,14 +1223,14 @@ class ShallowFoundationCapacity(object):
         self.option = option
 
         if option == 'rectangle':
-            if (np.math.isnan(length)) or (np.math.isnan(width)):
+            if (np.isnan(length)) or (np.isnan(width)):
                 raise ValueError("Length and width should be specified for a rectangular foundation")
             self.length = length
             self.width = width
             self.diameter = np.nan
             self.full_area = self.length * self.width
         elif option == 'circle':
-            if np.math.isnan(diameter):
+            if np.isnan(diameter):
                 raise ValueError("Diameter should be specified for a circular foundation")
             self.diameter = diameter
             self.full_area = 0.25 * np.pi * (self.diameter ** 2)
@@ -1250,7 +1250,7 @@ class ShallowFoundationCapacity(object):
         :return: Calculates the effective area of the foundation
         """
         if self.option == 'rectangle':
-            if np.math.isnan(eccentricity_length):
+            if np.isnan(eccentricity_length):
                 raise ValueError("Eccentricity in the length direction needs to be specified")
             eccentricity_result = effectivearea_rectangle_api(
                 length=self.length,
@@ -1352,7 +1352,7 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
         self.unit_weight = unit_weight
         self.su_base = su_base
         self.su_increase = su_increase
-        if np.math.isnan(su_above_base):
+        if np.isnan(su_above_base):
             self.su_above_base = self.su_base
         else:
             self.su_above_base = su_above_base
@@ -1385,7 +1385,7 @@ class ShallowFoundationCapacityUndrained(ShallowFoundationCapacity):
         :return: ``sliding`` attribute contains the results of the analysis, ``sliding_base_only`` gives the sliding capacity at the foundation base :math:`H_d` in kN, ``sliding_full`` gives the ultimate sliding resistance considering both base sliding and passive resistance :math:`H_d + \\Delta H` in kN
         """
 
-        if np.math.isnan(self.su_above_base):
+        if np.isnan(self.su_above_base):
             self.su_above_base = 0
 
         if self.option == 'circle':
@@ -1516,7 +1516,7 @@ class ShallowFoundationCapacityDrained(ShallowFoundationCapacity):
         else:
             outofplane_dimension = self.length
 
-        if np.math.isnan(interface_frictionangle):
+        if np.isnan(interface_frictionangle):
             interface_frictionangle = self.friction_angle - 5
         else:
             pass

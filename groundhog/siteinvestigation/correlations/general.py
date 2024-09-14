@@ -168,12 +168,12 @@ def shearwavevelocity_compressionindex_cha(
     Reference - Cha et al (2014). Small-Strain Stiffness, Shear-Wave Velocity and Soil Compressibilitys. Journal of Geotechnical and Geoenvironmental Engineering.
 
     """
-    if np.math.isnan(alpha):
+    if np.isnan(alpha):
         _alpha = calibration_factor_alpha_1 * (Cc ** calibration_factor_alpha_2)
     else:
         _alpha = alpha
 
-    if np.math.isnan(beta):
+    if np.isnan(beta):
         _beta = calibration_factor_beta_1 * np.log10(Cc) + calibration_factor_beta_2
     else:
         _beta = beta

@@ -148,5 +148,5 @@ class Test_SPTProcessing(unittest.TestCase):
             name='N60 correction',
             outputs={'N60 [-]': 'N60 [-]'}
         )
-        self.assertTrue(np.math.isnan(self.pandas_spt.data['N60 [-]'].iloc[2]))
+        self.assertTrue(np.isnan(self.pandas_spt.data['N60 [-]'].iloc[2]))
 

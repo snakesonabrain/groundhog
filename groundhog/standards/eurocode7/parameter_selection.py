@@ -59,7 +59,7 @@ def constant_value(data, mode='Low', cov=np.nan, confidence=0.95, **kwargs):
     t_nminus1 = t.ppf(confidence, r)
 
     if mode == 'Low':
-        if np.math.isnan(cov):
+        if np.isnan(cov):
             # COV unknown
             kn = t_nminus1 * np.sqrt((1 / n) + 1)
             cov = np.array(data).std() / np.array(data).mean()
@@ -67,7 +67,7 @@ def constant_value(data, mode='Low', cov=np.nan, confidence=0.95, **kwargs):
             # COV known
             kn = 1.64 * np.sqrt((1 / n) + 1)
     elif mode == "Mean":
-        if np.math.isnan(cov):
+        if np.isnan(cov):
             # COV unknown
             kn = t_nminus1 * np.sqrt(1 / n)
             cov = np.array(data).std() / np.array(data).mean()

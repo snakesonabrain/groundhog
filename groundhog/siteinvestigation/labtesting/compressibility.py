@@ -121,7 +121,7 @@ def roottimemethod(times, settlements, drainagelength, initialguess_override=np.
     def intersection(x):
         return OB_func(x) - data_func(x)
     
-    if np.math.isnan(initialguess_override):
+    if np.isnan(initialguess_override):
         initial_guess = pointA[0]
     else:
         initial_guess = initialguess_override
@@ -267,7 +267,7 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
     def intersection_primary_secondary(x):
         return primary_func(x) - secondary_func(x)
 
-    if np.math.isnan(initialguess_override):
+    if np.isnan(initialguess_override):
         initial_guess = 1.5 * x1_primary
     else:
         initial_guess = initialguess_override

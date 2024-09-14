@@ -1,4 +1,5 @@
 v0.13.0, TBD
+    - Update of requirements to Numpy >= 2.1
     - Ensured the cv arrays in consolidation calcs are treated as Numpy arrays
     - Increased the timeout for interactive parameter selection to two minutes
     - Added formula for calculation of void ratio from dry density

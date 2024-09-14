@@ -283,14 +283,14 @@ class Test_PCPTProcessing(unittest.TestCase):
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[275, "Ic [-]"], 2.993, 2
         )
-        self.assertTrue(np.math.isnan(self.pandas_pcpt.data.loc[275, "Gmax sand [kPa]"]))
+        self.assertTrue(np.isnan(self.pandas_pcpt.data.loc[275, "Gmax sand [kPa]"]))
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[275, "Gmax clay [kPa]"], 45333, 0
         )
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[605, "Ic [-]"], 1.505, 3
         )
-        self.assertTrue(np.math.isnan(self.pandas_pcpt.data.loc[605, "Gmax clay [kPa]"]))
+        self.assertTrue(np.isnan(self.pandas_pcpt.data.loc[605, "Gmax clay [kPa]"]))
         self.assertAlmostEqual(
             self.pandas_pcpt.data.loc[605, "Gmax sand [kPa]"], 107283, 0
         )

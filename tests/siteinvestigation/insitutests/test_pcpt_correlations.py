@@ -122,7 +122,7 @@ class Test_ocr_cpt_lunne(unittest.TestCase):
         self.assertAlmostEqual(result['OCR_Qt_LE [-]'], 2.28, 2)
         self.assertAlmostEqual(result['OCR_Qt_BE [-]'], 3.01, 2)
         self.assertAlmostEqual(result['OCR_Qt_HE [-]'], 4.68, 2)
-        self.assertTrue(np.math.isnan(result['OCR_Bq_LE [-]']))
+        self.assertTrue(np.isnan(result['OCR_Bq_LE [-]']))
 
         result = pcpt_correlations.ocr_cpt_lunne(
             Qt=10, Bq=0.6)

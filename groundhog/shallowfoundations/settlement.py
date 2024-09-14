@@ -356,7 +356,7 @@ class SettlementCalculation(object):
         else:
             raise ValueError("Foundation shape must be one of: 'strip', 'circular', 'rectangular'")
         if shape == 'rectangular':
-            if np.math.isnan(length):
+            if np.isnan(length):
                 raise ValueError("Length needs to be defined for a rectangular foundation")
         self.length = length
         self.skirt_depth = skirt_depth

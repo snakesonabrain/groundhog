@@ -56,8 +56,8 @@ class PlasticityChart(object):
             line=dict(width=1, color='black'))
         self.fig.append_trace(_data, 1, 1)
 
-        self.fig['layout']['xaxis1'].update(title=r'$ \text{Liquid limit [%]} $', range=(0, 100), dtick=10)
-        self.fig['layout']['yaxis1'].update(title=r'$ \text{Plasticity index [%]} $', range=(0, 60), dtick=10)
+        self.fig['layout']['xaxis1'].update(title='Liquid limit [%]', range=(0, 100), dtick=10)
+        self.fig['layout']['yaxis1'].update(title='Plasticity index [%]$', range=(0, 60), dtick=10)
         self.fig['layout'].update(
             height=plot_height, width=plot_width,
             title=plot_title,
@@ -111,7 +111,7 @@ class PSDChart(object):
         """
         self.fig = make_subplots(rows=1, cols=1, print_grid=False)
         self.fig['layout']['xaxis1'].update(
-            title=r'$ \text{Particle size} \ \text{[mm]}  $',
+            title='Particle size [mm]',
             type='log', range=(-3, 2),
             anchor='y',
             tickvals=[0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
@@ -125,7 +125,7 @@ class PSDChart(object):
                       1, 2, '', '', '', 6, '', '', '',
                       10, 20, '', '', '', 60, '', '', '', 100])
         self.fig['layout']['yaxis1'].update(
-            title=r'$ \% \ \text{finer} $', range=(-20, 100),
+            title=r'% finer', range=(-20, 100),
             tickvals=np.linspace(0, 100, 11),
             ticktext=list(map(lambda _x: '%.0f' % _x, np.linspace(0, 100, 11))))
         psd_plot_shapes = [

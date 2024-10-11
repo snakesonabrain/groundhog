@@ -34,7 +34,7 @@ MOHRCOULOMB_TRIAXIAL_COMPRESSION_ERRORRETURN = {
 }
 
 @Validator(MOHRCOULOMB_TRIAXIAL_COMPRESSION, MOHRCOULOMB_TRIAXIAL_COMPRESSION_ERRORRETURN)
-def mohrcoulomb_triaxial_compression(sigma_3, cohesion, phi, latex_titles=True,**kwargs):
+def mohrcoulomb_triaxial_compression(sigma_3, cohesion, phi, latex_titles=True, **kwargs):
 
     """
     Calculates Mohr's circle and the orientation of the failure plane for a situation in which the radial (effective) stress is kept constant. A Mohr-Coulomb failure criterion with (effective) cohesion and (effective) friction angle is used.
@@ -155,23 +155,6 @@ def mohrcoulomb_triaxial_compression(sigma_3, cohesion, phi, latex_titles=True,*
         'Mohr circle': _mohr_circle,
         'Plot': _plot,
     }
-
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-__author__ = 'Bruno Stuyts'
-
-# Native Python packages
-
-# 3rd party packages
-import numpy as np
-import pandas as pd
-from plotly import subplots
-import plotly.graph_objs as go
-
-# Project imports
-from groundhog.general.validation import Validator
-
 
 MOHRCOULOMB_TRIAXIAL_EXTENSION = {
     'sigma_1': {'type': 'float', 'min_value': 0.0, 'max_value': None},

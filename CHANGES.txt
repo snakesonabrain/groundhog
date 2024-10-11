@@ -1,4 +1,4 @@
-v0.13.0, TBD
+v0.13.0, 11/10/2024 - The Pirate release
     - Update of requirements to Numpy >= 2.1
     - Ensured the cv arrays in consolidation calcs are treated as Numpy arrays
     - Increased the timeout for interactive parameter selection to two minutes
@@ -6,6 +6,7 @@ v0.13.0, TBD
     - Added conversions between unit weight and density
     - Added conversions between void ratio and water content
     - Added CPT-based correlation for Vs according to Stuyts et al (2024)
+    - Added code to allow non-LaTeX axis and trace titles in boilerplate Plotly plots
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

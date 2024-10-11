@@ -276,7 +276,7 @@ class KoppejanCalculation(object):
     def plot_shaft_resistance(
             self, plot_width=800, plot_height=600, plot_title=None, plot_margin=dict(t=100, l=50, b=50), show_fig=True,
             x_ranges=((0, 50), (0, 250), (0, 50), (0, 2000)), x_ticks=(10, 50, 10, 400), y_range=None, y_tick=2,
-            legend_orientation='h', legend_x=0.05, legend_y=-0.05):
+            legend_orientation='h', legend_x=0.05, legend_y=-0.05, latex_titles=True):
         """
 
         :param plot_width: Width of the plot (default = 800px)
@@ -291,50 +291,78 @@ class KoppejanCalculation(object):
         :param legend_orientation: Orientation of the plot legend (default = ``'h'``)
         :param legend_x: x-coordinate of the legend (plot is between 0 and 1, default=0.05 to start at an offset from the left edge)
         :param legend_y: y-coordinate of the legend (plot is between 0 and 1, default=-0.05 to be below the plot)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return: Sets the attribute ``shaft_fig`` of the ``KoppejanCalculation`` object
         """
+        if latex_titles:
+            qc_trace_title = r'$ q_c $'
+            qclim_trace_title = r'$ q_{c,lim} $'
+            qcselected_trace_title = r'$ q_{c,selected} $'
+            tau_s_max_trace_title = r'$ \tau_{s,max} $'
+            dT_trace_title = r'$ dT $'
+            Frs_trace_title = r'$ F_{rs} $'
+            Frs_calc_trace_title = r'$ F_{rs,calc} $'
+            qc_axis_title = r'$ q_c \ \text{[MPa]}$'
+            tau_s_axis_title = r'$ \tau_{s,max} \ \text{[kPa]} $'
+            dT_axis_title = r'$ dT \ \text{[kN/m]} $'
+            T_axis_title = r'$ T \ \text{[kN]} $'
+            z_axis_title = r'$ z \ \text{[m]} $'
+        else:
+            qc_trace_title = 'qc'
+            qclim_trace_title = 'qc,lim'
+            qcselected_trace_title = 'qc,selected'
+            tau_s_max_trace_title = 'tau_s,max'
+            dT_trace_title = 'dT'
+            Frs_trace_title = 'Frs'
+            Frs_calc_trace_title = 'Frs,calc'
+            qc_axis_title = 'qc [MPa]'
+            tau_s_axis_title = 'tau_s,max [kPa]'
+            dT_axis_title = 'dT [kN/m]'
+            T_axis_title = 'T [kN]'
+            z_axis_title = 'z [m]'
+
         self.shaft_fig = subplots.make_subplots(rows=1, cols=4, print_grid=False, shared_yaxes=True)
         trace1a = go.Scatter(x=self.data["qc [MPa]"], y=self.data["z [m]"],
-                             showlegend=True, mode='lines', name=r'$ q_c $')
+                             showlegend=True, mode='lines', name=qc_trace_title)
         self.shaft_fig.append_trace(trace1a, 1, 1)
         trace1b = go.Scatter(x=self.data["qclim [MPa]"], y=self.data["z [m]"],
-                             showlegend=True, mode='lines', name=r'$ q_{c,lim} $',
+                             showlegend=True, mode='lines', name=qclim_trace_title,
                              line=dict(color='red', dash='dashdot'))
         self.shaft_fig.append_trace(trace1b, 1, 1)
         trace1c = go.Scatter(x=self.data["qc selected [MPa]"], y=self.data["z [m]"],
-                             showlegend=True, mode='lines', name=r'$ q_{c,selected} $',
+                             showlegend=True, mode='lines', name=qcselected_trace_title,
                              line=dict(color='green', dash='dot', width=3))
         self.shaft_fig.append_trace(trace1c, 1, 1)
         trace2 = go.Scatter(x=self.data["tau s max [kPa]"], y=self.data["z [m]"],
-                            showlegend=False, mode='lines', name=r'$ \tau_{s,max} $')
+                            showlegend=False, mode='lines', name=tau_s_max_trace_title)
         self.shaft_fig.append_trace(trace2, 1, 2)
         trace3 = go.Scatter(x=self.data["dT [kN/m]"], y=self.data["z [m]"],
-                            showlegend=False, mode='lines', name=r'$ dT $')
+                            showlegend=False, mode='lines', name=dT_trace_title)
         self.shaft_fig.append_trace(trace3, 1, 3)
         trace4 = go.Scatter(x=self.data["Frs [kN]"], y=self.data["z [m]"],
-                            showlegend=False, mode='lines', name=r'$ F_{rs} $')
+                            showlegend=False, mode='lines', name=Frs_trace_title)
         self.shaft_fig.append_trace(trace4, 1, 4)
         trace5 = go.Scatter(x=[self.Frs,], y=[self.penetration,],
-                            showlegend=False, mode='markers', name=r'$ F_{rs,calc} $',
+                            showlegend=False, mode='markers', name=Frs_calc_trace_title,
                             marker=dict(size=10,color='red',line=dict(width=2,color='black')))
         self.shaft_fig.append_trace(trace5, 1, 4)
         self.shaft_fig['layout']['xaxis1'].update(
-            title=r'$ q_c \text{ } [MPa] $', side='top', anchor='y',
+            title=qc_axis_title, side='top', anchor='y',
             range=x_ranges[0], dtick=x_ticks[0])
         self.shaft_fig['layout']['xaxis2'].update(
-            title=r'$ \tau_{s,max} \text{ } [kPa] $', side='top', anchor='y',
+            title=tau_s_axis_title, side='top', anchor='y',
             range=x_ranges[1], dtick=x_ticks[1])
         self.shaft_fig['layout']['xaxis3'].update(
-            title=r'$ dT \text{ } [kN/m] $', side='top', anchor='y',
+            title=dT_axis_title, side='top', anchor='y',
             range=x_ranges[2], dtick=x_ticks[2])
         self.shaft_fig['layout']['xaxis4'].update(
-            title=r'$ T \text{ } [kN] $', side='top', anchor='y',
+            title=T_axis_title, side='top', anchor='y',
             range=x_ranges[3], dtick=x_ticks[3])
         if y_range is None:
-            self.shaft_fig['layout']['yaxis1'].update(title=r'$ z [m] $', autorange='reversed', dtick=y_tick)
+            self.shaft_fig['layout']['yaxis1'].update(title=z_axis_title, autorange='reversed', dtick=y_tick)
         else:
             self.shaft_fig['layout']['yaxis1'].update(
-                title=r'$ z [m] $', range=y_range, dtick=y_tick)
+                title=z_axis_title, range=y_range, dtick=y_tick)
         self.shaft_fig['layout'].update(height=plot_height, width=plot_width,
             title=plot_title,
             margin=plot_margin,
@@ -344,7 +372,7 @@ class KoppejanCalculation(object):
 
     def plot_baseconstruction(
             self, plot_width=500, plot_height=600, plot_title=None, plot_margin=dict(t=50, l=50, b=50), show_fig=True,
-            x_range=(0, 50), y_range=None):
+            x_range=(0, 50), y_range=None, latex_titles=True):
         """
         Plots the Koppejan base resistance construction
 
@@ -355,20 +383,42 @@ class KoppejanCalculation(object):
         :param show_fig: Boolean determining whether the plot needs to be displayed (default=True)
         :param x_range: Range of x-values to be used for the plotting (default=0-50)
         :param y_range: Range of y-values to be used for the plotting (default=None which causes ``reversed`` to be used
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return: Sets the attribute ``base_fig`` of the ``KoppejanCalculation`` object
         """
+        if latex_titles:
+            qc_trace_title = r'$ q_c $'
+            qcII_trace_title = r'$ q_{cII} $'
+            qcII_selected_trace_title = r'$ q_{cII,selected} $'
+            qcI_values_trace_title = r'$ q_{c,I,values}$'
+            qcI_selected_trace_title = r'$ q_{cI,selected} $'
+            qcIII_values_trace_title = r'$ q_{cIII,values} $'
+            qcIII_selected_trace_title = r'$ q_{cIII,selected} $'
+            qc_axis_title = r'$ q_c \ \text{[MPa]} $'
+            z_axis_title = r'$ z \ \text{[m]} $'
+        else:
+            qc_trace_title = 'qc'
+            qcII_trace_title = 'qcII'
+            qcII_selected_trace_title = 'qcII,selected'
+            qcI_values_trace_title = 'qcI,values'
+            qcI_selected_trace_title = 'qcI,selected'
+            qcIII_values_trace_title = 'qcIII,values'
+            qcIII_selected_trace_title = 'qcIII,selected'
+            qc_axis_title = 'qc [MPa]'
+            z_axis_title = 'z [m]'
+
         self.base_fig = subplots.make_subplots(rows=1, cols=1, print_grid=False, shared_yaxes=True)
         trace1 = go.Scatter(
             x=self.data['qc [MPa]'], y=self.data['z [m]'], showlegend=True, mode='lines',
-            name=r'$ q_c $')
+            name=qc_trace_title)
         self.base_fig.append_trace(trace1, 1, 1)
         trace1c = go.Scatter(
             x=self.qcII_values, y=self.qcII_depths, showlegend=True,
-            mode='lines', name=r'$ q_{cII} $', line=dict(color=DEFAULT_PLOTLY_COLORS[1]))
+            mode='lines', name=qcII_trace_title, line=dict(color=DEFAULT_PLOTLY_COLORS[1]))
         self.base_fig.append_trace(trace1c, 1, 1)
         # Add the selected qcII value
         trace1d = go.Scatter(
-            x=[self.qcII, ], y=[self.qcIIz, ], showlegend=True, mode='markers', name=r'$ q_{cII,selected} $',
+            x=[self.qcII, ], y=[self.qcIIz, ], showlegend=True, mode='markers', name=qcII_selected_trace_title,
             marker=dict(size=5, color=DEFAULT_PLOTLY_COLORS[1], line=dict(width=1, color='black')))
         self.base_fig.append_trace(trace1d, 1, 1)
         # Plot the pile tip depth
@@ -378,31 +428,31 @@ class KoppejanCalculation(object):
         self.base_fig.append_trace(trace1e, 1, 1)
         traceqcI = go.Scatter(
             x=self.qcI_data["qc I value [MPa]"], y=self.qcI_data["z [m]"], showlegend=True, mode='lines',
-            name=r'$ q_{c,I,values}$', line=dict(color=DEFAULT_PLOTLY_COLORS[2]))
+            name=qcI_values_trace_title, line=dict(color=DEFAULT_PLOTLY_COLORS[2]))
         self.base_fig.append_trace(traceqcI, 1, 1)
         trace1d = go.Scatter(
             x=[self.qcI, ],
             y=[self.penetration + 0.5 * (self.qcIIz - self.penetration), ],
-            showlegend=True, mode='markers', name=r'$ q_{cI,selected} $',
+            showlegend=True, mode='markers', name=qcI_selected_trace_title,
             marker=dict(size=5, color=DEFAULT_PLOTLY_COLORS[2], line=dict(width=1, color='black')))
         self.base_fig.append_trace(trace1d, 1, 1)
         traceqcIII = go.Scatter(
             x=self.qcIII_data["qc III value [MPa]"], y=self.qcIII_data["z [m]"],
-            showlegend=True, mode='lines', name=r'$ q_{cIII,values} $',
+            showlegend=True, mode='lines', name=qcIII_values_trace_title,
             line=dict(color=DEFAULT_PLOTLY_COLORS[3]))
         self.base_fig.append_trace(traceqcIII, 1, 1)
         trace1d = go.Scatter(
             x=[self.qcIII, ],
             y=[self.penetration - 4 * (self.diameter), ],
-            showlegend=True, mode='markers', name=r'$ q_{cIII,selected} $',
+            showlegend=True, mode='markers', name=qcIII_selected_trace_title,
             marker=dict(size=5, color=DEFAULT_PLOTLY_COLORS[3], line=dict(width=1, color='black')))
         self.base_fig.append_trace(trace1d, 1, 1)
 
-        self.base_fig['layout']['xaxis1'].update(title=r'$ q_c \ \text{[MPa]} $', side='top', anchor='y', range=x_range)
+        self.base_fig['layout']['xaxis1'].update(title=qc_axis_title, side='top', anchor='y', range=x_range)
         if y_range is None:
-            self.base_fig['layout']['yaxis1'].update(title=r'$ z \ \text{[m]} $', autorange='reversed')
+            self.base_fig['layout']['yaxis1'].update(title=z_axis_title, autorange='reversed')
         else:
-            self.base_fig['layout']['yaxis1'].update(title=r'$ z \ \text{[m]} $', range=y_range)
+            self.base_fig['layout']['yaxis1'].update(title=z_axis_title, range=y_range)
         self.base_fig['layout'].update(height=plot_height, width=plot_width,
                              title=plot_title,
                              margin=plot_margin,

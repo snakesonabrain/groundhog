@@ -56,7 +56,7 @@ class Test_map_depth_properties(unittest.TestCase):
             result[result["z [m]"] == 5]["Undrained shear strength [kPa]"].iloc[0], 50
         )
         self.assertTrue(
-            np.math.isnan(result[result["z [m]"] == 5]["Effective friction angle [deg]"].iloc[0]))
+            np.isnan(result[result["z [m]"] == 5]["Effective friction angle [deg]"].iloc[0]))
         result = parameter_mapping.map_depth_properties(
             target_df=self.target_df_altcol,
             layering_df=self.layering_df_altcols,
@@ -74,7 +74,7 @@ class Test_map_depth_properties(unittest.TestCase):
             result[result["Depth [m]"] == 5]["Undrained shear strength [kPa]"].iloc[0], 50
         )
         self.assertTrue(
-            np.math.isnan(result[result["Depth [m]"] == 5]["Effective friction angle [deg]"].iloc[0])
+            np.isnan(result[result["Depth [m]"] == 5]["Effective friction angle [deg]"].iloc[0])
         )
 
 class Test_offsets(unittest.TestCase):

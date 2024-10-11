@@ -121,7 +121,7 @@ def validate_list(var_name,value,elementtype=None,order=None,unique=None,empty_a
     
     if order=='ascending':
         try:
-            if sorted(value)==value and (np.NaN not in value):
+            if sorted(value)==value and (np.nan not in value):
                 pass
             else:
                 raise ValueError("List %s is not ascending" % str(value))
@@ -129,7 +129,7 @@ def validate_list(var_name,value,elementtype=None,order=None,unique=None,empty_a
             raise ValueError("%s" % str(err))
     elif order=='descending':
         try:
-            if sorted(value)==list(reversed(value)) and (np.NaN not in value):
+            if sorted(value)==list(reversed(value)) and (np.nan not in value):
                 pass
             else:
                 raise ValueError("List %s is not descending" % str(value))

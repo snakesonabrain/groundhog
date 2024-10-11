@@ -76,7 +76,7 @@ def cyclicstressratio_moss(
 
     """
 
-    if np.math.isnan(rd_override):
+    if np.isnan(rd_override):
         if depth >= 20:
             _rd = (1 +
                    ((-9.147 - 4.173 * (acceleration / gravity) + 0.652 * magnitude) /
@@ -100,7 +100,7 @@ def cyclicstressratio_moss(
     else:
         _rd = rd_override
 
-    if np.math.isnan(DWF_override):
+    if np.isnan(DWF_override):
         _DWF = 17.84 * (magnitude ** (-1.43))
     else:
         _DWF = DWF_override
@@ -419,7 +419,7 @@ def liquefactionprobability_moss(
         _spline = interpolate.UnivariateSpline(_csr_array, _qc_array)
         qcpl_array = np.append(qcpl_array, _spline(CSR_star))
 
-    if np.math.isnan(c_override):
+    if np.isnan(c_override):
         _qc = qc
         for i in range(10):
             f_1 = x1 * (qc ** x2)
@@ -431,7 +431,7 @@ def liquefactionprobability_moss(
     else:
         _c = c_override
 
-    if np.math.isnan(delta_qc_override):
+    if np.isnan(delta_qc_override):
         if Rf < 0.5:
             _delta_qc = 0
         else:

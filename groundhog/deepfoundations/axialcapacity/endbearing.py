@@ -19,8 +19,8 @@ API_UNIT_END_BEARING_CLAY = {
 }
 
 API_UNIT_END_BEARING_CLAY_ERRORRETURN = {
-    'q_b_coring [kPa]': np.NaN,
-    'q_b_plugged [kPa]': np.NaN,
+    'q_b_coring [kPa]': np.nan,
+    'q_b_plugged [kPa]': np.nan,
     'plugged': None,
     'internal_friction': False
 }
@@ -63,12 +63,12 @@ API_UNIT_END_BEARING_SAND_RP2GEO = {
 }
 
 API_UNIT_END_BEARING_SAND_RP2GEO_ERRORRETURN = {
-    'q_b_coring [kPa]': np.NaN,
-    'q_b_plugged [kPa]': np.NaN,
+    'q_b_coring [kPa]': np.nan,
+    'q_b_plugged [kPa]': np.nan,
     'plugged': None,
     'internal_friction': False,
-    'q_b_lim [kPa]': np.NaN,
-    'Nq [-]': np.NaN
+    'q_b_lim [kPa]': np.nan,
+    'Nq [-]': np.nan
 }
 
 @Validator(API_UNIT_END_BEARING_SAND_RP2GEO, API_UNIT_END_BEARING_SAND_RP2GEO_ERRORRETURN)

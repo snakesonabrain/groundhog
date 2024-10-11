@@ -416,7 +416,7 @@ class DeBeerCalculation(object):
                              plot_title=None, plot_height=800, plot_width=600,
                              plot_margin=dict(t=100, l=50, b=50), show_fig=True,
                              x_range=None, x_tick=None, y_range=None, y_tick=None,
-                             legend_orientation='h', legend_x=0.05, legend_y=-0.05):
+                             legend_orientation='h', legend_x=0.05, legend_y=-0.05, latex_titles=True):
         """
         Plots the base resistance construction according to De Beer
 
@@ -434,21 +434,37 @@ class DeBeerCalculation(object):
         :param legend_orientation: Orientation of the legend (default=``'h'`` for horizontal)
         :param legend_x: x Position of the legend (default=0.05 for 5% from plot left edge)
         :param legend_y: y Position of the legend (default=-0.05 for 5% below plot bottom)
+        :param latex_titles: Boolean determining whether trace names and axis titles are shown as LaTeX (default = True)
         :return: Creates the Plotly figure ``base_plot`` as an attribute of the object
         """
+        if latex_titles:
+            qc_trace_title = r'$ q_c $'
+            qb_trace_title = r'$ q_{b} $'
+            qb_diameter1_trace_title = r'$ q_{b,%.1fm} $' % self.diameter_1
+            qb_diameter2_trace_title = r'$ q_{b,%.1fm} $' % self.diameter_2
+            qc_axis_title = r'$ q_c, \ q_b \ \text{[MPa]} $'
+            z_axis_title = r'$ z \ \text{[m]} $'
+        else:
+            qc_trace_title = 'qc'
+            qb_trace_title = 'qb'
+            qb_diameter1_trace_title = 'qb,%.1fm' % self.diameter_1
+            qb_diameter2_trace_title = 'qb,%.1fm' % self.diameter_2
+            qc_axis_title = 'qc, qb [MPa]'
+            z_axis_title = 'z [m]'
+
         self.base_plot = subplots.make_subplots(rows=1, cols=1, print_grid=False)
         traceqc = go.Scatter(x=self.qc_raw, y=self.depth_raw,
-                             showlegend=True, mode='lines', name=r'$ q_c $')
+                             showlegend=True, mode='lines', name=qc_trace_title)
         self.base_plot.append_trace(traceqc, 1, 1)
         traceqb = go.Scatter(x=self.qb, y=self.depth,
-                             showlegend=True, mode='lines', name=r'$ q_{b} $')
+                             showlegend=True, mode='lines', name=qb_trace_title)
         self.base_plot.append_trace(traceqb, 1, 1)
         if show_standard_diameters:
             trace_diameter_1 = go.Scatter(x=self.calc_1['qb [MPa]'], y=self.depth,
-                                 showlegend=True, mode='lines', name=r'$ q_{b,%.1fm} $' % self.diameter_1)
+                                 showlegend=True, mode='lines', name=qb_diameter1_trace_title)
             self.base_plot.append_trace(trace_diameter_1, 1, 1)
             trace_diameter_2 = go.Scatter(x=self.calc_2['qb [MPa]'], y=self.depth,
-                                          showlegend=True, mode='lines', name=r'$ q_{b,%.1fm} $' % self.diameter_2)
+                                          showlegend=True, mode='lines', name=qb_diameter2_trace_title)
             self.base_plot.append_trace(trace_diameter_2, 1, 1)
         if selected_depth is not None:
             qb_selected = np.interp(selected_depth, self.depth_qb, self.qb)
@@ -458,13 +474,13 @@ class DeBeerCalculation(object):
             self.base_plot.append_trace(traceqb_selected, 1, 1)
 
         self.base_plot['layout']['xaxis1'].update(
-            title=r'$ q_c, \ q_b \ \text{[MPa]} $', side='top', anchor='y',
+            title=qc_axis_title, side='top', anchor='y',
             range=x_range, dtick=x_tick)
         if y_range is None:
-            self.base_plot['layout']['yaxis1'].update(title=r'$ z \ \text{[m]} $', autorange='reversed', dtick=y_tick)
+            self.base_plot['layout']['yaxis1'].update(title=z_axis_title, autorange='reversed', dtick=y_tick)
         else:
             self.base_plot['layout']['yaxis1'].update(
-                title=r'$ z \ \text{[m]} $', range=y_range, dtick=y_tick)
+                title=z_axis_title, range=y_range, dtick=y_tick)
         self.base_plot['layout'].update(height=plot_height, width=plot_width,
                                         title=plot_title,
                                         margin=plot_margin,
@@ -562,7 +578,7 @@ class DeBeerCalculation(object):
     def plot_unit_shaft_friction(self, plot_title=None, plot_height=800, plot_width=600,
                                  plot_margin=dict(t=100, l=50, b=50), show_fig=True,
                                  x_ranges=(None, (0, 160)), x_ticks=(None, None), y_range=None, y_tick=None,
-                                 legend_orientation='h', legend_x=0.05, legend_y=-0.05):
+                                 legend_orientation='h', legend_x=0.05, legend_y=-0.05, latex_titles=True):
         """
         Plots the qc averaging and the unit shaft friction following from this
 
@@ -578,11 +594,27 @@ class DeBeerCalculation(object):
         :param legend_orientation: Orientation of the legend (default=``'h'`` for horizontal)
         :param legend_x: x Position of the legend (default=0.05 for 5% from plot left edge)
         :param legend_y: y Position of the legend (default=-0.05 for 5% below plot bottom)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return: Creates the Plotly figure ``unit_shaft_plot`` as an attribute of the object
         """
+        if latex_titles:
+            qc_trace_title = r'$ q_c $'
+            qc_avg_trace_title = r'$ q_{c,avg} $'
+            qs_trace_title = r'$ q_{s} $'
+            qc_axis_title = r'$ q_c \ \text{[MPa]} $'
+            qs_axis_title = r'$ q_s \ \text{[kPa]} $'
+            z_axis_title = r'$ z \ \text{[m]} $'
+        else:
+            qc_trace_title = 'qc'
+            qc_avg_trace_title = 'qc,avg'
+            qs_trace_title = 'qs'
+            qc_axis_title = 'qc [MPa]'
+            qs_axis_title = 'qs [MPa]'
+            z_axis_title = 'z [m]'
+
         self.unit_shaft_plot = subplots.make_subplots(rows=1, cols=2, print_grid=False, shared_yaxes=True)
         trace_qc = go.Scatter(x=self.qc_raw, y=self.depth_raw,
-                             showlegend=True, mode='lines', name=r'$ q_c $')
+                             showlegend=True, mode='lines', name=qc_trace_title)
         self.unit_shaft_plot.append_trace(trace_qc, 1, 1)
         trace_qc_avg = go.Scatter(
             x=np.insert(np.array(self.layering['qc avg [MPa]']),
@@ -591,7 +623,7 @@ class DeBeerCalculation(object):
             y=np.insert(np.array(self.layering['Depth to [m]']),
                         np.arange(len(self.layering['Depth from [m]'])),
                         self.layering['Depth from [m]']),
-            showlegend=True, mode='lines', name=r'$ q_{c,avg} $')
+            showlegend=True, mode='lines', name=qc_avg_trace_title)
         self.unit_shaft_plot.append_trace(trace_qc_avg, 1, 1)
         trace_qs = go.Scatter(
             x=np.insert(np.array(self.layering['qs [kPa]']),
@@ -600,19 +632,20 @@ class DeBeerCalculation(object):
             y=np.insert(np.array(self.layering['Depth to [m]']),
                         np.arange(len(self.layering['Depth from [m]'])),
                         self.layering['Depth from [m]']),
-            showlegend=True, mode='lines', name=r'$ q_{s} $')
+            showlegend=True, mode='lines', name=qs_trace_title)
         self.unit_shaft_plot.append_trace(trace_qs, 1, 2)
         self.unit_shaft_plot['layout']['xaxis1'].update(
-            title=r'$ q_c \ \text{[MPa]} $', side='top', anchor='y',
+            title=qc_axis_title, side='top', anchor='y',
             range=x_ranges[0], dtick=x_ticks[0])
         self.unit_shaft_plot['layout']['xaxis2'].update(
-            title=r'$ q_s \ \text{[kPa]} $', side='top', anchor='y',
+            title=qs_axis_title, side='top', anchor='y',
             range=x_ranges[1], dtick=x_ticks[1])
         if y_range is None:
-            self.unit_shaft_plot['layout']['yaxis1'].update(title=r'$ z \ \text{[m]} $', autorange='reversed', dtick=y_tick)
+            self.unit_shaft_plot['layout']['yaxis1'].update(
+                title=z_axis_title, autorange='reversed', dtick=y_tick)
         else:
             self.unit_shaft_plot['layout']['yaxis1'].update(
-                title=r'$ z \ \text{[m]} $', range=y_range, dtick=y_tick)
+                title=z_axis_title, range=y_range, dtick=y_tick)
         self.unit_shaft_plot['layout'].update(height=plot_height, width=plot_width,
                                         title=plot_title,
                                         margin=plot_margin,

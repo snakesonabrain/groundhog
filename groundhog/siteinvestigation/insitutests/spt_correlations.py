@@ -182,7 +182,7 @@ def spt_N60_correction(
     """
     
     # Hammer efficiency correction
-    if np.math.isnan(eta_H):
+    if np.isnan(eta_H):
         if country == 'Japan':
             if hammertype == 'Donut':
                 if hammerrelease == 'Free fall':
@@ -225,7 +225,7 @@ def spt_N60_correction(
             else:
                 raise ValueError("Hammer type not recognised for China.")
         elif country == 'Other':
-            if np.math.isnan(eta_H):
+            if np.isnan(eta_H):
                 raise ValueError("For country='Other', an override for eta_H should be specified.")
             else:
                 pass
@@ -235,7 +235,7 @@ def spt_N60_correction(
         _eta_H = eta_H
 
     # Borehole diameter correction
-    if np.math.isnan(eta_B):
+    if np.isnan(eta_B):
         if 60 < borehole_diameter < 120:
             _eta_B = 1
         elif borehole_diameter == 150:
@@ -248,7 +248,7 @@ def spt_N60_correction(
         _eta_B = eta_B
 
     # Sample type correction
-    if np.math.isnan(eta_S):
+    if np.isnan(eta_S):
         if samplertype == 'Standard sampler':
             _eta_S = 1.0
         elif samplertype == 'With liner for dense sand and clay':
@@ -261,7 +261,7 @@ def spt_N60_correction(
         _eta_S = eta_S
 
     # Rod length correction
-    if np.math.isnan(eta_R):
+    if np.isnan(eta_R):
         if 0 <= rod_length < 4:
             _eta_R = 0.75
         elif 4 <= rod_length < 6:
@@ -350,14 +350,14 @@ def relativedensity_spt_kulhawymayne(
     Reference - Kulhawy FH, Mayne PW (1990) Manual on estimating soil properties for foundation design. Electric Power Research Institute, Palo Alto
 
     """
-    if np.math.isnan(ca_override):
+    if np.isnan(ca_override):
         if time_since_deposition == 1:
             _C_A = 1
         else:
             _C_A = 1.2 + 0.05 * np.log10(time_since_deposition / 100)
     else:
         _C_A = ca_override
-    if np.math.isnan(cocr_override):
+    if np.isnan(cocr_override):
         _C_OCR = ocr ** 0.18
     else:
         _C_OCR = cocr_override
@@ -427,7 +427,7 @@ def undrainedshearstrength_spt_salgado(
     Reference - Salgado R (2008) The engineering of foundations. McGraw-Hill, New York
 
     """
-    if np.math.isnan(alpha_prime_override):
+    if np.isnan(alpha_prime_override):
         _pi = [15, 20, 25, 30, 40, 60]
         _alpha = [0.068,  0.055, 0.048, 0.045, 0.044, 0.043]
         _alpha_prime = np.interp(pi, _pi, _alpha)

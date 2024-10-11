@@ -7,7 +7,7 @@ __author__ = 'Bruno Stuyts'
 
 # 3rd party packages
 import numpy as np
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 
 # Project imports
 from groundhog.general.validation import Validator
@@ -98,7 +98,7 @@ def negativeskinfriction_pilegroup_zeevaertdebeer(
                np.tan(np.radians(np.array(interface_friction_angles))) * \
                (circumference / area)
 
-    _virgin_effective_stress = np.append(0, cumtrapz(
+    _virgin_effective_stress = np.append(0, cumulative_trapezoid(
         y=np.array(effective_unit_weights),
         x=np.array(depths))) + surcharge
 
@@ -112,11 +112,11 @@ def negativeskinfriction_pilegroup_zeevaertdebeer(
                     (sigma_v_neg_fd[i - 1] / np.diff(depths)[0]))
     _group_effective_stress = sigma_v_neg_fd
     _negative_skin_friction_profile_single = \
-        np.append(0, cumtrapz(_virgin_effective_stress, depths)) * \
+        np.append(0, cumulative_trapezoid(_virgin_effective_stress, depths)) * \
         np.pi * diameter * np.array(lateral_earth_pressure_coefficients) * \
         np.tan(np.radians(np.array(interface_friction_angles)))
     _negative_skin_friction_profile_group = \
-        np.append(0, cumtrapz(sigma_v_neg_fd, depths)) * \
+        np.append(0, cumulative_trapezoid(sigma_v_neg_fd, depths)) * \
         np.pi * diameter * np.array(lateral_earth_pressure_coefficients) * \
         np.tan(np.radians(np.array(interface_friction_angles)))
 

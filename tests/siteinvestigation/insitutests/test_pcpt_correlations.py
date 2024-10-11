@@ -122,7 +122,7 @@ class Test_ocr_cpt_lunne(unittest.TestCase):
         self.assertAlmostEqual(result['OCR_Qt_LE [-]'], 2.28, 2)
         self.assertAlmostEqual(result['OCR_Qt_BE [-]'], 3.01, 2)
         self.assertAlmostEqual(result['OCR_Qt_HE [-]'], 4.68, 2)
-        self.assertTrue(np.math.isnan(result['OCR_Bq_LE [-]']))
+        self.assertTrue(np.isnan(result['OCR_Bq_LE [-]']))
 
         result = pcpt_correlations.ocr_cpt_lunne(
             Qt=10, Bq=0.6)
@@ -396,3 +396,15 @@ class Test_constrainedmodulus_pcpt_robertson(unittest.TestCase):
         self.assertAlmostEqual(result['M [kPa]'], 89307, 0)
         
         
+class Test_vs_cpt_stuytsal(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.vs_stressdependent_stuyts(
+            sigma_vo_eff=100, ic=1.5, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 261.67, 2)
+
+        result = pcpt_correlations.vs_stressdependent_stuyts(
+            sigma_vo_eff=100, ic=3.0, fail_silently=False
+        )
+        self.assertAlmostEqual(result['Vs [m/s]'], 181.13, 2)

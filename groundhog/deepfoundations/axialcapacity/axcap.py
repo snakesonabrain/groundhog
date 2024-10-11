@@ -329,7 +329,7 @@ class AxCapCalculation(object):
         
         self.capacity_profile = _capacity_profile
 
-    def plot_single_penetration(self, return_fig=False, plot_title=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}):
+    def plot_single_penetration(self, return_fig=False, plot_title=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, latex_titles=True):
         """
         Plots unit skin friction, unit end bearing, the integration of unit skin friction over the shaft
         and the value of end bearing at the tip
@@ -339,38 +339,60 @@ class AxCapCalculation(object):
         z_fs, x_fs = self.output.soilparameter_series('Unit skin friction outside compression [kPa]')
         z_qb, x_qb = self.output.soilparameter_series('Unit end bearing coring [kPa]')
 
+        if latex_titles:
+            Fs_comp_out_trace_name = r'$ F_{s,comp,out} $'
+            Fs_tens_out_trace_name = r'$ F_{s,tens,out} $'
+            Fs_comp_in_trace_name = r'$ F_{s,comp,in} $'
+            Fs_tens_in_trace_name = r'$ F_{s,tens,in} $'
+            Qb_coring_trace_name = r'$ Q_{b,coring} $'
+            Qb_plugged_trace_name = r'$ Q_{b,plugged} $'
+        else:
+            Fs_comp_out_trace_name = 'Fs,comp,out'
+            Fs_tens_out_trace_name = 'Fs,tens,out'
+            Fs_comp_in_trace_name = 'Fs,comp,in'
+            Fs_tens_in_trace_name = 'Fs,tens,in'
+            Qb_coring_trace_name = 'Qb,coring'
+            Qb_plugged_trace_name = 'Qb,plugged'
+
         single_penetration_plot.add_trace(x=x_fs, z=z_fs, showlegend=False, mode='lines',name='fs comp', panel_no=1)
         single_penetration_plot.add_trace(x=x_qb, z=z_qb, showlegend=False, mode='lines',name='qb', panel_no=2)
         single_penetration_plot.add_trace(
             x=self.output["Fs compression outside [kN]"],
             z=self.output["z [m]"],
-            showlegend=True, mode='lines',name=r'$ F_{s,comp,out} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Fs_comp_out_trace_name, panel_no=3, resetaxisrange=False)
         single_penetration_plot.add_trace(
             x=-self.output["Fs tension outside [kN]"],
             z=self.output["z [m]"],
-            showlegend=True, mode='lines',name=r'$ F_{s,tens,out} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Fs_tens_out_trace_name, panel_no=3, resetaxisrange=False)
         single_penetration_plot.add_trace(
             x=self.output["Fs compression inside [kN]"],
             z=self.output["z [m]"],
-            showlegend=True, mode='lines',name=r'$ F_{s,comp,in} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Fs_comp_in_trace_name, panel_no=3, resetaxisrange=False)
         single_penetration_plot.add_trace(
             x=-self.output["Fs tension inside [kN]"],
             z=self.output["z [m]"],
-            showlegend=True, mode='lines',name=r'$ F_{s,tens,in} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Fs_tens_in_trace_name, panel_no=3, resetaxisrange=False)
         single_penetration_plot.add_trace(
             x=self.output["Qb coring [kN]"],
             z=self.output["z [m]"],
-            showlegend=True, mode='lines',name=r'$ Q_{b,coring} $', panel_no=4, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Qb_coring_trace_name, panel_no=4, resetaxisrange=False)
         single_penetration_plot.add_trace(
             x=self.output["Qb plugged [kN]"],
             z=self.output["z [m]"],
-            showlegend=True, mode='lines',name=r'$ Q_{b,plugged} $', panel_no=4, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Qb_plugged_trace_name, panel_no=4, resetaxisrange=False)
 
-        single_penetration_plot.set_xaxis(title=r'$ q_b \ \text{[kPa]} $', panel_no=2, range=(0, x_qb.max()))
-        single_penetration_plot.set_xaxis(title=r'$ f_s \ \text{[kPa]} $', panel_no=1, range=(0, x_fs.max()))
-        single_penetration_plot.set_xaxis(title=r'$ F_s \ \text{[kN]} $', panel_no=3)
-        single_penetration_plot.set_xaxis(title=r'$ Q_b \ \text{[kN]} $', panel_no=4)
-        single_penetration_plot.set_zaxis(title=r'$ z \ \text{[m]}$')
+        if latex_titles:
+            single_penetration_plot.set_xaxis(title=r'$ q_b \ \text{[kPa]} $', panel_no=2, range=(0, x_qb.max()))
+            single_penetration_plot.set_xaxis(title=r'$ f_s \ \text{[kPa]} $', panel_no=1, range=(0, x_fs.max()))
+            single_penetration_plot.set_xaxis(title=r'$ F_s \ \text{[kN]} $', panel_no=3)
+            single_penetration_plot.set_xaxis(title=r'$ Q_b \ \text{[kN]} $', panel_no=4)
+            single_penetration_plot.set_zaxis(title=r'$ z \ \text{[m]}$')
+        else:
+            single_penetration_plot.set_xaxis(title='qb [kPa]', panel_no=2, range=(0, x_qb.max()))
+            single_penetration_plot.set_xaxis(title='fs [kPa]', panel_no=1, range=(0, x_fs.max()))
+            single_penetration_plot.set_xaxis(title='Fs [kN]', panel_no=3)
+            single_penetration_plot.set_xaxis(title='Qb [kN]', panel_no=4)
+            single_penetration_plot.set_zaxis(title='z [m]')
         single_penetration_plot.fig['layout'].update(legend=dict(orientation='h', x=0.05, y=-0.1), title=plot_title)
 
         if return_fig:
@@ -378,77 +400,114 @@ class AxCapCalculation(object):
         else:
             single_penetration_plot.show()
 
-    def plot_all_penetrations(self, return_fig=False, plot_title=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}):
+    def plot_all_penetrations(self, return_fig=False, plot_title=None, fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, latex_titles=True):
         """
         Plots shaft resistance, tip resistance and total pile resistance for all pile penetrations.
         """
         all_penetrations_plot = LogPlot(soilprofile=self.sp, no_panels=3, fillcolordict=fillcolordict)
 
+        if latex_titles:
+            Rs_comp_plugged_trace_name = r'$ R_{s,comp,plugged} $'
+            Rs_tens_plugged_trace_name = r'$ R_{s,tens,plugged} $'
+            Rs_comp_coring_trace_name = r'$ R_{s,comp,coring} $'
+            Rs_tens_coring_trace_name = r'$ R_{s,tens,coring} $'
+            Rb_plugged_trace_name = r'$ R_{b,plugged} $'
+            Rb_coring_trace_name = r'$ R_{b,coring} $'
+            Wpile_trace_name = r'$ W_{pile} $'
+            Wsoilplug_trace_name = r'$ W_{soilplug} $'
+            Rt_comp_plugged_trace_name = r'$ R_{t,comp,plugged} $'
+            Rt_comp_coring_trace_name = r'$ R_{t,comp,coring} $'
+            Rt_comp_trace_name = r'$ R_{t,comp} $'
+            Rt_tens_plugged_trace_name = r'$ R_{t,tens,plugged} $'
+            Rt_tens_coring_trace_name = r'$ R_{t,tens,coring} $'
+            Rt_tens_trace_name = r'$ R_{t,tens} $'
+        else:
+            Rs_comp_trace_name = 'Rs,comp,plugged'
+            Rs_tens_plugged_trace_name = 'Rs,tens,plugged'
+            Rs_comp_coring_trace_name = 'Rs,comp,coring'
+            Rs_tens_coring_trace_name = 'Rs,tens,coring'
+            Rb_plugged_trace_name = 'Rb,plugged'
+            Rb_coring_trace_name = 'Rb,coring'
+            Wpile_trace_name = 'Wpile'
+            Wsoilplug_trace_name = 'Wsoilplug'
+            Rt_comp_plugged_trace_name = 'Rt,comp,plugged'
+            Rt_comp_coring_trace_name = 'Rt,comp,coring'
+            Rt_comp_trace_name = 'Rt,comp'
+            Rt_tens_plugged_trace_name = 'Rt,tens,plugged'
+            Rt_tens_coring_trace_name = 'Rt,tens,coring'
+            Rt_tens_trace_name = 'Rt,tens'
+
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rs compression plugged [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{s,comp,plugged} $', panel_no=1, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rs_comp_trace_name, panel_no=1, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=-self.capacity_profile["Rs tension plugged [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{s,tens,plugged} $', panel_no=1, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rs_tens_plugged_trace_name, panel_no=1, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rs compression coring [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{s,comp,coring} $', panel_no=1, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rs_comp_coring_trace_name, panel_no=1, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=-self.capacity_profile["Rs tension coring [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{s,tens,coring} $', panel_no=1, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rs_tens_coring_trace_name, panel_no=1, resetaxisrange=False)
 
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rb plugged [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{b,plugged} $', panel_no=2, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rb_plugged_trace_name, panel_no=2, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rb coring [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{b,coring} $', panel_no=2, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rb_coring_trace_name, panel_no=2, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=-self.capacity_profile["Pile weight [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ W_{pile} $', panel_no=2, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Wpile_trace_name, panel_no=2, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=-self.capacity_profile["Soil plug weight [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ W_{soilplug} $', panel_no=2, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Wsoilplug_trace_name, panel_no=2, resetaxisrange=False)
 
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rt compression plugged [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{t,comp,plugged} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rt_comp_plugged_trace_name, panel_no=3, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rt compression coring [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{t,comp,coring} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rt_comp_coring_trace_name, panel_no=3, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=self.capacity_profile["Rt compression [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
             line=dict(dash='dot'),
-            showlegend=True, mode='lines',name=r'$ R_{t,comp} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rt_comp_trace_name, panel_no=3, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=-self.capacity_profile["Rt tension plugged [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{t,tens,plugged} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rt_tens_plugged_trace_name, panel_no=3, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=-self.capacity_profile["Rt tension coring [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
-            showlegend=True, mode='lines',name=r'$ R_{t,tens,coring} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rt_tens_coring_trace_name, panel_no=3, resetaxisrange=False)
         all_penetrations_plot.add_trace(
             x=-self.capacity_profile["Rt tension [kN]"],
             z=self.capacity_profile["Pile penetration [m]"],
             line=dict(dash='dot'),
-            showlegend=True, mode='lines',name=r'$ R_{t,tens} $', panel_no=3, resetaxisrange=False)
+            showlegend=True, mode='lines',name=Rt_tens_trace_name, panel_no=3, resetaxisrange=False)
 
-        all_penetrations_plot.set_xaxis(title=r'$ R_s \ \text{[kN]} $', panel_no=1)
-        all_penetrations_plot.set_xaxis(title=r'$ R_b \ \text{[kN]} $', panel_no=2)
-        all_penetrations_plot.set_xaxis(title=r'$ R_t \ \text{[kN]} $', panel_no=3)
-        all_penetrations_plot.set_zaxis(title=r'$ z \ \text{[m]}$')
+        if latex_titles:
+            all_penetrations_plot.set_xaxis(title=r'$ R_s \ \text{[kN]} $', panel_no=1)
+            all_penetrations_plot.set_xaxis(title=r'$ R_b \ \text{[kN]} $', panel_no=2)
+            all_penetrations_plot.set_xaxis(title=r'$ R_t \ \text{[kN]} $', panel_no=3)
+            all_penetrations_plot.set_zaxis(title=r'$ z \ \text{[m]}$')
+        else:
+            all_penetrations_plot.set_xaxis(title='Rs [kN]', panel_no=1)
+            all_penetrations_plot.set_xaxis(title='Rb [kN]', panel_no=2)
+            all_penetrations_plot.set_xaxis(title='Rt [kN]', panel_no=3)
+            all_penetrations_plot.set_zaxis(title='z [m]')
         all_penetrations_plot.fig['layout'].update(legend=dict(orientation='h', x=0.05, y=-0.1), title=plot_title)
         
         if return_fig:

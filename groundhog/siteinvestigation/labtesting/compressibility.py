@@ -121,7 +121,7 @@ def roottimemethod(times, settlements, drainagelength, initialguess_override=np.
     def intersection(x):
         return OB_func(x) - data_func(x)
     
-    if np.math.isnan(initialguess_override):
+    if np.isnan(initialguess_override):
         initial_guess = pointA[0]
     else:
         initial_guess = initialguess_override
@@ -267,7 +267,7 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
     def intersection_primary_secondary(x):
         return primary_func(x) - secondary_func(x)
 
-    if np.math.isnan(initialguess_override):
+    if np.isnan(initialguess_override):
         initial_guess = 1.5 * x1_primary
     else:
         initial_guess = initialguess_override
@@ -308,8 +308,8 @@ def logtimemethod(times, settlements, drainagelength, initialguess_override=np.n
     
     # Generate the resulting plot
     if showfig:
-        plt.plot(np.linspace(2, 4, 250), primary_func(np.linspace(2, 4, 250)), label='Primary', ls='--')
-        plt.plot(np.linspace(2, 4, 250), secondary_func(np.linspace(2, 4, 250)), label='Secondary', ls='--')
+        plt.plot([x1_primary, x1_secondary], primary_func([x1_primary, x1_secondary]), label='Primary', ls='--')
+        plt.plot([x2_primary, x2_secondary], secondary_func([x2_primary, x2_secondary]), label='Secondary', ls='--')
         plt.scatter([xA,], [yA,],)
         plt.scatter([xB, xC, xB], [yB, yC, yD],)
         plt.scatter([xE,], [yE,],)

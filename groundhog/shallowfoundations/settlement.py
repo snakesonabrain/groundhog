@@ -293,48 +293,65 @@ class SettlementCalculation(object):
             self.soilprofile['pc to [kPa]'] = self.soilprofile['Vertical effective stress to [kPa]'] * \
                 self.soilprofile['OCR [-]']
                                 
-    def plot_initial_state(self, plot_title="", e0_range=(0, 3), fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
+    def plot_initial_state(self, plot_title="", e0_range=(0, 3), fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, latex_titles=True, **kwargs):
         """
         Plots the initial stress vs depth and the initial void ratio vs depth
         """
+        if latex_titles:
+            e0_trace_title = r'$ e_0 $'
+            sigma_v0_eff_trace_title = r'$ \sigma_{vo}^{\prime} $'
+            xaxis_title_nc = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \text{[kPa]} $'
+            xaxis_title_oc = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \sigma_{vc}^{\prime} \ \text{[kPa]} $'
+            sigma_vc_trace_title = r'$ \sigma_{vc}^{\prime} $'
+            sigma_v0_trace_title = r'$ \sigma_{vo} $'
+            e0_axis_title = r'$ e_0 \ \text{[-]} $'
+        else:
+            e0_trace_title = 'e0'
+            sigma_v0_eff_trace_title = 'sigma,v0,eff'
+            xaxis_title_nc = 'sigma,v0, sigma,v0,eff [kPa]'
+            xaxis_title_oc = 'sigma,v0, sigma,v0,eff, sigma,vc,eff [kPa]'
+            sigma_vc_trace_title = 'sigma,vc,eff'
+            sigma_v0_trace_title = 'sigma,v0'
+            e0_axis_title = 'e0 [-]'
+
         self.initial_state_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2, fillcolordict=fillcolordict)
         self.initial_state_plot.add_trace(
             x=self.soilprofile.soilparameter_series('e0 [-]')[1],
             z=self.soilprofile.soilparameter_series('e0 [-]')[0],
             line=dict(color='grey'),
-            name=r'$ e_0 $',
+            name=e0_trace_title,
             panel_no=2)
         self.initial_state_plot.add_trace(
             x=self.soilprofile.soilparameter_series('Vertical effective stress [kPa]')[1],
             z=self.soilprofile.soilparameter_series('Vertical effective stress [kPa]')[0],
-            name=r'$ \sigma_{vo}^{\prime} $',
+            name=sigma_v0_eff_trace_title,
             line=dict(color='red'),
             panel_no=1)
         if 'mv [1/kPa]' in self.soilprofile.numerical_soil_parameters():
-            _xaxis_title = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \text{[kPa]} $'
+            _xaxis_title = xaxis_title_nc
             _max_stress = self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max()
         else:
-            _xaxis_title = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime}, \ \sigma_{vc}^{\prime} \ \text{[kPa]} $'
+            _xaxis_title = xaxis_title_oc
             _max_stress = max(
                 self.soilprofile.soilparameter_series('pc [kPa]')[1].max(),
                 self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1].max())
             self.initial_state_plot.add_trace(
                 x=self.soilprofile.soilparameter_series('pc [kPa]')[1],
                 z=self.soilprofile.soilparameter_series('pc [kPa]')[0],
-                name=r'$ \sigma_{vc}^{\prime} $',
+                name=sigma_vc_trace_title,
                 line=dict(color='violet', dash='dot'),
                 panel_no=1)
         self.initial_state_plot.add_trace(
             x=self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[1],
             z=self.soilprofile.soilparameter_series('Vertical total stress [kPa]')[0],
-            name=r'$ \sigma_{vo} $',
+            name=sigma_v0_trace_title,
             line=dict(color='green'),
             panel_no=1)
         self.initial_state_plot.set_xaxis(
             title=_xaxis_title, panel_no=1,
             range=(0, _max_stress))
         self.initial_state_plot.set_xaxis(
-            title=r'$ e_0 \ \text{[-]} $', panel_no=2, range=e0_range)
+            title=e0_axis_title, panel_no=2, range=e0_range)
         self.initial_state_plot.show()
         
     def set_foundation(self, width, shape="strip", length=np.nan, skirt_depth=0):
@@ -356,7 +373,7 @@ class SettlementCalculation(object):
         else:
             raise ValueError("Foundation shape must be one of: 'strip', 'circular', 'rectangular'")
         if shape == 'rectangular':
-            if np.math.isnan(length):
+            if np.isnan(length):
                 raise ValueError("Length needs to be defined for a rectangular foundation")
         self.length = length
         self.skirt_depth = skirt_depth
@@ -423,33 +440,46 @@ class SettlementCalculation(object):
         else:
             raise ValueError("Foundation shape must be one of: 'strip', 'circular', 'rectangular'")
     
-    def plot_stress_increase(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
+    def plot_stress_increase(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, latex_titles=True, **kwargs):
         """
         Plots the initial stress vs depth and the stress increase
         """
+        if latex_titles:
+            delta_sigmav_trace_title = r'$ \Delta \sigma_v $'
+            sigma_v0_eff_trace_title = r'$ \sigma_{vo}^{\prime} $'
+            sigma_vO_trace_title = r'$ \sigma_{vo} $'
+            sigmav_axis_title = r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime} \ \text{[kPa]} $'
+            delta_sigma_axis_title = r'$ \Delta \sigma_v \ \text{[kPa]} $'
+        else:
+            delta_sigmav_trace_title = 'Delta sigma,v'
+            sigma_v0_eff_trace_title = 'sigma,v0,eff'
+            sigma_vO_trace_title = 'sigma,v0'
+            sigmav_axis_title = 'sigma,v0, sigma,v0,eff [kPa]'
+            delta_sigma_axis_title = 'Delta sigma,v [kPa]'
+
         self.stress_increase_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2, fillcolordict=fillcolordict)
         self.stress_increase_plot.add_trace(
             x=self.grid.nodes['delta sigma v [kPa]'],
             z=self.grid.nodes['z [m]'],
             line=dict(color='grey'),
-            name=r'$ \Delta \sigma_v $',
+            name=delta_sigmav_trace_title,
             panel_no=2)
         self.stress_increase_plot.add_trace(
             x=self.grid.nodes['Vertical effective stress [kPa]'],
             z=self.grid.nodes['z [m]'],
-            name=r'$ \sigma_{vo}^{\prime} $',
+            name=sigma_v0_eff_trace_title,
             line=dict(color='red'),
             panel_no=1)
         self.stress_increase_plot.add_trace(
             x=self.grid.nodes['Vertical total stress [kPa]'],
             z=self.grid.nodes['z [m]'],
-            name=r'$ \sigma_{vo} $',
+            name=sigma_vO_trace_title,
             line=dict(color='green'),
             panel_no=1)
         self.stress_increase_plot.set_xaxis(
-            title=r'$ \sigma_{vo}, \ \sigma_{vo}^{\prime} \ \text{[kPa]} $', panel_no=1)
+            title=sigmav_axis_title, panel_no=1)
         self.stress_increase_plot.set_xaxis(
-            title=r'$ \Delta \sigma_v \ \text{[kPa]} $', panel_no=2, range=(0, self.applied_stress))
+            title=delta_sigma_axis_title, panel_no=2, range=(0, self.applied_stress))
         self.stress_increase_plot.fig['layout'].update(legend=dict(x=0.9, y=0.2))
         self.stress_increase_plot.show()
     
@@ -498,33 +528,46 @@ class SettlementCalculation(object):
             self.grid.elements['Vertical effective stress [kPa]'] + \
             self.grid.elements['delta sigma v [kPa]']
         
-    def plot_result(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, **kwargs):
+    def plot_result(self, plot_title="", fillcolordict={'SAND': 'yellow', 'CLAY': 'brown'}, latex_titles=True, **kwargs):
         """
         Plots the settlement resulting from the stress increase
         """
+        if latex_titles:
+            sigmav_fin_trace_title = r'$ \sigma_{v,fin}^{\prime} $'
+            sigmav0_trace_title = r'$ \sigma_{v,0}^{\prime} $'
+            deltaz_trace_title = r'$ \Delta z $'
+            xaxis_1_title = r'$ \sigma_{vo}^{\prime} \ \text{[kPa]} $'
+            xaxis_2_title = r'$ \text{Settlement, } \Delta z \ \text{[m]} $'
+        else:
+            sigmav_fin_trace_title = 'sigma,vfin,eff'
+            sigmav0_trace_title = 'sigma,v0,eff'
+            deltaz_trace_title = 'Delta z'
+            xaxis_1_title = 'sigma,v0,eff'
+            xaxis_2_title = 'Settlement [m]'
+
         self.result_plot = LogPlot(soilprofile=self.soilprofile, no_panels=2, fillcolordict=fillcolordict)
         self.result_plot.add_trace(
             x=self.grid.nodes['Vertical effective stress [kPa]'] + self.grid.nodes['delta sigma v [kPa]'],
             z=self.grid.nodes['z [m]'],
             line=dict(color='grey'),
-            name=r'$ \sigma_{v,fin}^{\prime} $',
+            name=sigmav_fin_trace_title,
             panel_no=1)
         self.result_plot.add_trace(
             x=self.grid.nodes['Vertical effective stress [kPa]'],
             z=self.grid.nodes['z [m]'],
             line=dict(color='red'),
-            name=r'$ \sigma_{v,0}^{\prime} $',
+            name=sigmav0_trace_title,
             panel_no=1)
         self.result_plot.add_trace(
             x=np.flipud(self.grid.elements['delta z [m]']).cumsum(),
             z=np.flipud(self.grid.elements['z [m]']),
-            name=r'$ \Delta z $',
+            name=deltaz_trace_title,
             line=dict(color='blue'),
             panel_no=2)
         self.result_plot.set_xaxis(
-            title=r'$ \sigma_{vo}^{\prime} \ \text{[kPa]} $', panel_no=1)
+            title=xaxis_1_title, panel_no=1)
         self.result_plot.set_xaxis(
-            title=r'$ \text{Settlement, } \Delta z \ \text{[m]} $', panel_no=2, range=(0, self.settlement))
+            title=xaxis_2_title, panel_no=2, range=(0, self.settlement))
         self.result_plot.fig['layout'].update(legend=dict(x=0.15, y=0.1))
         self.result_plot.show()
         

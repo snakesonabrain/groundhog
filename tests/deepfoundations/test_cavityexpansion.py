@@ -80,4 +80,4 @@ class Test_cavityexpansionfunctions(unittest.TestCase):
             undrained_shear_strength=10,
             shear_modulus=1000)
         self.assertTrue(collapsed_result['yielding'])
-        self.assertTrue(np.math.isnan(collapsed_result['elastic wall expansion [m]']))
+        self.assertTrue(np.isnan(collapsed_result['elastic wall expansion [m]']))

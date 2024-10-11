@@ -26,15 +26,15 @@ PCPT_NORMALISATIONS = {
 }
 
 PCPT_NORMALISATIONS_ERRORRETURN = {
-    'qt [MPa]': np.NaN,
-    'qc [MPa]': np.NaN,
-    'u2 [MPa]': np.NaN,
-    'Delta u2 [MPa]': np.NaN,
-    'Rf [pct]': np.NaN,
-    'Bq [-]': np.NaN,
-    'Qt [-]': np.NaN,
-    'Fr [-]': np.NaN,
-    'qnet [MPa]': np.NaN,
+    'qt [MPa]': np.nan,
+    'qc [MPa]': np.nan,
+    'u2 [MPa]': np.nan,
+    'Delta u2 [MPa]': np.nan,
+    'Rf [pct]': np.nan,
+    'Bq [-]': np.nan,
+    'Qt [-]': np.nan,
+    'Fr [-]': np.nan,
+    'qnet [MPa]': np.nan,
 }
 
 
@@ -778,8 +778,8 @@ FRICTIONANGLE_OVERBURDEN_KLEVEN = {
 }
 
 FRICTIONANGLE_OVERBURDEN_KLEVEN_ERRORRETURN = {
-    'phi [deg]': np.NaN,
-    'sigma_m [kPa]': np.NaN
+    'phi [deg]': np.nan,
+    'sigma_m [kPa]': np.nan
 }
 
 @Validator(FRICTIONANGLE_OVERBURDEN_KLEVEN, FRICTIONANGLE_OVERBURDEN_KLEVEN_ERRORRETURN)
@@ -934,7 +934,7 @@ def ocr_cpt_lunne(Qt, Bq=np.nan, **kwargs):
             0.671677717, 0.749877749, 0.810239222, 0.8645448, 0.942964248
         ]))
 
-    if np.math.isnan(Bq):
+    if np.isnan(Bq):
         _OCR_Bq_LE = np.nan
         _OCR_Bq_BE = np.nan
         _OCR_Bq_HE = np.nan
@@ -2469,6 +2469,58 @@ def constrainedmodulus_pcpt_robertson(
     }
 
 
+
+VS_STRESSDEPENDENT_STUYTS = {
+    'sigma_vo_eff': {'type': 'float', 'min_value': 50.0, 'max_value': 800.0},
+    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 4.0},
+    'a0': {'type': 'float', 'min_value': 1.7, 'max_value': 2.5},
+    'a1': {'type': 'float', 'min_value': -0.5, 'max_value': -0.05},
+    'a2': {'type': 'float', 'min_value': 0.5, 'max_value': 1.0},
+    'a3': {'type': 'float', 'min_value': -0.5, 'max_value': -0.1},
+}
+
+VS_STRESSDEPENDENT_STUYTS_ERRORRETURN = {
+    'Vs [m/s]': np.nan,
+}
+
+@Validator(VS_STRESSDEPENDENT_STUYTS, VS_STRESSDEPENDENT_STUYTS_ERRORRETURN)
+def vs_stressdependent_stuyts(
+    sigma_vo_eff,ic,
+    a0=2.075,a1=-0.213,a2=0.77,a3=-0.25, **kwargs):
+
+    """
+    Calculates the shear wave velocity using the calibrated power-law expression proposed by Stuyts et al (2024). The correlation is calibrated on shear wave velocity measurements with the seismic CPT for sedimentary soils from the Southern North Sea. The correlation includes a dependency on the effective stress conditions and on the soil type through Robertson's soil behaviour type index.
+The correlations shows neutral bias and a coefficient of variation of 0.188 for the calibration dataset.
+    
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [kPa] - Suggested range: 50.0 <= sigma_vo_eff <= 800.0
+    :param ic: Soil behaviour type index (:math:`I_c`) [-] - Suggested range: 1.0 <= ic <= 4.0
+    :param a0: Calibration coefficient 0 (:math:`a_0`) [-] - Suggested range: 1.7 <= a0 <= 2.5 (optional, default= 2.075)
+    :param a1: Calibration coefficient 1 (:math:`a_1`) [-] - Suggested range: -0.5 <= a1 <= -0.05 (optional, default= -0.213)
+    :param a2: Calibration coefficient 2 (:math:`a_2`) [-] - Suggested range: 0.5 <= a2 <= 1.0 (optional, default= 0.77)
+    :param a3: Calibration coefficient 3 (:math:`a_3`) [-] - Suggested range: -0.5 <= a3 <= -0.1 (optional, default= -0.25)
+    
+    .. math::
+        V_s = {\\alpha} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{\\beta} = 10^{a_0 + a_1 \\cdot I_c} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{a_2 + a_3 \\cdot \\log_{10}(\\alpha)}
+        
+        V_s = 10^{2.075 - 0.213 \\cdot I_c} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{0.77 - 0.25 \\cdot \\log_{10}(\\alpha)}
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [m/s]
+    
+    Reference - Stuyts, B.; Weijtjens, W.; Jurado, C.S.; Devriendt, C.; Kheffache, A. A Critical Review of Cone Penetration Test-Based Correlations for Estimating Small-Strain Shear Modulus in North Sea Soils. Geotechnics 2024, 4, 604-635. https://doi.org/10.3390/geotechnics4020033
+
+    """
+    
+    _log_alpha = a0 + a1 * ic
+    _beta = a2 + a3 * _log_alpha
+     
+    _Vs = (10 ** _log_alpha) * ((sigma_vo_eff / 1) ** _beta)
+
+    return {
+        'Vs [m/s]': _Vs,
+    }
+
 CORRELATIONS = {
     'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
     'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
@@ -2496,5 +2548,6 @@ CORRELATIONS = {
     'Vs CPT Wride et al (2000)': vs_cpt_wrideetal,
     'Vs CPT Tonni and Simonini (2013)': vs_cpt_tonniandsimonini,
     'Vs CPT McGann et al (2018)': vs_cpt_mcgannetal,
+    'Vs CPT Stuyts et al (2024)': vs_stressdependent_stuyts,
     'M Robertson (2009)': constrainedmodulus_pcpt_robertson
 }

@@ -596,7 +596,7 @@ class LogPlotMatplotlib(object):
         The depth of the layer transition is rounded according to the ``precision`` argument. Default=2
         for cm accuracy."""
         ax = self.axes[panel_no]
-        xy = plt.ginput(no_additional_layers)
+        xy = plt.ginput(no_additional_layers, timeout=120)
 
         x = [p[0] for p in xy]
         y = [round(p[1], precision) for p in xy]
@@ -621,7 +621,7 @@ class LogPlotMatplotlib(object):
         final = False
 
         while not final:
-            xy = plt.ginput(1)
+            xy = plt.ginput(1, timeout=120)
             x = [p[0] for p in xy]
             y = [round(p[1], precision) for p in xy]
                 
@@ -645,7 +645,7 @@ class LogPlotMatplotlib(object):
         The parameter is added to the ``SoilProfile`` object with the ``'parametername [units]'`` key.
         """
         ax = self.axes[panel_no]
-        xy = plt.ginput(self.soilprofile.__len__())
+        xy = plt.ginput(self.soilprofile.__len__(), timeout=120)
 
         x = [p[0] for p in xy]
         y = [p[1] for p in xy]
@@ -669,7 +669,7 @@ class LogPlotMatplotlib(object):
         The parameter is added to the ``SoilProfile`` object with the ``'parametername [units]'`` key.
         """
         ax = self.axes[panel_no]
-        xy = plt.ginput(2 * self.soilprofile.__len__())
+        xy = plt.ginput(2 * self.soilprofile.__len__(), timeout=120)
 
         x = [p[0] for p in xy]
         y = [p[1] for p in xy]
@@ -712,7 +712,7 @@ def peak_picker(x, y, correct_selected_point=True):
     plt.ylabel('$ y $', size=15)
 
     # Click on the peak
-    xy = plt.ginput(1)
+    xy = plt.ginput(1, timeout=120)
     # Calculate derived quantities
     x100 = xy[0][0]
     if correct_selected_point:

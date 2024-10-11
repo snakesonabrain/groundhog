@@ -77,7 +77,7 @@ def stress_cylinder_elastic_isotropic(
         borehole_radius / radius) ** 2)
     _tangential_stress = farfield_pressure - (internal_pressure - farfield_pressure) * ((
         borehole_radius / radius) ** 2)
-    if np.math.isnan(shear_modulus):
+    if np.isnan(shear_modulus):
         try:
             _radial_displacement = list(map(lambda _x: np.nan, _radial_stress))
         except:

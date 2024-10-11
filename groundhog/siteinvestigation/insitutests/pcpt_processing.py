@@ -953,11 +953,9 @@ class PCPTProcessing(InsituTestProcessing):
                 second_data = obj.data
             else:
                 raise ValueError("Invalid option for argument 'keep'. Choose from 'first', 'second' or 'both'")
-        else:
-            pass
 
         # Second PCPT below first one
-        if (z_min_second < z_max_first) and (z_max_second > z_max_first):
+        elif (z_min_second < z_max_first) and (z_max_second > z_max_first):
             if keep == 'first':
                 first_data = self.data
                 second_data = obj.data[obj.data["z [m]"] > z_max_first]
@@ -969,8 +967,13 @@ class PCPTProcessing(InsituTestProcessing):
                 second_data = obj.data
             else:
                 raise ValueError("Invalid option for argument 'keep'. Choose from 'first', 'second' or 'both'")
+        # Other cases
+        
         else:
-            pass
+            first_data = self.data
+            second_data = obj.data
+    
+        
 
         # Combine data
         self.data = pd.concat([first_data, second_data])
@@ -1056,7 +1059,7 @@ class PCPTProcessing(InsituTestProcessing):
                     push_data = self.data[self.data['Push'] == _push]
                     _push_z_min = push_data["z [m]"].min()
                     for i, row in push_data.iterrows():
-                        if np.math.isnan(area_ratio_override):
+                        if np.isnan(area_ratio_override):
                             area_ratio = row['area ratio [-]']
                         else:
                             area_ratio = area_ratio_override
@@ -1128,7 +1131,7 @@ class PCPTProcessing(InsituTestProcessing):
                     self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
                         (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
                     )
-                    if np.math.isnan(self.data.loc[i, "ft [MPa]"]):
+                    if np.isnan(self.data.loc[i, "ft [MPa]"]):
                         self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
                 except:
                     self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
@@ -1148,7 +1151,7 @@ class PCPTProcessing(InsituTestProcessing):
                       friction_ratio_panel=3,
                       plot_height=700, plot_width=1000, return_fig=False,
                       plot_title=None, plot_margin=dict(t=100, l=50, b=50), color=None,
-                      hydrostaticcolor=None, show_hydrostatic_legend=False, waterlevel_override=0):
+                      hydrostaticcolor=None, show_hydrostatic_legend=False, waterlevel_override=0, latex_titles=True):
         """
         Plots the raw PCPT data using the Plotly package. This generates an interactive plot.
 
@@ -1175,8 +1178,31 @@ class PCPTProcessing(InsituTestProcessing):
         :param color: Color to be used for plotting the hydrostatic pressure (default=None for default plotly colors)
         :param show_hydrostatic_legend: Boolean determining whether to show the hydrostatic pressure in the legend
         :param waterlevel_override: If a waterlevel is not specified in a soil profile which is mapped to the CPT, this can be used to get the water table at the correct elevation (default=0m for water level at the surface, >0 for water level below groundlevel)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return:
         """
+        if latex_titles:
+            qc_trace_title = r'$ q_c $'
+            fs_trace_title = r'$ f_s $'
+            u2_trace_title = r'$ u_2 $'
+            Rf_trace_title = r'$ R_f $'
+            uhydrostatic_trace_title = r'$ u_{hydrostatic} $'
+            qc_axis_title = r'$ q_c \ \text{[MPa]} $'
+            fs_axis_title = r'$ f_s \ \text{[MPa]} $'
+            u2_axis_title = r'$ u_2 \ \text{[MPa]} $'
+            Rf_axis_title = r'$ R_f \ \text{[%]} $'
+            z_axis_title = r'$ \text{Depth below mudline, } z \ \text{[m]} $'
+        else:
+            qc_trace_title = 'qc'
+            fs_trace_title = 'fs'
+            u2_trace_title = 'u2'
+            Rf_trace_title = 'Rf'
+            uhydrostatic_trace_title = 'u,hydrostatic'
+            qc_axis_title = 'qc [MPa]'
+            fs_axis_title = 'fs [MPa]'
+            u2_axis_title = 'u2 [MPa]'
+            Rf_axis_title = 'Rf [%]'
+            z_axis_title = 'z [m]'
 
         if z_range is None:
             z_range = (self.data['z [m]'].max(), 0)
@@ -1193,23 +1219,23 @@ class PCPTProcessing(InsituTestProcessing):
                 x=push_data['qc [MPa]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
-                showlegend=False, mode='lines', name=r'$ q_c $')
+                showlegend=False, mode='lines', name=qc_trace_title)
             
             trace2 = go.Scatter(
                 x=push_data['fs [MPa]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
-                showlegend=False, mode='lines', name=r'$ f_s $')
+                showlegend=False, mode='lines', name=fs_trace_title)
             trace3 = go.Scatter(
                 x=push_data['u2 [MPa]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
-                showlegend=False, mode='lines', name=r'$ u $')
+                showlegend=False, mode='lines', name=u2_trace_title)
             trace_rf = go.Scatter(
                     x=100 * push_data['fs [MPa]'] / push_data['qc [MPa]'],
                     y=push_data['z [m]'],
                     line=dict(color=color),
-                    showlegend=False, mode='lines', name=r'$ R_f $')
+                    showlegend=False, mode='lines', name=Rf_trace_title)
 
             if plot_friction_ratio:
                 if friction_ratio_panel == 1:
@@ -1248,7 +1274,7 @@ class PCPTProcessing(InsituTestProcessing):
                     x=self.positivewaterpressures,
                     y=self.data['z [m]'],
                     line=dict(color=hydrostaticcolor, dash='dot'),
-                    showlegend=show_hydrostatic_legend, mode='lines', name=r'$ u_{hydrostatic} $')
+                    showlegend=show_hydrostatic_legend, mode='lines', name=uhydrostatic_trace_title)
                 fig.append_trace(trace3, 1, 3)
         # Plot layers
         try:
@@ -1276,32 +1302,32 @@ class PCPTProcessing(InsituTestProcessing):
             pass
 
         fig['layout']['xaxis1'].update(
-            title=r'$ q_c \ [\text{MPa}] $', side='top', anchor='y',
+            title=qc_axis_title, side='top', anchor='y',
             range=qc_range, dtick=qc_tick)
         fig['layout']['xaxis2'].update(
-            title=r'$ f_s \ [\text{MPa}]  $', side='top', anchor='y',
+            title=fs_axis_title, side='top', anchor='y',
             range=fs_range, dtick=fs_tick)
         fig['layout']['xaxis3'].update(
-            title=r'$ u  \ [\text{MPa}] $', side='top', anchor='y',
+            title=u2_axis_title, side='top', anchor='y',
             range=u2_range, dtick=u2_tick)
 
         if plot_friction_ratio:
             if friction_ratio_panel == 1:
                 fig['layout']['xaxis1'].update(
-                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+                    title=Rf_axis_title, range=rf_range, dtick=rf_tick)
             elif plot_friction_ratio and friction_ratio_panel == 2:
                 fig['layout']['xaxis2'].update(
-                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+                    title=Rf_axis_title, range=rf_range, dtick=rf_tick)
             elif plot_friction_ratio and friction_ratio_panel == 3:
                 fig['layout']['xaxis3'].update(
-                    title=r'$ R_f \ [\%] $', range=rf_range, dtick=rf_tick)
+                    title=Rf_axis_title, range=rf_range, dtick=rf_tick)
             else:
                 raise ValueError("friction_ratio_panel needs to be equal to 1, 2 or 3")
         else:
             pass
         
         fig['layout']['yaxis1'].update(
-            title=r'$ \text{Depth below mudline, } z \ [\text{m}] $', autorange='reversed',
+            title=z_axis_title, autorange='reversed',
             range=z_range, dtick=z_tick)
         
         fig['layout'].update(
@@ -1317,7 +1343,7 @@ class PCPTProcessing(InsituTestProcessing):
     def plot_normalised_pcpt(
             self, qt_range=(0, 3), fr_range=(-1, 1),
             bq_range=(-0.6, 1.4), bq_tick=0.2, z_range=None, z_tick=2,
-            plot_height=700, plot_width=1000, color=None, return_fig=False, plot_title=None):
+            plot_height=700, plot_width=1000, color=None, return_fig=False, plot_title=None, latex_titles=True):
         """
         Plots the normalised PCPT properties vs depth.
 
@@ -1331,8 +1357,26 @@ class PCPTProcessing(InsituTestProcessing):
         :param plot_width: Width of the plot in pixels
         :param return_fig: Boolean determining whether the figure is returned or the plot is generated; Default behaviour is to generate the plot.
         :param plot_title: Plot title (optional, default=None for no title)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
+        if latex_titles:
+            Qt_trace_title = r'$ Q_t $'
+            Fr_trace_title = r'$ F_r $'
+            Bq_trace_title = r'$ B_q $'
+            Qt_axis_title = r'$ Q_t \ \text{[-]} $'
+            Fr_axis_title = r'$ F_r \ \text{[%]} $'
+            Bq_axis_title = r'$ B_q \ \text{[-]} $'
+            z_axis_title = r'$ z \ \text{[m]}$'
+        else:
+            Qt_trace_title = 'Qt'
+            Fr_trace_title = 'Fr'
+            Bq_trace_title = 'Bq'
+            Qt_axis_title = 'Qt [-]'
+            Fr_axis_title = 'Fr [%]'
+            Bq_axis_title = 'Bq [-]'
+            z_axis_title = 'z [m]'
+
         if z_range is None:
             z_range = (self.data['z [m]'].max(), 0)
         if color is None:
@@ -1346,19 +1390,19 @@ class PCPTProcessing(InsituTestProcessing):
                 x=push_data['Qt [-]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
-                showlegend=False, mode='lines', name=r'$ Q_t $')
+                showlegend=False, mode='lines', name=Qt_trace_title)
             fig.append_trace(trace1, 1, 1)
             trace2 = go.Scatter(
                 x=push_data['Fr [%]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
-                showlegend=False, mode='lines', name=r'$ F_r $')
+                showlegend=False, mode='lines', name=Fr_trace_title)
             fig.append_trace(trace2, 1, 2)
             trace3 = go.Scatter(
                 x=push_data['Bq [-]'],
                 y=push_data['z [m]'],
                 line=dict(color=color),
-                showlegend=False, mode='lines', name=r'$ B_q $')
+                showlegend=False, mode='lines', name=Bq_trace_title)
             fig.append_trace(trace3, 1, 3)
         # Plot layers
         try:
@@ -1385,16 +1429,16 @@ class PCPTProcessing(InsituTestProcessing):
         except:
             pass
         fig['layout']['xaxis1'].update(
-            title=r'$ Q_t \ [\text{-}] $', side='top', anchor='y', type='log',
+            title=Qt_axis_title, side='top', anchor='y', type='log',
             range=qt_range)
         fig['layout']['xaxis2'].update(
-            title=r'$ F_r \ [\text{%}]  $', side='top', anchor='y', type='log',
+            title=Fr_axis_title, side='top', anchor='y', type='log',
             range=fr_range)
         fig['layout']['xaxis3'].update(
-            title=r'$ B_q \ [\text{-}] $', side='top', anchor='y',
+            title=Bq_axis_title, side='top', anchor='y',
             range=bq_range, dtick=bq_tick)
         fig['layout']['yaxis1'].update(
-            title=r'$ z \ [\text{m}]$', range=z_range, dtick=z_tick)
+            title=z_axis_title, range=z_range, dtick=z_tick)
         fig['layout'].update(
             title=plot_title,
             height=plot_height, width=plot_width,
@@ -1407,7 +1451,7 @@ class PCPTProcessing(InsituTestProcessing):
     def plot_properties(
             self, prop_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
             legend_titles=None, axis_titles=None, showlegends=None, plot_layers=True,
-            plot_height=700, plot_width=1000, colors=None, return_fig=False, plot_title=None):
+            plot_height=700, plot_width=1000, colors=None, return_fig=False, plot_title=None, latex_titles=True):
         """
         Plots the soil and/or PCPT properties vs depth.
 
@@ -1424,6 +1468,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param plot_width: Width of the plot in pixels
         :param return_fig: Boolean determining whether the figure is returned or the plot is generated; Default behaviour is to generate the plot.
         :param plot_title: Plot title (optional, default=None for no title)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
         if z_range is None:
@@ -1482,8 +1527,14 @@ class PCPTProcessing(InsituTestProcessing):
             fig['layout']['xaxis%i' % (i+1)].update(
                 title=axis_titles[i], side='top', anchor='y',
                 range=_range, dtick=plot_ticks[i])
+        
+        if latex_titles:
+            z_axis_title = r'$ z \ \text{[m]}$'
+        else:
+            z_axis_title = 'z [m]'
+
         fig['layout']['yaxis1'].update(
-            title=r'$ z \ [\text{m}]$', range=z_range, dtick=z_tick)
+            title=z_axis_title, range=z_range, dtick=z_tick)
         fig['layout'].update(
             title=plot_title,
             height=plot_height, width=plot_width,
@@ -1576,7 +1627,7 @@ class PCPTProcessing(InsituTestProcessing):
                              qt_range=(0, 3), fr_range=(-1, 1),
             bq_range=(-0.6, 1.4), bq_tick=0.2,
             plot_height=700, plot_width=1000, return_fig=False, plot_title=None,
-            backgroundimagedir=""):
+            backgroundimagedir="", latex_titles=True):
         """
         Plots the normalised PCPT points in the Robertson chart to distinguish the soil type. The display can be limited
         to a specific depth range (by specifying `start_depth` and `end_depth`. The color coding is based on the layer.
@@ -1621,10 +1672,20 @@ class PCPTProcessing(InsituTestProcessing):
                             color=color,
                             line=dict(width=1, color=color)))  # Add a line around the markers
             fig.append_trace(pressure_trace, 1, 2)
-        fig['layout']['xaxis1'].update(title=r'$ F_r \ [\%] $', range=fr_range, type='log')
-        fig['layout']['yaxis1'].update(title=r'$ Q_t \ [-] $', range=qt_range, type='log')
-        fig['layout']['xaxis2'].update(title=r'$ B_q \ [-] $', range=bq_range, dtick=bq_tick)
-        fig['layout']['yaxis2'].update(title=r'$ Q_t \ [-] $', range=qt_range, type='log')
+
+        if latex_titles:
+            Fr_axis_title = r'$ F_r \ \text{[%]} $'
+            Qt_axis_title = r'$ Q_t \ \text{[-]} $'
+            Bq_axis_title = r'$ B_q \ \text{[-]} $'
+        else:
+            Fr_axis_title = 'Fr [%]'
+            Qt_axis_title = 'Qt [-]'
+            Bq_axis_title = 'Bq [-]'
+
+        fig['layout']['xaxis1'].update(title=Fr_axis_title, range=fr_range, type='log')
+        fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
+        fig['layout']['xaxis2'].update(title=Bq_axis_title, range=bq_range, dtick=bq_tick)
+        fig['layout']['yaxis2'].update(title=Qt_axis_title, range=qt_range, type='log')
         fig['layout'].update(
             height=plot_height,
             width=plot_width,
@@ -1738,7 +1799,7 @@ class PCPTProcessing(InsituTestProcessing):
     def plot_design_profile(self, prop_keys, design_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
             legend_titles=None, axis_titles=None,
             plot_height=700, plot_width=1000, colors=None, design_color='red', design_dash='dot',
-                            return_fig=False, plot_title=None):
+                            return_fig=False, plot_title=None, latex_titles=True):
         """
         Plots the soil and/or PCPT properties vs depth.
 
@@ -1757,6 +1818,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param design_dash: Dash style to be used for the design lines
         :param return_fig: Boolean determining whether the figure is returned or the plot is generated; Default behaviour is to generate the plot.
         :param plot_title: Plot title (optional, default=None for no title)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
         if z_range is None:
@@ -1816,8 +1878,14 @@ class PCPTProcessing(InsituTestProcessing):
             fig['layout']['xaxis%i' % (i+1)].update(
                 title=axis_titles[i], side='top', anchor='y',
                 range=_range, dtick=plot_ticks[i])
+            
+        if latex_titles:
+            z_axis_title = r'$ z \ \text{[m]}$'
+        else:
+            z_axis_title = 'z [m]'
+
         fig['layout']['yaxis1'].update(
-            title=r'$ z \ [\text{m}]$', range=z_range, dtick=z_tick)
+            title=z_axis_title, range=z_range, dtick=z_tick)
         fig['layout'].update(
             title=plot_title,
             height=plot_height, width=plot_width,
@@ -2251,7 +2319,7 @@ def plot_combined_longitudinal_profile(
                     x=scale_factor * np.array(push_data[prop]) + row['Projected offset'],
                     y=-np.array(push_data['z [m]']) + row['Z'],
                     line=dict(color=_tracecolor),
-                    showlegend=False, mode='lines', name=r'$ q_c $')
+                    showlegend=False, mode='lines', name='qc')
                 fig.append_trace(_push_trace, 1, 1)
 
             _backbone = go.Scatter(

@@ -1,3 +1,13 @@
+v0.14.0, TBD
+    - TODO: Prepare functionality for SPT fence diagram creation
+    - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
+    - TODO: Add hatching patterns to LogPlot
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+
+
 v0.13.0, 11/10/2024 - The Pirate release
     - Update of requirements to Numpy >= 2.1
     - Ensured the cv arrays in consolidation calcs are treated as Numpy arrays
@@ -7,14 +17,6 @@ v0.13.0, 11/10/2024 - The Pirate release
     - Added conversions between void ratio and water content
     - Added CPT-based correlation for Vs according to Stuyts et al (2024)
     - Added code to allow non-LaTeX axis and trace titles in boilerplate Plotly plots
-    - TODO: Prepare functionality for SPT fence diagram creation
-    - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
-    - TODO: Add hatching patterns to LogPlot
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Implement soil parameter name conventions across groundhog
-    - TODO: Add soil type classification according to Schneider et al (2008)
-
 
 v0.12.0, 30/03/2024 - Dubai release
     - Corrected an error in the docstring of the logtime method (groundhog.siteinvestigation.labtesting.compressibility)

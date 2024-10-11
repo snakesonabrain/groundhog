@@ -1,5 +1,5 @@
 sphinx_rtd_theme
-pandas>==2.0.3
+pandas>=2.0.3
 plotly
 scipy>=1.4.1
 xlrd==1.2.0

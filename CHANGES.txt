@@ -1,4 +1,5 @@
 v0.14.0, TBD
+    - .set_cv from ConsolidationCalculation did not accept lists. Fixed thanks to Ricardo Rodriguez Plata 
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

@@ -29,6 +29,7 @@ SOIL_PARAMETER_MAPPING = {
     'Ic [-]': 'ic',
     'Dr [-]': 'relative_density',
     'Gmax [kPa]': 'gmax',
+    'G [kPa]': 'shearmodulus',
     'Qt [-]': 'Qt',
     'Bq [-]': 'Bq',
     'Fr [%]': 'Fr',
@@ -75,7 +76,9 @@ SOIL_PARAMETER_MAPPING = {
     'Density [kg/m3]': 'density',
     'Gs [-]': 'specific_gravity',
     'S [-]': 'saturation',
-    'Water content [%]': 'water_content'
+    'Water content [%]': 'water_content',
+    'Vertical coefficient of consolidation [m2/yr]': 'cv',
+    'Horizontal coefficient of consolidation [m2/yr]': 'ch',
 }
 
 def map_depth_properties(target_df, layering_df, target_z_key=None,

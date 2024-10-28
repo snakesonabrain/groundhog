@@ -9,6 +9,7 @@ import os
 
 # 3rd party packages
 import numpy as np
+import plotly.express as px
 
 # Project imports
 from groundhog.siteinvestigation.insitutests import pcpt_correlations
@@ -408,3 +409,61 @@ class Test_vs_cpt_stuytsal(unittest.TestCase):
             sigma_vo_eff=100, ic=3.0, fail_silently=False
         )
         self.assertAlmostEqual(result['Vs [m/s]'], 181.13, 2)
+
+    
+class Test_dissipation_test_teh(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.dissipation_test_teh(
+            ch=1,
+            shearmodulus=25e3,
+            undrained_shear_strength=50,
+            u_initial=50,
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            np.interp(
+                0.001,
+                result['T* [-]'],
+                result['delta u / delta u_i [-]']),
+                1.00, 2)
+        self.assertAlmostEqual(
+            np.interp(
+                0.1,
+                result['T* [-]'],
+                result['delta u / delta u_i [-]']),
+                0.64, 2)
+        self.assertAlmostEqual(
+            np.interp(
+                1000,
+                result['T* [-]'],
+                result['delta u / delta u_i [-]']),
+                0.0, 2)
+        
+        result = pcpt_correlations.dissipation_test_teh(
+            ch=1,
+            shearmodulus=25e3,
+            undrained_shear_strength=50,
+            u_initial=50,
+            sensor_location='u1',
+            fail_silently=False
+        )
+        self.assertAlmostEqual(
+            np.interp(
+                0.001,
+                result['T* [-]'],
+                result['delta u / delta u_i [-]']),
+                0.95, 2)
+        self.assertAlmostEqual(
+            np.interp(
+                0.1,
+                result['T* [-]'],
+                result['delta u / delta u_i [-]']),
+                0.53, 2)
+        self.assertAlmostEqual(
+            np.interp(
+                1000,
+                result['T* [-]'],
+                result['delta u / delta u_i [-]']),
+                0.0, 2)
+        

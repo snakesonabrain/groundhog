@@ -1,5 +1,7 @@
 v0.14.0, TBD
     - .set_cv from ConsolidationCalculation did not accept lists. Fixed thanks to Ricardo Rodriguez Plata 
+    - Added a function for creating a dummy SoilProfile object
+    - Added the solution for dissipation tests according to Teh and Houlsby (1991)
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

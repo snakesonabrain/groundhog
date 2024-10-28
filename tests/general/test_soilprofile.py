@@ -414,6 +414,18 @@ class Test_SoilProfile(unittest.TestCase):
             profile.parameter_at_depth(depth=7, parameter='qc [MPa]'), 10)
         self.assertEqual(
             profile.parameter_at_depth(depth=15, parameter='qc [MPa]'), 45)
+        
+    def test_dummy_profile(self):
+        _sp = sp.create_blank_soilprofile(max_depth=40)
+        self.assertEqual(_sp.max_depth, 40)
+        self.assertEqual(_sp['Soil type'].iat[0], 'Unknown')
+        self.assertEqual(_sp['Total unit weight [kN/m3]'].iat[0], 20)
+
+        _sp = sp.create_blank_soilprofile(max_depth=40, soiltype='CLAY', bulkunitweight=18)
+        self.assertEqual(_sp.max_depth, 40)
+        self.assertEqual(_sp['Soil type'].iat[0], 'CLAY')
+        self.assertEqual(_sp['Total unit weight [kN/m3]'].iat[0], 18)
+
 
 class Test_CalculationGrid(unittest.TestCase):
 

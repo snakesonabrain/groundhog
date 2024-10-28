@@ -927,6 +927,25 @@ class SoilProfile(pd.DataFrame):
             # String in the selected layer
             return _selected_layer[parameter]
 
+def create_blank_soilprofile(max_depth, min_depth=0, soiltype='Unknown', bulkunitweight=20):
+    """
+    Creates a SoilProfile object with a single layer. By default the soil type is set to ``'Unknown'`` and the bulk unit weight to 20kN/m3.
+    :param max_depth: Maximum depth for the SoilProfile object [m]
+    :param min_depth: Minimum depth for the SoilProfile object [m] (optional, default=0m)
+    :param soiltype: Soil type for the layer (optional, default="Unknown")
+    :param bulkunitweight: Bulk unit weight for the layer [kN/m3] (optional, default= 20kN/m3)
+    """
+    if min_depth >= max_depth:
+        raise ValueError("The maximum depth needs to be strictly larger than the minimum depth.")
+    else:
+        _sp = SoilProfile({
+            'Depth from [m]': [min_depth,],
+            'Depth to [m]': [max_depth],
+            'Soil type': [soiltype,],
+            'Total unit weight [kN/m3]': [bulkunitweight,]
+        })
+        return _sp
+
 def read_excel(path, title='', depth_key='Depth', unit='m', column_mapping={}, depth_multiplier=1, **kwargs):
     """
     The method to read from Excel needs to be redefined for SoilProfile objects.

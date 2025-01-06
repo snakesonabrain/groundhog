@@ -29,15 +29,7 @@ bibliography: paper.bib
 
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+Geotechnical engineering is an engineering discipline in which the mechanical behaviour of soil and its impact on the performance of foundations is studied. Because of the complex constitutive behaviour of soil and the large variation in mineralogy, geological origins, stress conditions and foundation types, there is no generally applicable theory for soil behaviour and foundation design. Instead, myriad semi-empirical models have been developed to describe the mechanical behaviour of soils and foundations [@Budhu:2010].
 
 # Statement of need
 

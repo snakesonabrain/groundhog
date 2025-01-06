@@ -19,7 +19,7 @@ import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 
 # Project imports
-from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
+from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
@@ -1794,6 +1794,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param design_data: Pandas dataframe with design soil profile. Linear variation of numerical parameters is expected so for example, use columns `Su from [kPa]` and `Su to [kPa]`
         :return: Sets the `designprofile` attribute of the PCPTProcessing object
         """
+        warnings.warn("Deprecated: Will be removed in v0.15. Use SoilProfiles and LogPlot instead.")
         self.designprofile = design_data
 
     def plot_design_profile(self, prop_keys, design_keys, plot_ranges, plot_ticks, z_range=None, z_tick=2,
@@ -1821,6 +1822,7 @@ class PCPTProcessing(InsituTestProcessing):
         :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
+        warnings.warn("Deprecated: Will be removed in v0.15. Use SoilProfiles and LogPlot instead.")
         if z_range is None:
             z_range = (self.data['z [m]'].max(), 0)
         if colors is None:
@@ -1894,6 +1896,70 @@ class PCPTProcessing(InsituTestProcessing):
             return fig
         else:
             fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+
+    def select_layering(
+            self, default_soil_type="Unknown", default_unit_weight=20,
+            qc_range=(-10, 100), fs_range=(0, 1), u2_range=(-0.5, 2.5),
+            waterlevel=0, **kwargs):
+        """
+        Selects the layering for a CPT trace. The routine creates a LogPlotMatplotlib with which the
+        layering can be selected interactively. 
+        Ensure that the plotting option is set to ``%matplotlib qt`` in Jupyter.
+        Clicking below 0MPa in the cone tip resistance panel stops the selection.
+        The SoilProfile with the layering is returned. The ``Soil type`` and ``Total unit weight [kN/m3]`` columns
+        still need to be fine-tuned by the user after the selection process. Default values are assigned according to
+        the ``default_soil_type`` and ``default_unit_weight`` arguments.
+        The plotting ranges can be finetuned using the ``qc_range``, ``fs_range`` and ``u2_range`` arguments.
+        A hydrostatic line is plotted in the pore pressure panel. A water level (default=0m) can be added for plotting this line.
+
+        Keyword arguments for ``LogPlotMatplotlib`` can be specified by the user and are passed as **kwargs.
+        """
+        # Create the default SoilProfile for parameter selection
+        sp = SoilProfile({
+            "Depth from [m]": [self.data['z [m]'].min(),],
+            "Depth to [m]": [self.data['z [m]'].max(),],
+            "Soil type": [default_soil_type,],
+            "Total unit weight [kN/m3]": [default_unit_weight,]
+        })
+        # Create the plot for parameter selection
+        selection_plot = LogPlotMatplotlib(
+            sp, no_panels=3, **kwargs)
+        selection_plot.add_trace(
+            x=self.data['qc [MPa]'],
+            z=self.data['z [m]'],
+            name='qc',
+            panel_no=1
+        )
+        selection_plot.add_trace(
+            x=self.data['fs [MPa]'],
+            z=self.data['z [m]'],
+            name='fs',
+            panel_no=2
+        )
+        selection_plot.add_trace(
+            x=self.data['u2 [MPa]'],
+            z=self.data['z [m]'],
+            name='u2',
+            panel_no=3
+        )
+        selection_plot.add_trace(
+            x=[waterlevel, (self.data['z [m]'].max() - waterlevel) * 0.01],
+            z=[waterlevel, self.data['z [m]'].max()],
+            name='u2',
+            panel_no=3,
+            ls='--',
+        )
+        selection_plot.set_xaxis_title(title='qc [MPa]', panel_no=1)
+        selection_plot.set_xaxis_title(title='fs [MPa]', panel_no=2)
+        selection_plot.set_xaxis_title(title='u2 [MPa]', panel_no=3)
+        selection_plot.set_xaxis_range(min_value=qc_range[0], max_value=qc_range[1], panel_no=1)
+        selection_plot.set_xaxis_range(min_value=fs_range[0], max_value=fs_range[1], panel_no=2)
+        selection_plot.set_xaxis_range(min_value=u2_range[0], max_value=u2_range[1], panel_no=3)
+        selection_plot.set_zaxis_title(title='z [m]')
+        selection_plot.show()
+        selection_plot.select_layering()
+
+        return sp
 
     # endregion
 

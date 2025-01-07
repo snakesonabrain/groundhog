@@ -33,13 +33,13 @@ Geotechnical engineering is an engineering discipline in which the mechanical be
 
 # Statement of need
 
-`Groundhog` is a Python package for geotechnical engineering calculations. The soil parameter correlations and foundation design models which are used in this discipline are scatter across various resources (textbooks, journal articles, recommended practices) and engineers spend a significant amount of their time implementing them in their calculation tools (typically Microsoft Excel). This is not an idead situation with a lot of repeated work and implementation mistakes often going undetected. Moreover, certain geotechnical calculations are calibrated for specific ranges of the input parameters. Checking that the inputs are within these ranges is often omitted in an Excel implementation.
+`Groundhog` is a Python package for geotechnical engineering calculations. The soil parameter correlations and foundation design models which are used in this discipline are scattered across various resources (textbooks, journal articles, recommended practices) and engineers spend a significant amount of time implementing them in calculation tools (typically Microsoft Excel). This is not an ideal situation, with a lot of repeated work and implementation mistakes often going undetected. Moreover, certain geotechnical calculations are calibrated for specific ranges of the input parameters. Checking that the inputs are within these ranges is often omitted in an Excel implementation.
 
-To overcome these shortcomings, `Groundhog` provides a robust implementation of geotechnical functions with in-built parameter validation and [extensive documentation](https://groundhog.readthedocs.io/). Each input parameter is described, providing the expected units and the default validation range. The validation ranges can be overriden by the user with specific keyword arguments, making the overriding of the validation ranges explicitly visible.
+To overcome these shortcomings, `Groundhog` provides a robust implementation of geotechnical functions with in-built parameter validation and [extensive documentation](https://groundhog.readthedocs.io/). Each input parameter is described, providing the expected units and the default validation range. The validation ranges can be overriden by the user with specific keyword arguments, making adjustments to the validation ranges explicitly visible.
 
-Because geotechnical functions can return multiple outputs (e.g. intermediate calculation results), the output of `Groundhog` functions are Python dictionaries. The users can then select the relevant outputs for their calculations. `Groundhog` functions are also unit-tested to ensure they return the expected results.
+Because geotechnical functions can return multiple outputs (e.g. intermediate calculation results), the output of `Groundhog` functions are Python dictionaries. The users can select the relevant outputs for their calculations by addressing the appropriate dictionary key. `Groundhog` functions are also unit-tested to ensure they return the expected results.
 
-In addition to geotechnical functions, selected geotechnical workflows are encoded in an object-oriented manner. Processing of data from the cone penetration test (CPT) and the standard penetration tests (SPT) is a recurring task and the steps in the processing workflow are implemented in the `PCPTProcessing` and `SPTProcessing` classes respectively. The manipulation of stratigraphic profiles with the various layers in the subsoil is made possible with the `SoilProfile` class. Soil parameter visualisation and interactive parameter selection is made possible in the `LogPlot` class (using the `Plotly` [@plotly] plotting backend) and the `LogPlotMatplotlib` class (using `Matplotlib` [@matplotlib] as plotting backend).
+In addition to geotechnical functions, selected geotechnical workflows are encoded in an object-oriented manner. Processing of data from the cone penetration test (CPT) and the standard penetration tests (SPT) is a recurring task and the steps in the processing workflow are implemented in the `PCPTProcessing` and `SPTProcessing` classes respectively. The manipulation of stratigraphic profiles describing the various layers in the subsoil, is made possible with the `SoilProfile` class. Soil parameter visualisation and interactive parameter selection is made possible in the `LogPlot` class (using the `Plotly` [@plotly] plotting backend) and the `LogPlotMatplotlib` class (using `Matplotlib` [@matplotlib] as plotting backend).
 
 The package implements various methods for basic foundation design taught in undergraduate and graduate course (e.g. shallow foundation capacity on sand and clay, axial pile resistance in sand clay, one-dimensional consolidation).
 
@@ -68,13 +68,16 @@ The parameter validation functionality can be demonstrated using the function `r
 
 The function was developed based on calibration chamber tests with vertical effective stresses for these tests varying between 50kPa and 400kPa. Hence, only vertical effective stresses in that range are allowed. When a user attempts to execute the function for a vertical effective stress of 10kPa, the function will return `nan` for both outputs.
 
-However, the user can override the validation range. By appending `__min` or `__max` to the argument for which the validation range needs overriding, the default validation range is adjusted. By providing `sigma_vo_eff__min=10` as an additional argument, the function will return numerical values for the relative density. The overriding of the validation range is explicitly visible in the function call. The output are not realistic (relative density cannot be greater than 1), but the reader of the code can directly connect this to the vertical effective stress which is outside the validation range.
+However, the user can override the validation range. By appending `__min` or `__max` to the argument for which the validation range needs overriding, the default validation range is adjusted. By providing `sigma_vo_eff__min=10` as an additional argument, the function will return numerical values for the relative density even though the selected value of vertical effective stress is lower than 50kPa. The overriding of the validation range is explicitly visible in the function call, a minimum vertical effective stress of 10kPa is allowed. The outputs are not realistic (relative density cannot be greater than 1), but the reader of the code can directly connect this to the vertical effective stress which is outside the default validation range.
 
 ```python
->>> from groundhog.siteinvestigation.insitutests.pcpt_correlations import relativedensity_sand_jamiolkowski
->>> relativedensity_sand_jamiolkowski(qc=20, sigma_vo_eff=10, k0=0.8)
+>>> from groundhog.siteinvestigation.insitutests.pcpt_correlations import \
+    relativedensity_sand_jamiolkowski
+>>> relativedensity_sand_jamiolkowski(
+    qc=20, sigma_vo_eff=10, k0=0.8)
 {'Dr dry [-]': nan, 'Dr sat [-]': nan}
->>> relativedensity_sand_jamiolkowski(qc=20, sigma_vo_eff=10, k0=0.8, sigma_vo_eff__min=10)
+>>> relativedensity_sand_jamiolkowski(
+    qc=20, sigma_vo_eff=10, k0=0.8, sigma_vo_eff__min=10)
 {'Dr dry [-]': 1.083398634171661, 'Dr sat [-]': 1.252988806617474}
 ```
 
@@ -118,9 +121,9 @@ log_plot.set_zaxis(
 log_plot.show()
 ```
 
-The result is shown in \autoref{fig:stratigraphy}. It shows that the selected $S_u$ trend is not unreasonable, but a steeper trend might be justified. A geotechnical engineer with knowledge on the site geology can then choose to adjust this trend based on the given data.
+![Stratigraphy and undrained shear strength for the example.\label{fig:stratigraphy}](Stratigraphy.png)
 
-![Stratigraphy and undrained shear strength for the example.\label{fig:stratigraphy}](Stratigraphy.png).
+The result is shown in \autoref{fig:stratigraphy}. It shows that the selected $S_u$ trend is not unreasonable, but a steeper trend might be justified. A geotechnical engineer with knowledge on the site geology can then choose to adjust this trend based on the given data.
 
 # Acknowledgements
 

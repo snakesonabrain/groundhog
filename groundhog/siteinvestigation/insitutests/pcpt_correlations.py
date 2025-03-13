@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = 'Bruno Stuyts'
+__author__ = "Bruno Stuyts"
 
 # Native Python packages
 
@@ -11,37 +11,47 @@ from scipy.optimize import brentq
 
 # Project imports
 from groundhog.general.validation import Validator
+from groundhog.soildynamics.cptliquefaction import *
 
 
 PCPT_NORMALISATIONS = {
-    'measured_qc': {'type': 'float', 'min_value': 0.0, 'max_value': 150.0},
-    'measured_fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
-    'measured_u2': {'type': 'float', 'min_value': -10.0, 'max_value': 10.0},
-    'sigma_vo_tot': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'cone_area_ratio': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
-    'start_depth': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'unitweight_water': {'type': 'float', 'min_value': 9.0, 'max_value': 11.0},
+    "measured_qc": {"type": "float", "min_value": 0.0, "max_value": 150.0},
+    "measured_fs": {"type": "float", "min_value": 0.0, "max_value": 10.0},
+    "measured_u2": {"type": "float", "min_value": -10.0, "max_value": 10.0},
+    "sigma_vo_tot": {"type": "float", "min_value": 0.0, "max_value": None},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "depth": {"type": "float", "min_value": 0.0, "max_value": None},
+    "cone_area_ratio": {"type": "float", "min_value": 0.0, "max_value": 1.0},
+    "start_depth": {"type": "float", "min_value": 0.0, "max_value": None},
+    "unitweight_water": {"type": "float", "min_value": 9.0, "max_value": 11.0},
 }
 
 PCPT_NORMALISATIONS_ERRORRETURN = {
-    'qt [MPa]': np.nan,
-    'qc [MPa]': np.nan,
-    'u2 [MPa]': np.nan,
-    'Delta u2 [MPa]': np.nan,
-    'Rf [pct]': np.nan,
-    'Bq [-]': np.nan,
-    'Qt [-]': np.nan,
-    'Fr [-]': np.nan,
-    'qnet [MPa]': np.nan,
+    "qt [MPa]": np.nan,
+    "qc [MPa]": np.nan,
+    "u2 [MPa]": np.nan,
+    "Delta u2 [MPa]": np.nan,
+    "Rf [pct]": np.nan,
+    "Bq [-]": np.nan,
+    "Qt [-]": np.nan,
+    "Fr [-]": np.nan,
+    "qnet [MPa]": np.nan,
 }
 
 
 @Validator(PCPT_NORMALISATIONS, PCPT_NORMALISATIONS_ERRORRETURN)
 def pcpt_normalisations(
-        measured_qc, measured_fs, measured_u2, sigma_vo_tot, sigma_vo_eff, depth, cone_area_ratio,
-        start_depth=0.0, unitweight_water=10.25, **kwargs):
+    measured_qc,
+    measured_fs,
+    measured_u2,
+    sigma_vo_tot,
+    sigma_vo_eff,
+    depth,
+    cone_area_ratio,
+    start_depth=0.0,
+    unitweight_water=10.25,
+    **kwargs
+):
     """
     Carried out the necessary normalisation and correction on PCPT data to allow calculation of derived parameters and soil type classification.
 
@@ -116,31 +126,29 @@ def pcpt_normalisations(
     _qnet = _qt - 0.001 * sigma_vo_tot
 
     return {
-        'qt [MPa]': _qt,
-        'qc [MPa]': _qc,
-        'u2 [MPa]': _u2,
-        'Delta u2 [MPa]': _Delta_u2,
-        'Rf [pct]': _Rf,
-        'Bq [-]': _Bq,
-        'Qt [-]': _Qt,
-        'Fr [-]': _Fr,
-        'qnet [MPa]': _qnet,
+        "qt [MPa]": _qt,
+        "qc [MPa]": _qc,
+        "u2 [MPa]": _u2,
+        "Delta u2 [MPa]": _Delta_u2,
+        "Rf [pct]": _Rf,
+        "Bq [-]": _Bq,
+        "Qt [-]": _Qt,
+        "Fr [-]": _Fr,
+        "qnet [MPa]": _qnet,
     }
 
 
 SOILCLASS_ROBERTSON = {
-    'ic_class_number': {'type': 'integer', 'min_value': 1, 'max_value': 9},
+    "ic_class_number": {"type": "integer", "min_value": 1, "max_value": 9},
 }
 
 SOILCLASS_ROBERTSON_ERRORRETURN = {
-    'Soil type': np.nan,
+    "Soil type": np.nan,
 }
 
 
 @Validator(SOILCLASS_ROBERTSON, SOILCLASS_ROBERTSON_ERRORRETURN)
-def soilclass_robertson(
-        ic_class_number,
-        **kwargs):
+def soilclass_robertson(ic_class_number, **kwargs):
     """
     Provides soil type classification according to the soil behaviour type index by Robertson and Wride.
 
@@ -173,26 +181,25 @@ def soilclass_robertson(
     elif ic_class_number == 1:
         ic_class = "Sensitive, fine-grained"
     else:
-        raise ValueError('Soil type class not defined')
+        raise ValueError("Soil type class not defined")
 
     return {
-        'Soil type': ic_class,
+        "Soil type": ic_class,
     }
 
+
 IC_SOILCLASS_ROBERTSON = {
-    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
+    "ic": {"type": "float", "min_value": 1.0, "max_value": 5.0},
 }
 
 IC_SOILCLASS_ROBERTSON_ERRORRETURN = {
-    'Soil type number [-]': np.nan,
-    'Soil type': np.nan,
+    "Soil type number [-]": np.nan,
+    "Soil type": np.nan,
 }
 
 
 @Validator(IC_SOILCLASS_ROBERTSON, IC_SOILCLASS_ROBERTSON_ERRORRETURN)
-def ic_soilclass_robertson(
-        ic,
-        **kwargs):
+def ic_soilclass_robertson(ic, **kwargs):
     """
     Provides soil type classification according to the soil behaviour type index by Robertson and Wride.
 
@@ -227,41 +234,62 @@ def ic_soilclass_robertson(
         ic_class = "Organic soils-peats"
 
     return {
-        'Soil type number [-]': ic_class_number,
-        'Soil type': ic_class,
+        "Soil type number [-]": ic_class_number,
+        "Soil type": ic_class,
     }
 
 
 BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'ic_min': {'type': 'float', 'min_value': None, 'max_value': None},
-    'ic_max': {'type': 'float', 'min_value': None, 'max_value': None},
-    'zhang_multiplier_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'zhang_multiplier_2': {'type': 'float', 'min_value': None, 'max_value': None},
-    'zhang_subtraction': {'type': 'float', 'min_value': None, 'max_value': None},
-    'robertsonwride_coefficient1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'robertsonwride_coefficient2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "fs": {"type": "float", "min_value": 0.0, "max_value": None},
+    "sigma_vo": {"type": "float", "min_value": 0.0, "max_value": None},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "ic_min": {"type": "float", "min_value": None, "max_value": None},
+    "ic_max": {"type": "float", "min_value": None, "max_value": None},
+    "zhang_multiplier_1": {"type": "float", "min_value": None, "max_value": None},
+    "zhang_multiplier_2": {"type": "float", "min_value": None, "max_value": None},
+    "zhang_subtraction": {"type": "float", "min_value": None, "max_value": None},
+    "robertsonwride_coefficient1": {
+        "type": "float",
+        "min_value": None,
+        "max_value": None,
+    },
+    "robertsonwride_coefficient2": {
+        "type": "float",
+        "min_value": None,
+        "max_value": None,
+    },
 }
 
 BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE_ERRORRETURN = {
-    'exponent_zhang [-]': np.nan,
-    'Qtn [-]': np.nan,
-    'Fr [%]': np.nan,
-    'Ic [-]': np.nan,
-    'Ic class number [-]': np.nan,
-    'Ic class': None,
+    "exponent_zhang [-]": np.nan,
+    "Qtn [-]": np.nan,
+    "Fr [%]": np.nan,
+    "Ic [-]": np.nan,
+    "Ic class number [-]": np.nan,
+    "Ic class": None,
 }
 
 
-@Validator(BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE, BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE_ERRORRETURN)
+@Validator(
+    BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE, BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE_ERRORRETURN
+)
 def behaviourindex_pcpt_robertsonwride(
-        qt, fs, sigma_vo, sigma_vo_eff,
-        atmospheric_pressure=100.0, ic_min=1.0, ic_max=4.0, zhang_multiplier_1=0.381, zhang_multiplier_2=0.05,
-        zhang_subtraction=0.15, robertsonwride_coefficient1=3.47, robertsonwride_coefficient2=1.22, **kwargs):
+    qt,
+    fs,
+    sigma_vo,
+    sigma_vo_eff,
+    atmospheric_pressure=100.0,
+    ic_min=1.0,
+    ic_max=4.0,
+    zhang_multiplier_1=0.381,
+    zhang_multiplier_2=0.05,
+    zhang_subtraction=0.15,
+    robertsonwride_coefficient1=3.47,
+    robertsonwride_coefficient2=1.22,
+    **kwargs
+):
     """
     Calculates the soil behaviour index according to Robertson and Wride (1998). This index is a measure for the behaviour of soils.
     Soils with a value below 2.5 are generally cohesionless and coarse grained whereas a value above 2.7 indicates cohesive, fine-grained sediments.
@@ -318,11 +346,18 @@ def behaviourindex_pcpt_robertsonwride(
         return 100 * fs / (qt - 0.001 * sigma_vo)
 
     def exponent_zhang(ic, sigma_vo_eff, pa=atmospheric_pressure):
-        return min(1, zhang_multiplier_1 * ic + zhang_multiplier_2 * (sigma_vo_eff / pa) - zhang_subtraction)
+        return min(
+            1,
+            zhang_multiplier_1 * ic
+            + zhang_multiplier_2 * (sigma_vo_eff / pa)
+            - zhang_subtraction,
+        )
 
     def soilbehaviourtypeindex(qt, fr):
-        return np.sqrt((robertsonwride_coefficient1 - np.log10(qt)) ** 2 +
-                       (np.log10(fr) + robertsonwride_coefficient2) ** 2)
+        return np.sqrt(
+            (robertsonwride_coefficient1 - np.log10(qt)) ** 2
+            + (np.log10(fr) + robertsonwride_coefficient2) ** 2
+        )
 
     def rootfunction(ic, qt, fs, sigma_vo, sigma_vo_eff):
         _fr = Fr(fs, qt, sigma_vo)
@@ -336,7 +371,7 @@ def behaviourindex_pcpt_robertsonwride(
     _Fr = Fr(fs, qt, sigma_vo)
 
     if _Ic < 1.31:
-        _Ic_class_number = 7,
+        _Ic_class_number = (7,)
         _Ic_class = "Gravelly sand to sand"
     elif 1.31 <= _Ic < 2.05:
         _Ic_class_number = 6
@@ -355,32 +390,37 @@ def behaviourindex_pcpt_robertsonwride(
         _Ic_class = "Organic soils-peats"
 
     return {
-        'exponent_zhang [-]': _exponent_zhang,
-        'Qtn [-]': _Qtn,
-        'Fr [%]': _Fr,
-        'Ic [-]': _Ic,
-        'Ic class number [-]': _Ic_class_number,
-        'Ic class': _Ic_class
+        "exponent_zhang [-]": _exponent_zhang,
+        "Qtn [-]": _Qtn,
+        "Fr [%]": _Fr,
+        "Ic [-]": _Ic,
+        "Ic class number [-]": _Ic_class_number,
+        "Ic class": _Ic_class,
     }
 
 
 GMAX_SAND_RIXSTOKOE = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'qc_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'stress_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "qc_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "stress_exponent": {"type": "float", "min_value": None, "max_value": None},
 }
 
 GMAX_SAND_RIXSTOKOE_ERRORRETURN = {
-    'Gmax [kPa]': np.nan,
+    "Gmax [kPa]": np.nan,
 }
 
 
 @Validator(GMAX_SAND_RIXSTOKOE, GMAX_SAND_RIXSTOKOE_ERRORRETURN)
 def gmax_sand_rixstokoe(
-        qc, sigma_vo_eff,
-        multiplier=1634.0, qc_exponent=0.25, stress_exponent=0.375, **kwargs):
+    qc,
+    sigma_vo_eff,
+    multiplier=1634.0,
+    qc_exponent=0.25,
+    stress_exponent=0.375,
+    **kwargs
+):
     """
     Calculates the small-strain shear modulus for uncemented silica sand based on cone resistance and vertical effective stress. The correlation is based on calibration chamber tests compared to results from PCPT, S-PCPT and cross-hole tests reported by Baldi et al (1989).
 
@@ -403,28 +443,26 @@ def gmax_sand_rixstokoe(
 
     """
 
-    _Gmax = multiplier * ((1000 * qc) ** qc_exponent) * (sigma_vo_eff ** stress_exponent)
+    _Gmax = multiplier * ((1000 * qc) ** qc_exponent) * (sigma_vo_eff**stress_exponent)
 
     return {
-        'Gmax [kPa]': _Gmax,
+        "Gmax [kPa]": _Gmax,
     }
 
 
 GMAX_CLAY_MAYNERIX = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "exponent": {"type": "float", "min_value": None, "max_value": None},
 }
 
 GMAX_CLAY_MAYNERIX_ERRORRETURN = {
-    'Gmax [kPa]': np.nan,
+    "Gmax [kPa]": np.nan,
 }
 
 
 @Validator(GMAX_CLAY_MAYNERIX, GMAX_CLAY_MAYNERIX_ERRORRETURN)
-def gmax_clay_maynerix(
-        qc,
-        multiplier=2.78, exponent=1.335, **kwargs):
+def gmax_clay_maynerix(qc, multiplier=2.78, exponent=1.335, **kwargs):
     """
     Mayne and Rix (1993) determined a relationship between small-strain shear modulus and cone tip resistance by studying 481 data sets from 31 sites all over the world. Gmax ranged between about 0.7 MPa and 800 MPa.
 
@@ -448,27 +486,32 @@ def gmax_clay_maynerix(
     _Gmax = multiplier * ((1000 * qc) ** exponent)
 
     return {
-        'Gmax [kPa]': _Gmax,
+        "Gmax [kPa]": _Gmax,
     }
 
 
 RELATIVEDENSITY_NCSAND_BALDI = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'coefficient_0': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "coefficient_0": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
 }
 
 RELATIVEDENSITY_NCSAND_BALDI_ERRORRETURN = {
-    'Dr [-]': np.nan,
+    "Dr [-]": np.nan,
 }
 
 
 @Validator(RELATIVEDENSITY_NCSAND_BALDI, RELATIVEDENSITY_NCSAND_BALDI_ERRORRETURN)
 def relativedensity_ncsand_baldi(
-        qc, sigma_vo_eff,
-        coefficient_0=157.0, coefficient_1=0.55, coefficient_2=2.41, **kwargs):
+    qc,
+    sigma_vo_eff,
+    coefficient_0=157.0,
+    coefficient_1=0.55,
+    coefficient_2=2.41,
+    **kwargs
+):
     """
     Calculates the relative density for normally consolidated sand based on calibration chamber tests on silica sand. It should be noted that this correlation provides an approximative estimate of relative density and the sand at the site should be compared to the sands used in the calibration chamber tests. The correlation will always be sensitive to variations in compressibility and horizontal stress.
 
@@ -498,31 +541,39 @@ def relativedensity_ncsand_baldi(
 
     """
 
-    _Dr = (1 / coefficient_2) * np.log((1000 * qc) / (coefficient_0 * (sigma_vo_eff ** coefficient_1)))
+    _Dr = (1 / coefficient_2) * np.log(
+        (1000 * qc) / (coefficient_0 * (sigma_vo_eff**coefficient_1))
+    )
 
     return {
-        'Dr [-]': _Dr,
+        "Dr [-]": _Dr,
     }
 
 
 RELATIVEDENSITY_OCSAND_BALDI = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'k0': {'type': 'float', 'min_value': 0.3, 'max_value': 5.0},
-    'coefficient_0': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "k0": {"type": "float", "min_value": 0.3, "max_value": 5.0},
+    "coefficient_0": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
 }
 
 RELATIVEDENSITY_OCSAND_BALDI_ERRORRETURN = {
-    'Dr [-]': np.nan,
+    "Dr [-]": np.nan,
 }
 
 
 @Validator(RELATIVEDENSITY_OCSAND_BALDI, RELATIVEDENSITY_OCSAND_BALDI_ERRORRETURN)
 def relativedensity_ocsand_baldi(
-        qc, sigma_vo_eff, k0,
-        coefficient_0=181.0, coefficient_1=0.55, coefficient_2=2.61, **kwargs):
+    qc,
+    sigma_vo_eff,
+    k0,
+    coefficient_0=181.0,
+    coefficient_1=0.55,
+    coefficient_2=2.61,
+    **kwargs
+):
     """
     Calculates the relative density for overconsolidated sand based on calibration chamber tests on silica sand. It should be noted that this correlation provides an approximative estimate of relative density and the sand at the site should be compared to the sands used in the calibration chamber tests. The correlation will always be sensitive to variations in compressibility and horizontal stress. Note that this correlation requires an estimate of the coefficient of lateral earth pressure.
 
@@ -556,30 +607,39 @@ def relativedensity_ocsand_baldi(
     """
 
     _sigma_m_eff = (1 / 3) * (sigma_vo_eff + 2 * k0 * sigma_vo_eff)
-    _Dr = (1 / coefficient_2) * np.log((1000 * qc) / (coefficient_0 * (_sigma_m_eff ** coefficient_1)))
+    _Dr = (1 / coefficient_2) * np.log(
+        (1000 * qc) / (coefficient_0 * (_sigma_m_eff**coefficient_1))
+    )
 
     return {
-        'Dr [-]': _Dr,
+        "Dr [-]": _Dr,
     }
 
+
 CONERESISTANCE_OCSAND_BALDI = {
-    'dr': {'type': 'float', 'min_value': 0.0, 'max_value': 1.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'k0': {'type': 'float', 'min_value': 0.3, 'max_value': 5.0},
-    'coefficient_0': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "dr": {"type": "float", "min_value": 0.0, "max_value": 1.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "k0": {"type": "float", "min_value": 0.3, "max_value": 5.0},
+    "coefficient_0": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
 }
 
 CONERESISTANCE_OCSAND_BALDI_ERRORRETURN = {
-    'qc [MPa]': np.nan,
+    "qc [MPa]": np.nan,
 }
 
 
 @Validator(CONERESISTANCE_OCSAND_BALDI, CONERESISTANCE_OCSAND_BALDI_ERRORRETURN)
 def coneresistance_ocsand_baldi(
-        dr, sigma_vo_eff, k0,
-        coefficient_0=181.0, coefficient_1=0.55, coefficient_2=2.61, **kwargs):
+    dr,
+    sigma_vo_eff,
+    k0,
+    coefficient_0=181.0,
+    coefficient_1=0.55,
+    coefficient_2=2.61,
+    **kwargs
+):
     """
     Calculates the cone resistance for a given relative density for overconsolidated sand based on calibration chamber tests on silica sand.
     It should be noted that this correlation provides an approximative estimate of relative density and the sand at the site should be compared to the sands used in the calibration chamber tests.
@@ -608,36 +668,50 @@ def coneresistance_ocsand_baldi(
 
     _sigma_m_eff = (1 / 3) * (sigma_vo_eff + 2 * k0 * sigma_vo_eff)
 
-    _qc = 0.001 * np.exp(dr / (1 / coefficient_2)) * (coefficient_0 * (_sigma_m_eff ** coefficient_1))
+    _qc = (
+        0.001
+        * np.exp(dr / (1 / coefficient_2))
+        * (coefficient_0 * (_sigma_m_eff**coefficient_1))
+    )
 
     return {
-        'qc [MPa]': _qc,
+        "qc [MPa]": _qc,
     }
 
 
 RELATIVEDENSITY_SAND_JAMIOLKOWSKI = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 50.0, 'max_value': 400.0},
-    'k0': {'type': 'float', 'min_value': 0.4, 'max_value': 1.5},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_3': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_4': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_5': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 50.0, "max_value": 400.0},
+    "k0": {"type": "float", "min_value": 0.4, "max_value": 1.5},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_3": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_4": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_5": {"type": "float", "min_value": None, "max_value": None},
 }
 
 RELATIVEDENSITY_SAND_JAMIOLKOWSKI_ERRORRETURN = {
-    'Dr dry [-]': np.nan,
-    'Dr sat [-]': np.nan,
+    "Dr dry [-]": np.nan,
+    "Dr sat [-]": np.nan,
 }
 
 
-@Validator(RELATIVEDENSITY_SAND_JAMIOLKOWSKI, RELATIVEDENSITY_SAND_JAMIOLKOWSKI_ERRORRETURN)
+@Validator(
+    RELATIVEDENSITY_SAND_JAMIOLKOWSKI, RELATIVEDENSITY_SAND_JAMIOLKOWSKI_ERRORRETURN
+)
 def relativedensity_sand_jamiolkowski(
-        qc, sigma_vo_eff, k0,
-        atmospheric_pressure=100.0, coefficient_1=2.96, coefficient_2=24.94, coefficient_3=0.46, coefficient_4=-1.87,
-        coefficient_5=2.32, **kwargs):
+    qc,
+    sigma_vo_eff,
+    k0,
+    atmospheric_pressure=100.0,
+    coefficient_1=2.96,
+    coefficient_2=24.94,
+    coefficient_3=0.46,
+    coefficient_4=-1.87,
+    coefficient_5=2.32,
+    **kwargs
+):
     """
     Jamiolkowksi et al formulated a correlation for the relative density of dry sand based on calibration chamber tests.
     The correlation can be modified for saturated sands by applying a correction factor and results in relative densities which can be up to 10% higher.
@@ -670,35 +744,50 @@ def relativedensity_sand_jamiolkowski(
 
     """
     _sigma_m_eff = (1 / 3) * (sigma_vo_eff + 2 * k0 * sigma_vo_eff)
-    _Dr_dry = (1 / coefficient_1) * np.log((1000 * qc / atmospheric_pressure) /
-                                           (coefficient_2 * ((_sigma_m_eff / atmospheric_pressure) ** coefficient_3)))
-    _Dr_sat = (((coefficient_4 + coefficient_5 * np.log(
-        (1000 * qc) / (np.sqrt(atmospheric_pressure + sigma_vo_eff))
-    )) / 100) + 1) * (_Dr_dry)
+    _Dr_dry = (1 / coefficient_1) * np.log(
+        (1000 * qc / atmospheric_pressure)
+        / (coefficient_2 * ((_sigma_m_eff / atmospheric_pressure) ** coefficient_3))
+    )
+    _Dr_sat = (
+        (
+            (
+                coefficient_4
+                + coefficient_5
+                * np.log((1000 * qc) / (np.sqrt(atmospheric_pressure + sigma_vo_eff)))
+            )
+            / 100
+        )
+        + 1
+    ) * (_Dr_dry)
 
     return {
-        'Dr dry [-]': _Dr_dry,
-        'Dr sat [-]': _Dr_sat,
+        "Dr dry [-]": _Dr_dry,
+        "Dr sat [-]": _Dr_sat,
     }
 
 
 FRICTIONANGLE_SAND_KULHAWYMAYNE = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
 }
 
 FRICTIONANGLE_SAND_KULHAWYMAYNE_ERRORRETURN = {
-    'Phi [deg]': np.nan,
+    "Phi [deg]": np.nan,
 }
 
 
 @Validator(FRICTIONANGLE_SAND_KULHAWYMAYNE, FRICTIONANGLE_SAND_KULHAWYMAYNE_ERRORRETURN)
 def frictionangle_sand_kulhawymayne(
-        qt, sigma_vo_eff,
-        atmospheric_pressure=100.0, coefficient_1=17.6, coefficient_2=11.0, **kwargs):
+    qt,
+    sigma_vo_eff,
+    atmospheric_pressure=100.0,
+    coefficient_1=17.6,
+    coefficient_2=11.0,
+    **kwargs
+):
     """
     Determines the friction angle for sand based on calibration chamber tests.
 
@@ -722,28 +811,30 @@ def frictionangle_sand_kulhawymayne(
     """
 
     _phi = coefficient_1 + coefficient_2 * np.log10(
-        (1000 * qt / atmospheric_pressure) / (np.sqrt(sigma_vo_eff / atmospheric_pressure))
+        (1000 * qt / atmospheric_pressure)
+        / (np.sqrt(sigma_vo_eff / atmospheric_pressure))
     )
 
     return {
-        'Phi [deg]': _phi,
+        "Phi [deg]": _phi,
     }
 
 
 UNDRAINEDSHEARSTRENGTH_CLAY_RADLUNNE = {
-    'qnet': {'type': 'float', 'min_value': 0.0, 'max_value': 120.0},
-    'Nk': {'type': 'float', 'min_value': 8.0, 'max_value': 30.0},
+    "qnet": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "Nk": {"type": "float", "min_value": 8.0, "max_value": 30.0},
 }
 
 UNDRAINEDSHEARSTRENGTH_CLAY_RADLUNNE_ERRORRETURN = {
-    'Su [kPa]': np.nan,
+    "Su [kPa]": np.nan,
 }
 
 
-@Validator(UNDRAINEDSHEARSTRENGTH_CLAY_RADLUNNE, UNDRAINEDSHEARSTRENGTH_CLAY_RADLUNNE_ERRORRETURN)
-def undrainedshearstrength_clay_radlunne(
-        qnet, Nk,
-        **kwargs):
+@Validator(
+    UNDRAINEDSHEARSTRENGTH_CLAY_RADLUNNE,
+    UNDRAINEDSHEARSTRENGTH_CLAY_RADLUNNE_ERRORRETURN,
+)
+def undrainedshearstrength_clay_radlunne(qnet, Nk, **kwargs):
     """
     Calculates the undrained shear strength of clay from net cone tip resistance. The correlation is empirical and the cone factor needs to be adjusted to fit CIU or other high-quality laboratory tests for undrained shear strength.
 
@@ -766,25 +857,27 @@ def undrainedshearstrength_clay_radlunne(
     _Su = 1000 * qnet / Nk
 
     return {
-        'Su [kPa]': _Su,
+        "Su [kPa]": _Su,
     }
 
 
 FRICTIONANGLE_OVERBURDEN_KLEVEN = {
-    'sigma_vo_eff': {'type': 'float', 'min_value': 10.0, 'max_value': 800.0},
-    'relative_density': {'type': 'float', 'min_value': 40.0, 'max_value': 100.0},
-    'Ko': {'type': 'float', 'min_value': 0.3, 'max_value': 2.0},
-    'max_friction_angle': {'type': 'float', 'min_value': None, 'max_value': None},
+    "sigma_vo_eff": {"type": "float", "min_value": 10.0, "max_value": 800.0},
+    "relative_density": {"type": "float", "min_value": 40.0, "max_value": 100.0},
+    "Ko": {"type": "float", "min_value": 0.3, "max_value": 2.0},
+    "max_friction_angle": {"type": "float", "min_value": None, "max_value": None},
 }
 
 FRICTIONANGLE_OVERBURDEN_KLEVEN_ERRORRETURN = {
-    'phi [deg]': np.nan,
-    'sigma_m [kPa]': np.nan
+    "phi [deg]": np.nan,
+    "sigma_m [kPa]": np.nan,
 }
 
+
 @Validator(FRICTIONANGLE_OVERBURDEN_KLEVEN, FRICTIONANGLE_OVERBURDEN_KLEVEN_ERRORRETURN)
-def frictionangle_overburden_kleven(sigma_vo_eff, relative_density, Ko=0.5, max_friction_angle=45.0,
-                                    **kwargs):
+def frictionangle_overburden_kleven(
+    sigma_vo_eff, relative_density, Ko=0.5, max_friction_angle=45.0, **kwargs
+):
     """
     This function calculates the friction angle according to the chart proposed by Kleven (1986). The function takes into account the effective confining pressure of the sand and its relative density. The function was calibrated on North Sea sand tests with confining pressures ranging from 10 to 800kPa. Lower confinement clearly leads to higher friction angles. The fit to the data is not excellent and this function should be compared to site-specific testing or other correlations.
 
@@ -850,23 +943,23 @@ def frictionangle_overburden_kleven(sigma_vo_eff, relative_density, Ko=0.5, max_
     phi = min(phi, max_friction_angle)
 
     return {
-        'phi [deg]': phi,
-        'sigma_m [kPa]': sigma_m,
+        "phi [deg]": phi,
+        "sigma_m [kPa]": sigma_m,
     }
 
 
 OCR_CPT_LUNNE = {
-    'Qt': {'type': 'float', 'min_value': 2.0, 'max_value': 34.0},
-    'Bq': {'type': 'float', 'min_value': 0.0, 'max_value': 1.4},
+    "Qt": {"type": "float", "min_value": 2.0, "max_value": 34.0},
+    "Bq": {"type": "float", "min_value": 0.0, "max_value": 1.4},
 }
 
 OCR_CPT_LUNNE_ERRORRETURN = {
-    'OCR_Qt_LE [-]': np.nan,
-    'OCR_Qt_BE [-]': np.nan,
-    'OCR_Qt_HE [-]': np.nan,
-    'OCR_Bq_LE [-]': np.nan,
-    'OCR_Bq_BE [-]': np.nan,
-    'OCR_Bq_HE [-]': np.nan,
+    "OCR_Qt_LE [-]": np.nan,
+    "OCR_Qt_BE [-]": np.nan,
+    "OCR_Qt_HE [-]": np.nan,
+    "OCR_Bq_LE [-]": np.nan,
+    "OCR_Bq_BE [-]": np.nan,
+    "OCR_Bq_HE [-]": np.nan,
 }
 
 
@@ -904,100 +997,210 @@ def ocr_cpt_lunne(Qt, Bq=np.nan, **kwargs):
 
     """
 
-    _OCR_Qt_HE = 10 ** (np.interp(
-        Qt,
-        [
-            2.118188717, 2.955763555, 4.261775866, 5.212142676, 6.987132136, 9.588363268,
-            13.01367738, 18.08607808, 23.27342946, 27.27943334, 31.99025213, 33.87371616],
-        [
-            0.00599007, 0.161314993, 0.292855171, 0.394488883, 0.508212442, 0.651930234,
-            0.801769746, 0.95191644, 1.072244436, 1.138639862, 1.193230681, 1.205518004
-        ]))
-    _OCR_Qt_BE = 10 ** (np.interp(
-        Qt,
-        [
-            3.294139472, 4.721578548, 6.379458639, 8.389746184, 11.22465638, 14.29432499,
-            17.36237457, 20.19404672, 24.08456025, 27.62050763, 31.15537566, 33.86508137
-        ],
-        [
-            0.000241358, 0.173580374, 0.29325012, 0.407017563, 0.532874854, 0.6528079,
-            0.754836561, 0.844885083, 0.93513108, 1.007406867, 1.067746398, 1.110027953
-        ]))
-    _OCR_Qt_LE = 10 ** (np.interp(
-        Qt,
-        [
-            4.705927987, 6.483615819, 8.494443039, 10.50580993, 13.10272367, 16.05258453,
-            19.4725019, 22.77369087, 26.42620794, 29.60758917, 34.08526857
-        ],
-        [
-            0.000504658, 0.144068858, 0.263804429, 0.389508129, 0.485480895, 0.581519487,
-            0.671677717, 0.749877749, 0.810239222, 0.8645448, 0.942964248
-        ]))
+    _OCR_Qt_HE = 10 ** (
+        np.interp(
+            Qt,
+            [
+                2.118188717,
+                2.955763555,
+                4.261775866,
+                5.212142676,
+                6.987132136,
+                9.588363268,
+                13.01367738,
+                18.08607808,
+                23.27342946,
+                27.27943334,
+                31.99025213,
+                33.87371616,
+            ],
+            [
+                0.00599007,
+                0.161314993,
+                0.292855171,
+                0.394488883,
+                0.508212442,
+                0.651930234,
+                0.801769746,
+                0.95191644,
+                1.072244436,
+                1.138639862,
+                1.193230681,
+                1.205518004,
+            ],
+        )
+    )
+    _OCR_Qt_BE = 10 ** (
+        np.interp(
+            Qt,
+            [
+                3.294139472,
+                4.721578548,
+                6.379458639,
+                8.389746184,
+                11.22465638,
+                14.29432499,
+                17.36237457,
+                20.19404672,
+                24.08456025,
+                27.62050763,
+                31.15537566,
+                33.86508137,
+            ],
+            [
+                0.000241358,
+                0.173580374,
+                0.29325012,
+                0.407017563,
+                0.532874854,
+                0.6528079,
+                0.754836561,
+                0.844885083,
+                0.93513108,
+                1.007406867,
+                1.067746398,
+                1.110027953,
+            ],
+        )
+    )
+    _OCR_Qt_LE = 10 ** (
+        np.interp(
+            Qt,
+            [
+                4.705927987,
+                6.483615819,
+                8.494443039,
+                10.50580993,
+                13.10272367,
+                16.05258453,
+                19.4725019,
+                22.77369087,
+                26.42620794,
+                29.60758917,
+                34.08526857,
+            ],
+            [
+                0.000504658,
+                0.144068858,
+                0.263804429,
+                0.389508129,
+                0.485480895,
+                0.581519487,
+                0.671677717,
+                0.749877749,
+                0.810239222,
+                0.8645448,
+                0.942964248,
+            ],
+        )
+    )
 
     if np.isnan(Bq):
         _OCR_Bq_LE = np.nan
         _OCR_Bq_BE = np.nan
         _OCR_Bq_HE = np.nan
     else:
-        _OCR_Bq_LE = 10 ** (np.interp(
-            Bq,
-            [
-                0.075352962, 0.188834333, 0.276555837, 0.379904518, 0.46248832,
-                0.586554308, 0.715805569, 0.855570091
-            ],
-            [
-                0.692612411, 0.54389548, 0.436844931, 0.347765081, 0.252628686,
-                0.157669124, 0.062731666, 0.00364719
-            ]
-        ))
-        _OCR_Bq_BE = 10 ** (np.interp(
-            Bq,
-            [
-                0.102064255, 0.184481558, 0.251580897, 0.354763078, 0.468363377,
-                0.602728555, 0.726770757, 0.866392565, 1.00608573
-            ],
-            [
-                0.889671185, 0.752757888, 0.675459566, 0.544602814, 0.425726528,
-                0.312906788, 0.211979097, 0.117085847, 0.040096985
-            ]
-        ))
-        _OCR_Bq_HE = 10 ** (np.interp(
-            Bq,
-            [
-                0.164882176, 0.216425695, 0.293705296, 0.438155592, 0.577587115,
-                0.717089995, 0.898027489, 1.037673083
-            ],
-            [
-                1.039139658, 0.961775024, 0.83677588, 0.652382801, 0.50974452,
-                0.385010626, 0.248517308, 0.159592188
-            ]
-        ))
+        _OCR_Bq_LE = 10 ** (
+            np.interp(
+                Bq,
+                [
+                    0.075352962,
+                    0.188834333,
+                    0.276555837,
+                    0.379904518,
+                    0.46248832,
+                    0.586554308,
+                    0.715805569,
+                    0.855570091,
+                ],
+                [
+                    0.692612411,
+                    0.54389548,
+                    0.436844931,
+                    0.347765081,
+                    0.252628686,
+                    0.157669124,
+                    0.062731666,
+                    0.00364719,
+                ],
+            )
+        )
+        _OCR_Bq_BE = 10 ** (
+            np.interp(
+                Bq,
+                [
+                    0.102064255,
+                    0.184481558,
+                    0.251580897,
+                    0.354763078,
+                    0.468363377,
+                    0.602728555,
+                    0.726770757,
+                    0.866392565,
+                    1.00608573,
+                ],
+                [
+                    0.889671185,
+                    0.752757888,
+                    0.675459566,
+                    0.544602814,
+                    0.425726528,
+                    0.312906788,
+                    0.211979097,
+                    0.117085847,
+                    0.040096985,
+                ],
+            )
+        )
+        _OCR_Bq_HE = 10 ** (
+            np.interp(
+                Bq,
+                [
+                    0.164882176,
+                    0.216425695,
+                    0.293705296,
+                    0.438155592,
+                    0.577587115,
+                    0.717089995,
+                    0.898027489,
+                    1.037673083,
+                ],
+                [
+                    1.039139658,
+                    0.961775024,
+                    0.83677588,
+                    0.652382801,
+                    0.50974452,
+                    0.385010626,
+                    0.248517308,
+                    0.159592188,
+                ],
+            )
+        )
 
     return {
-        'OCR_Qt_LE [-]': _OCR_Qt_LE,
-        'OCR_Qt_BE [-]': _OCR_Qt_BE,
-        'OCR_Qt_HE [-]': _OCR_Qt_HE,
-        'OCR_Bq_LE [-]': _OCR_Bq_LE,
-        'OCR_Bq_BE [-]': _OCR_Bq_BE,
-        'OCR_Bq_HE [-]': _OCR_Bq_HE,
+        "OCR_Qt_LE [-]": _OCR_Qt_LE,
+        "OCR_Qt_BE [-]": _OCR_Qt_BE,
+        "OCR_Qt_HE [-]": _OCR_Qt_HE,
+        "OCR_Bq_LE [-]": _OCR_Bq_LE,
+        "OCR_Bq_BE [-]": _OCR_Bq_BE,
+        "OCR_Bq_HE [-]": _OCR_Bq_HE,
     }
 
 
 SENSITIVITY_FRICTIONRATIO_LUNNE = {
-    'Rf': {'type': 'float', 'min_value': 0.5, 'max_value': 2.2},
+    "Rf": {"type": "float", "min_value": 0.5, "max_value": 2.2},
 }
 
 SENSITIVITY_FRICTIONRATIO_LUNNE_ERRORRETURN = {
-    'St LE [-]': np.nan,
-    'St BE [-]': np.nan,
-    'St HE [-]': np.nan,
+    "St LE [-]": np.nan,
+    "St BE [-]": np.nan,
+    "St HE [-]": np.nan,
 }
 
 
 @Validator(SENSITIVITY_FRICTIONRATIO_LUNNE, SENSITIVITY_FRICTIONRATIO_LUNNE_ERRORRETURN)
-def sensitivity_frictionratio_lunne(
-        Rf,
-        **kwargs):
+def sensitivity_frictionratio_lunne(Rf, **kwargs):
     """
     Calculates the sensitivity of clay from the friction ratio according to Rad and Lunne (1986). The correlation is derived based on measurements on Norwegian clays.
 
@@ -1043,7 +1246,7 @@ def sensitivity_frictionratio_lunne(
             1.60551546,
             1.747640974,
             1.858687683,
-            1.929747195
+            1.929747195,
         ],
         [
             9.249026219,
@@ -1060,8 +1263,8 @@ def sensitivity_frictionratio_lunne(
             3.614614175,
             3.288221847,
             3.070864865,
-            2.896719748
-        ]
+            2.896719748,
+        ],
     )
     _St_BE = np.interp(
         Rf,
@@ -1077,7 +1280,7 @@ def sensitivity_frictionratio_lunne(
             1.605846362,
             1.756841338,
             1.885626972,
-            2.045504387
+            2.045504387,
         ],
         [
             9.995760998,
@@ -1091,8 +1294,8 @@ def sensitivity_frictionratio_lunne(
             4.731407327,
             4.339451049,
             3.990966168,
-            3.577241751
-        ]
+            3.577241751,
+        ],
     )
     _St_HE = np.interp(
         Rf,
@@ -1110,7 +1313,7 @@ def sensitivity_frictionratio_lunne(
             1.846016095,
             1.970344289,
             2.099116947,
-            2.23678502
+            2.23678502,
         ],
         [
             11.35505317,
@@ -1126,37 +1329,43 @@ def sensitivity_frictionratio_lunne(
             5.30425652,
             4.911910946,
             4.519630255,
-            4.149377234
-        ]
+            4.149377234,
+        ],
     )
 
     return {
-        'St LE [-]': _St_LE,
-        'St BE [-]': _St_BE,
-        'St HE [-]': _St_HE,
+        "St LE [-]": _St_LE,
+        "St BE [-]": _St_BE,
+        "St HE [-]": _St_HE,
     }
 
 
 UNITWEIGHT_MAYNE = {
-    'ft': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 500.0},
-    'unitweight_water': {'type': 'float', 'min_value': 9.0, 'max_value': 11.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "ft": {"type": "float", "min_value": 0.0, "max_value": 10.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 500.0},
+    "unitweight_water": {"type": "float", "min_value": 9.0, "max_value": 11.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_1": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_2": {"type": "float", "min_value": None, "max_value": None},
 }
 
 UNITWEIGHT_MAYNE_ERRORRETURN = {
-    'gamma [kN/m3]': np.nan,
+    "gamma [kN/m3]": np.nan,
 }
 
 
 @Validator(UNITWEIGHT_MAYNE, UNITWEIGHT_MAYNE_ERRORRETURN)
 def unitweight_mayne(
-        ft, sigma_vo_eff,
-        unitweight_water=10.25, atmospheric_pressure=100.0, coefficient_1=1.95, exponent_1=0.06, exponent_2=0.06,
-        **kwargs):
+    ft,
+    sigma_vo_eff,
+    unitweight_water=10.25,
+    atmospheric_pressure=100.0,
+    coefficient_1=1.95,
+    exponent_1=0.06,
+    exponent_2=0.06,
+    **kwargs
+):
     """
     Estimates the total unit weight for sand, clay and silt from CPT measurements. A correlation with sleeve friction and vertical effective stress showed the best fit across a range of soil types. The correlation does not apply for cemented soils. An error band of +-2kN/m3 seems to encompass the data rather well.
 
@@ -1190,39 +1399,58 @@ def unitweight_mayne(
 
     """
 
-    _gamma = coefficient_1 * unitweight_water * \
-             ((1000 * ft / atmospheric_pressure) ** exponent_1) * \
-             ((sigma_vo_eff / atmospheric_pressure) ** exponent_2)
+    _gamma = (
+        coefficient_1
+        * unitweight_water
+        * ((1000 * ft / atmospheric_pressure) ** exponent_1)
+        * ((sigma_vo_eff / atmospheric_pressure) ** exponent_2)
+    )
 
     return {
-        'gamma [kN/m3]': _gamma,
+        "gamma [kN/m3]": _gamma,
     }
 
 
 VS_IC_ROBERTSONCABAL = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 4.0},
-    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 800.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'gamma': {'type': 'float', 'min_value': 12, 'max_value': 22},
-    'g': {'type': 'float', 'min_value': 9.7, 'max_value': 10.2},
-    'exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'calibration_coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'calibration_coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "ic": {"type": "float", "min_value": 1.0, "max_value": 4.0},
+    "sigma_vo": {"type": "float", "min_value": 0.0, "max_value": 800.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "gamma": {"type": "float", "min_value": 12, "max_value": 22},
+    "g": {"type": "float", "min_value": 9.7, "max_value": 10.2},
+    "exponent": {"type": "float", "min_value": None, "max_value": None},
+    "calibration_coefficient_1": {
+        "type": "float",
+        "min_value": None,
+        "max_value": None,
+    },
+    "calibration_coefficient_2": {
+        "type": "float",
+        "min_value": None,
+        "max_value": None,
+    },
 }
 
 VS_IC_ROBERTSONCABAL_ERRORRETURN = {
-    'alpha_vs [-]': np.nan,
-    'Vs [m/s]': np.nan,
-    'Gmax [kPa]': np.nan
+    "alpha_vs [-]": np.nan,
+    "Vs [m/s]": np.nan,
+    "Gmax [kPa]": np.nan,
 }
 
 
 @Validator(VS_IC_ROBERTSONCABAL, VS_IC_ROBERTSONCABAL_ERRORRETURN)
 def vs_ic_robertsoncabal(
-        qt, ic, sigma_vo,
-        atmospheric_pressure=100.0, gamma=19, g=9.81, exponent=0.5, calibration_coefficient_1=0.55, calibration_coefficient_2=1.68,
-        **kwargs):
+    qt,
+    ic,
+    sigma_vo,
+    atmospheric_pressure=100.0,
+    gamma=19,
+    g=9.81,
+    exponent=0.5,
+    calibration_coefficient_1=0.55,
+    calibration_coefficient_2=1.68,
+    **kwargs
+):
     """
     Calculates shear wave velocity based on a correlation with total cone resistance and soil behaviour type index. Shear wave velocity is sensitive to age and cementation, where older deposits of the same soil have higher shear wave velocity (i.e. higher stiffness) than younger deposits. The correlation is based on measured shear wave velocity data for uncemented Holocene to Pleistocene age soils.
     Since the small-strain shear modulus can be derived from the shear wave velocity and the bulk density of the soil, is it also calculated. The bulk density of the soil can be specified as an optional argument.
@@ -1263,39 +1491,43 @@ def vs_ic_robertsoncabal(
     _alpha_vs = 10 ** (calibration_coefficient_1 * ic + calibration_coefficient_2)
     _Vs = (_alpha_vs * ((1000 * qt - sigma_vo) / atmospheric_pressure)) ** exponent
     _rho = 1000 * gamma / g
-    _Gmax = 1e-3 * _rho * (_Vs ** 2)
+    _Gmax = 1e-3 * _rho * (_Vs**2)
 
-    return {
-        'alpha_vs [-]': _alpha_vs,
-        'Vs [m/s]': _Vs,
-        'Gmax [kPa]': _Gmax
-    }
+    return {"alpha_vs [-]": _alpha_vs, "Vs [m/s]": _Vs, "Gmax [kPa]": _Gmax}
 
 
 K0_SAND_MAYNE = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'ocr': {'type': 'float', 'min_value': 1.0, 'max_value': 20.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
-    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_3': {'type': 'float', 'min_value': None, 'max_value': None},
-    'friction_angle': {'type': 'float', 'min_value': 25.0, 'max_value': 45.0},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "ocr": {"type": "float", "min_value": 1.0, "max_value": 20.0},
+    "atmospheric_pressure": {"type": "float", "min_value": 90.0, "max_value": 110.0},
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_1": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_2": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_3": {"type": "float", "min_value": None, "max_value": None},
+    "friction_angle": {"type": "float", "min_value": 25.0, "max_value": 45.0},
 }
 
 K0_SAND_MAYNE_ERRORRETURN = {
-    'K0 CPT [-]': np.nan,
-    'K0 conventional [-]': np.nan,
-    'Kp [-]': np.nan,
+    "K0 CPT [-]": np.nan,
+    "K0 conventional [-]": np.nan,
+    "Kp [-]": np.nan,
 }
 
 
 @Validator(K0_SAND_MAYNE, K0_SAND_MAYNE_ERRORRETURN)
 def k0_sand_mayne(
-        qt, sigma_vo_eff, ocr,
-        atmospheric_pressure=100.0, multiplier=0.192, exponent_1=0.22, exponent_2=0.31, exponent_3=0.27,
-        friction_angle=32.0, **kwargs):
+    qt,
+    sigma_vo_eff,
+    ocr,
+    atmospheric_pressure=100.0,
+    multiplier=0.192,
+    exponent_1=0.22,
+    exponent_2=0.31,
+    exponent_3=0.27,
+    friction_angle=32.0,
+    **kwargs
+):
     """
     Calculates the lateral coefficient of earth pressure at rest based on calibration chamber tests on clean sands.
     The values calculated from the equation need to be compared to values obtained using friction angle and OCR (see equations).
@@ -1340,41 +1572,56 @@ def k0_sand_mayne(
 
     """
 
-    _K0_CPT = multiplier * ((1000 * qt / atmospheric_pressure) ** exponent_1) * \
-              ((atmospheric_pressure / sigma_vo_eff) ** exponent_2) * (ocr ** exponent_3)
-    _Kp= (np.tan(0.25 * np.pi + 0.5 * np.radians(friction_angle))) ** 2
-    _K0_conventional = (1 - np.sin(np.radians(friction_angle))) * (ocr ** (np.sin(np.radians(friction_angle))))
+    _K0_CPT = (
+        multiplier
+        * ((1000 * qt / atmospheric_pressure) ** exponent_1)
+        * ((atmospheric_pressure / sigma_vo_eff) ** exponent_2)
+        * (ocr**exponent_3)
+    )
+    _Kp = (np.tan(0.25 * np.pi + 0.5 * np.radians(friction_angle))) ** 2
+    _K0_conventional = (1 - np.sin(np.radians(friction_angle))) * (
+        ocr ** (np.sin(np.radians(friction_angle)))
+    )
 
     return {
-        'K0 CPT [-]': _K0_CPT,
-        'K0 conventional [-]': _K0_conventional,
-        'Kp [-]': _Kp,
+        "K0 CPT [-]": _K0_CPT,
+        "K0 conventional [-]": _K0_conventional,
+        "Kp [-]": _Kp,
     }
 
 
 GMAX_CPT_PUECHEN = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 70.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': None},
-    'Bq': {'type': 'float', 'min_value': -0.2, 'max_value': 0.5},
-    'coefficient_b': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_Bq': {'type': 'float', 'min_value': None, 'max_value': None},
-    'multiplier_qc': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_2': {'type': 'float', 'min_value': None, 'max_value': None},
-    'Bq_min': {'type': 'float', 'min_value': None, 'max_value': None},
-    'Bq_max': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 70.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "Bq": {"type": "float", "min_value": -0.2, "max_value": 0.5},
+    "coefficient_b": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_Bq": {"type": "float", "min_value": None, "max_value": None},
+    "multiplier_qc": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_1": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_2": {"type": "float", "min_value": None, "max_value": None},
+    "Bq_min": {"type": "float", "min_value": None, "max_value": None},
+    "Bq_max": {"type": "float", "min_value": None, "max_value": None},
 }
 
 GMAX_CPT_PUECHEN_ERRORRETURN = {
-    'Gmax [kPa]': np.nan,
+    "Gmax [kPa]": np.nan,
 }
 
 
 @Validator(GMAX_CPT_PUECHEN, GMAX_CPT_PUECHEN_ERRORRETURN)
 def gmax_cpt_puechen(
-        qc, sigma_vo_eff, Bq,
-        coefficient_b=1.0, coefficient_Bq=4.0, multiplier_qc=1.634, exponent_1=0.25, exponent_2=0.375,
-        Bq_min=0, Bq_max=0.5, **kwargs):
+    qc,
+    sigma_vo_eff,
+    Bq,
+    coefficient_b=1.0,
+    coefficient_Bq=4.0,
+    multiplier_qc=1.634,
+    exponent_1=0.25,
+    exponent_2=0.375,
+    Bq_min=0,
+    Bq_max=0.5,
+    **kwargs
+):
     """
     Calculates the small-strain modulus based on CPT data. The correlation by Rix and Stokoe is modified to include the importance of the pore pressure ratio.
 
@@ -1410,31 +1657,37 @@ def gmax_cpt_puechen(
     if Bq > Bq_max:
         Bq = Bq_max
 
-    _Gmax = coefficient_b * (1 + coefficient_Bq * Bq) * 1000 * multiplier_qc * \
-            ((1000 * qc) ** exponent_1) * (sigma_vo_eff ** exponent_2)
+    _Gmax = (
+        coefficient_b
+        * (1 + coefficient_Bq * Bq)
+        * 1000
+        * multiplier_qc
+        * ((1000 * qc) ** exponent_1)
+        * (sigma_vo_eff**exponent_2)
+    )
 
     return {
-        'Gmax [kPa]': _Gmax,
+        "Gmax [kPa]": _Gmax,
     }
 
 
 BEHAVIOURINDEX_PCPT_NONNORMALISED = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'Rf': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "Rf": {"type": "float", "min_value": 0.1, "max_value": 10.0},
+    "atmospheric_pressure": {"type": "float", "min_value": 90.0, "max_value": 110.0},
 }
 
 BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN = {
-    'Isbt [-]': np.nan,
-    'Isbt class number [-]': np.nan,
-    'Isbt class': None
+    "Isbt [-]": np.nan,
+    "Isbt class number [-]": np.nan,
+    "Isbt class": None,
 }
 
 
-@Validator(BEHAVIOURINDEX_PCPT_NONNORMALISED, BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN)
-def behaviourindex_pcpt_nonnormalised(
-        qc, Rf,
-        atmospheric_pressure=100.0, **kwargs):
+@Validator(
+    BEHAVIOURINDEX_PCPT_NONNORMALISED, BEHAVIOURINDEX_PCPT_NONNORMALISED_ERRORRETURN
+)
+def behaviourindex_pcpt_nonnormalised(qc, Rf, atmospheric_pressure=100.0, **kwargs):
     """
     Calculates the non-normalised soil behaviour type index. For vertical effective stresses between 50 and 150kPa, the non-normalised index is almost equal to the normalised soil behaviour type index.
 
@@ -1462,38 +1715,41 @@ def behaviourindex_pcpt_nonnormalised(
 
     """
 
-    _Isbt = np.sqrt((3.47 - np.log10(1000 * qc / atmospheric_pressure)) ** 2 +
-                    (np.log10(Rf) + 1.22) ** 2)
+    _Isbt = np.sqrt(
+        (3.47 - np.log10(1000 * qc / atmospheric_pressure)) ** 2
+        + (np.log10(Rf) + 1.22) ** 2
+    )
 
     classes = ic_soilclass_robertson(_Isbt)
 
     return {
-        'Isbt [-]': _Isbt,
-        'Isbt class number [-]': classes['Soil type number [-]'],
-        'Isbt class': classes['Soil type']
+        "Isbt [-]": _Isbt,
+        "Isbt class number [-]": classes["Soil type number [-]"],
+        "Isbt class": classes["Soil type"],
     }
 
 
-
 DRAINEDSECANTMODULUS_SAND_BELLOTTI = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 50.0, 'max_value': 300.0},
-    'K0': {'type': 'float', 'min_value': 0.5, 'max_value': 2.0},
-    'sandtype': {'type': 'string', 'options': ("NC", "Aged NC", "OC"), 'regex': None},
-    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 50.0, "max_value": 300.0},
+    "K0": {"type": "float", "min_value": 0.5, "max_value": 2.0},
+    "sandtype": {"type": "string", "options": ("NC", "Aged NC", "OC"), "regex": None},
+    "atmospheric_pressure": {"type": "float", "min_value": 90.0, "max_value": 110.0},
 }
 
 DRAINEDSECANTMODULUS_SAND_BELLOTTI_ERRORRETURN = {
-    'qc1 [-]': np.nan,
-    'Es_qc [-]': np.nan,
-    'Es [kPa]': np.nan,
+    "qc1 [-]": np.nan,
+    "Es_qc [-]": np.nan,
+    "Es [kPa]": np.nan,
 }
 
-@Validator(DRAINEDSECANTMODULUS_SAND_BELLOTTI, DRAINEDSECANTMODULUS_SAND_BELLOTTI_ERRORRETURN)
-def drainedsecantmodulus_sand_bellotti(
-        qc, sigma_vo_eff, K0, sandtype,
-        atmospheric_pressure=100.0, **kwargs):
 
+@Validator(
+    DRAINEDSECANTMODULUS_SAND_BELLOTTI, DRAINEDSECANTMODULUS_SAND_BELLOTTI_ERRORRETURN
+)
+def drainedsecantmodulus_sand_bellotti(
+    qc, sigma_vo_eff, K0, sandtype, atmospheric_pressure=100.0, **kwargs
+):
     """
     Calculates the drained secant modulus for various types of sand for an average strain of 0.1 percent. This stress range should be representative for well-designed foundations (with sufficient safety against excessive deformations).
 
@@ -1531,72 +1787,263 @@ def drainedsecantmodulus_sand_bellotti(
 
     """
     _sigma_mo_eff = ((1 + 2 * K0) * sigma_vo_eff) / 3
-    _qc1 = (1000 * qc / atmospheric_pressure) * np.sqrt(atmospheric_pressure / sigma_vo_eff)
+    _qc1 = (1000 * qc / atmospheric_pressure) * np.sqrt(
+        atmospheric_pressure / sigma_vo_eff
+    )
 
     qc1__nc_50 = np.array(
-        [36.0, 40.60330415823624, 46.020854882827855, 51.41286865966658, 59.40641474746315, 68.97423612037261,
-         83.63131157432191, 97.56959774187784, 114.38054759574864, 134.08797382678958, 152.71270994765013,
-         173.92441032542308, 200.0])
+        [
+            36.0,
+            40.60330415823624,
+            46.020854882827855,
+            51.41286865966658,
+            59.40641474746315,
+            68.97423612037261,
+            83.63131157432191,
+            97.56959774187784,
+            114.38054759574864,
+            134.08797382678958,
+            152.71270994765013,
+            173.92441032542308,
+            200.0,
+        ]
+    )
 
     E_qc__nc_50 = np.array(
-        [3.706708268330736, 3.4820592823712992, 3.2574102964118588, 3.070202808112328, 2.8455538221528904, 2.62090483619345,
-         2.3213728549141983, 2.2090483619344816, 2.0218408736349502, 1.8720748829953209, 1.7971918876755095,
-         1.7597503900156042, 1.7597503900156042])
+        [
+            3.706708268330736,
+            3.4820592823712992,
+            3.2574102964118588,
+            3.070202808112328,
+            2.8455538221528904,
+            2.62090483619345,
+            2.3213728549141983,
+            2.2090483619344816,
+            2.0218408736349502,
+            1.8720748829953209,
+            1.7971918876755095,
+            1.7597503900156042,
+            1.7597503900156042,
+        ]
+    )
 
     qc1__nc_300 = np.array(
-        [36.0, 40.408183360314055, 45.799699828776, 52.66621257255607, 59.693273152946574, 67.33279591108146,
-         75.58504107246422, 86.0837562404445, 95.70757527884192, 105.38706697485875, 119.44847879561136, 136.0397981668792,
-         152.71270994765013, 173.92441032542308, 200.0])
+        [
+            36.0,
+            40.408183360314055,
+            45.799699828776,
+            52.66621257255607,
+            59.693273152946574,
+            67.33279591108146,
+            75.58504107246422,
+            86.0837562404445,
+            95.70757527884192,
+            105.38706697485875,
+            119.44847879561136,
+            136.0397981668792,
+            152.71270994765013,
+            173.92441032542308,
+            200.0,
+        ]
+    )
 
     E_qc__nc_300 = np.array(
-        [5.017160686427459, 4.717628705148208, 4.418096723868956, 4.081123244929799, 3.7815912636505473, 3.519500780031205,
-         3.2574102964118588, 3.032761310452422, 2.8455538221528904, 2.6957878315132606, 2.5460218408736357,
-         2.4336973478939186, 2.358814352574104, 2.283931357254289, 2.1716068642745725])
+        [
+            5.017160686427459,
+            4.717628705148208,
+            4.418096723868956,
+            4.081123244929799,
+            3.7815912636505473,
+            3.519500780031205,
+            3.2574102964118588,
+            3.032761310452422,
+            2.8455538221528904,
+            2.6957878315132606,
+            2.5460218408736357,
+            2.4336973478939186,
+            2.358814352574104,
+            2.283931357254289,
+            2.1716068642745725,
+        ]
+    )
 
     qc1__nc_aged_50 = np.array(
-        [36.0, 39.828428929006265, 43.43602549287978, 47.82897607010807, 52.161249633588966, 58.27270013483514,
-         64.1661742450743, 72.03032118526116, 80.46972295582609, 90.33201773973744, 103.8750311939775, 117.73469759745085,
-         137.35677306263798, 157.94996551160924, 185.16427213057165, 200.0])
+        [
+            36.0,
+            39.828428929006265,
+            43.43602549287978,
+            47.82897607010807,
+            52.161249633588966,
+            58.27270013483514,
+            64.1661742450743,
+            72.03032118526116,
+            80.46972295582609,
+            90.33201773973744,
+            103.8750311939775,
+            117.73469759745085,
+            137.35677306263798,
+            157.94996551160924,
+            185.16427213057165,
+            200.0,
+        ]
+    )
 
     E_qc__nc_aged_50 = np.array(
-        [9.734789391575667, 9.210608424336977, 8.611544461778474, 7.975039001560062, 7.375975039001562, 6.70202808112325,
-         6.102964118564741, 5.503900156006242, 4.942277691107648, 4.492979719188771, 3.9313572542901767, 3.594383775351016,
-         3.2574102964118588, 3.032761310452422, 2.882995319812796, 2.770670826833076])
+        [
+            9.734789391575667,
+            9.210608424336977,
+            8.611544461778474,
+            7.975039001560062,
+            7.375975039001562,
+            6.70202808112325,
+            6.102964118564741,
+            5.503900156006242,
+            4.942277691107648,
+            4.492979719188771,
+            3.9313572542901767,
+            3.594383775351016,
+            3.2574102964118588,
+            3.032761310452422,
+            2.882995319812796,
+            2.770670826833076,
+        ]
+    )
 
     qc1__nc_aged_300 = np.array(
-        [36.0, 41.79397491103586, 46.46637385138504, 52.920524263063506, 58.27270013483514, 66.36674192014331,
-         74.14257284871742, 82.82945568191151, 90.76820798422662, 102.87907878967758, 114.93286204934958,
-         134.08797382678958, 154.19109206798834, 180.75775603565143, 200.0])
+        [
+            36.0,
+            41.79397491103586,
+            46.46637385138504,
+            52.920524263063506,
+            58.27270013483514,
+            66.36674192014331,
+            74.14257284871742,
+            82.82945568191151,
+            90.76820798422662,
+            102.87907878967758,
+            114.93286204934958,
+            134.08797382678958,
+            154.19109206798834,
+            180.75775603565143,
+            200.0,
+        ]
+    )
 
     E_qc__nc_aged_300 = np.array(
-        [11.981279251170047, 11.1201248049922, 10.408736349453976, 9.547581903276138, 8.911076443057727, 8.049921996879878,
-         7.3010920436817495, 6.66458658346334, 6.177847113884558, 5.616224648985963, 5.2418096723869, 4.8299531981279245,
-         4.492979719188771, 4.156006240249614, 3.968798751950082])
+        [
+            11.981279251170047,
+            11.1201248049922,
+            10.408736349453976,
+            9.547581903276138,
+            8.911076443057727,
+            8.049921996879878,
+            7.3010920436817495,
+            6.66458658346334,
+            6.177847113884558,
+            5.616224648985963,
+            5.2418096723869,
+            4.8299531981279245,
+            4.492979719188771,
+            4.156006240249614,
+            3.968798751950082,
+        ]
+    )
 
     qc1__oc_50 = np.array(
-        [36.0, 38.88059697907535, 41.79397491103586, 46.020854882827855, 49.70813683794835, 54.47239108201235,
-         60.27115215047096, 66.68720996800097, 73.43169485579755, 79.31518754764512, 87.3368169432148, 98.0407364118493,
-         114.38054759574864, 138.6864973368832, 165.74484792151944, 189.6782103606226, 200.0])
+        [
+            36.0,
+            38.88059697907535,
+            41.79397491103586,
+            46.020854882827855,
+            49.70813683794835,
+            54.47239108201235,
+            60.27115215047096,
+            66.68720996800097,
+            73.43169485579755,
+            79.31518754764512,
+            87.3368169432148,
+            98.0407364118493,
+            114.38054759574864,
+            138.6864973368832,
+            165.74484792151944,
+            189.6782103606226,
+            200.0,
+        ]
+    )
 
     E_qc__oc_50 = np.array(
-        [16.02496099843994, 15.463338533541346, 14.826833073322936, 13.965678627145088, 13.366614664586587,
-         12.617784711388456, 11.794071762870518, 10.970358814352577, 10.146645865834637, 9.547581903276138,
-         8.836193447737912, 8.049921996879878, 7.151326053042125, 6.2527301092043714, 5.578783151326057, 5.204368174726991,
-         5.054602184087365])
+        [
+            16.02496099843994,
+            15.463338533541346,
+            14.826833073322936,
+            13.965678627145088,
+            13.366614664586587,
+            12.617784711388456,
+            11.794071762870518,
+            10.970358814352577,
+            10.146645865834637,
+            9.547581903276138,
+            8.836193447737912,
+            8.049921996879878,
+            7.151326053042125,
+            6.2527301092043714,
+            5.578783151326057,
+            5.204368174726991,
+            5.054602184087365,
+        ]
+    )
 
     qc1__oc_300 = np.array(
-        [36.0, 38.507810337311405, 40.60330415823624, 43.43602549287978, 46.46637385138504, 50.91992276530692,
-         54.999727733004406, 58.83682684054747, 66.36674192014331, 72.03032118526116, 78.55471459444749, 86.49943271508333,
-         94.78993233218729, 102.87907878967758, 114.38054759574864, 126.55672442978188, 144.13537469613595,
-         161.80047284520188, 189.6782103606226, 200.0])
+        [
+            36.0,
+            38.507810337311405,
+            40.60330415823624,
+            43.43602549287978,
+            46.46637385138504,
+            50.91992276530692,
+            54.999727733004406,
+            58.83682684054747,
+            66.36674192014331,
+            72.03032118526116,
+            78.55471459444749,
+            86.49943271508333,
+            94.78993233218729,
+            102.87907878967758,
+            114.38054759574864,
+            126.55672442978188,
+            144.13537469613595,
+            161.80047284520188,
+            189.6782103606226,
+            200.0,
+        ]
+    )
 
     E_qc__oc_300 = np.array(
-        [24.000000000000004, 23.251170046801878, 22.464898595943843, 21.56630265210609, 20.705148205928236,
-         19.544461778471145, 18.645865834633387, 17.784711388455538, 16.361934477379094, 15.388455538221534,
-         14.377535101404057, 13.366614664586587, 12.393135725429019, 11.606864274570984, 10.745709828393137,
-         9.9219968798752, 8.985959438377536, 8.274570982839318, 7.48829953198128, 7.2262090483619374])
+        [
+            24.000000000000004,
+            23.251170046801878,
+            22.464898595943843,
+            21.56630265210609,
+            20.705148205928236,
+            19.544461778471145,
+            18.645865834633387,
+            17.784711388455538,
+            16.361934477379094,
+            15.388455538221534,
+            14.377535101404057,
+            13.366614664586587,
+            12.393135725429019,
+            11.606864274570984,
+            10.745709828393137,
+            9.9219968798752,
+            8.985959438377536,
+            8.274570982839318,
+            7.48829953198128,
+            7.2262090483619374,
+        ]
+    )
 
-    if sandtype == 'NC':
+    if sandtype == "NC":
         _qc1_50 = qc1__nc_50
         _qc1_300 = qc1__nc_300
         _Eratio_50 = E_qc__nc_50
@@ -1606,13 +2053,15 @@ def drainedsecantmodulus_sand_bellotti(
         _qc1_300 = qc1__nc_aged_300
         _Eratio_50 = E_qc__nc_aged_50
         _Eratio_300 = E_qc__nc_aged_300
-    elif sandtype == 'OC':
+    elif sandtype == "OC":
         _qc1_50 = qc1__oc_50
         _qc1_300 = qc1__oc_300
         _Eratio_50 = E_qc__oc_50
         _Eratio_300 = E_qc__oc_300
     else:
-        raise ValueError("Sand type not recognised, selected from 'NC', 'Aged NC' or 'OC'")
+        raise ValueError(
+            "Sand type not recognised, selected from 'NC', 'Aged NC' or 'OC'"
+        )
 
     _Es_qc_50 = np.interp(np.log10(_qc1), np.log10(_qc1_50), _Eratio_50)
     _Es_qc_300 = np.interp(np.log10(_qc1), np.log10(_qc1_300), _Eratio_300)
@@ -1620,32 +2069,38 @@ def drainedsecantmodulus_sand_bellotti(
     _Es = _Es_qc * qc * 1000
 
     return {
-        'qc1 [-]': _qc1,
-        'Es_qc [-]': _Es_qc,
-        'Es [kPa]': _Es,
+        "qc1 [-]": _qc1,
+        "Es_qc [-]": _Es_qc,
+        "Es [kPa]": _Es,
     }
 
 
 GMAX_VOIDRATIO_MAYNERIX = {
-    'qc': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
-    'void_ratio': {'type': 'float', 'min_value': 0.2, 'max_value': 10.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': 90.0, 'max_value': 110.0},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_3': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_4': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.1, "max_value": 10.0},
+    "void_ratio": {"type": "float", "min_value": 0.2, "max_value": 10.0},
+    "atmospheric_pressure": {"type": "float", "min_value": 90.0, "max_value": 110.0},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_3": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_4": {"type": "float", "min_value": None, "max_value": None},
 }
 
 GMAX_VOIDRATIO_MAYNERIX_ERRORRETURN = {
-    'Gmax [kPa]': np.nan,
+    "Gmax [kPa]": np.nan,
 }
+
 
 @Validator(GMAX_VOIDRATIO_MAYNERIX, GMAX_VOIDRATIO_MAYNERIX_ERRORRETURN)
 def gmax_voidratio_maynerix(
-        qc,void_ratio,
-        atmospheric_pressure=100.0,
-        coefficient_1=99.5,coefficient_2=0.305,coefficient_3=0.695,coefficient_4=1.13, **kwargs):
-
+    qc,
+    void_ratio,
+    atmospheric_pressure=100.0,
+    coefficient_1=99.5,
+    coefficient_2=0.305,
+    coefficient_3=0.695,
+    coefficient_4=1.13,
+    **kwargs
+):
     """
     Calculates the small-strain shear modulus for clay based on the void ratio of the material. The relation between Gmax and qc presented in the CPT book (``gmax_clay_maynerix`` function) shows an inferior fit (r2 = 0.713) to the clay data than the correlation which is finally proposed by the authors (r2 = 0.901). This correlation also takes the void ratio of the material into account.
 
@@ -1679,42 +2134,66 @@ def gmax_voidratio_maynerix(
 
     """
 
-    _Gmax = coefficient_1 * (atmospheric_pressure ** coefficient_2) * \
-            ((1e3 * qc) ** coefficient_3) / (void_ratio ** coefficient_4)
+    _Gmax = (
+        coefficient_1
+        * (atmospheric_pressure**coefficient_2)
+        * ((1e3 * qc) ** coefficient_3)
+        / (void_ratio**coefficient_4)
+    )
 
     return {
-        'Gmax [kPa]': _Gmax,
+        "Gmax [kPa]": _Gmax,
     }
 
 
 VS_CPT_ANDRUS = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
-    'SF': {'type': 'float', 'min_value': 1.0, 'max_value': 3.0},
-    'age': {'type': 'string', 'options': ('Holocene', 'Pleistocene', 'Tertiary'), 'regex': None},
-    'holocene_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'holocene_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'holocene_ic_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'holocene_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'pleistocene_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'pleistocene_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'pleistocene_ic_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'pleistocene_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'tertiary_multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'tertiary_qt_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
-    'tertiary_z_exponent': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "depth": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "ic": {"type": "float", "min_value": 1.0, "max_value": 5.0},
+    "SF": {"type": "float", "min_value": 1.0, "max_value": 3.0},
+    "age": {
+        "type": "string",
+        "options": ("Holocene", "Pleistocene", "Tertiary"),
+        "regex": None,
+    },
+    "holocene_multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "holocene_qt_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "holocene_ic_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "holocene_z_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "pleistocene_multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "pleistocene_qt_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "pleistocene_ic_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "pleistocene_z_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "tertiary_multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "tertiary_qt_exponent": {"type": "float", "min_value": None, "max_value": None},
+    "tertiary_z_exponent": {"type": "float", "min_value": None, "max_value": None},
 }
 
 VS_CPT_ANDRUS_ERRORRETURN = {
-    'Vs [m/s]': np.nan,
+    "Vs [m/s]": np.nan,
 }
+
 
 @Validator(VS_CPT_ANDRUS, VS_CPT_ANDRUS_ERRORRETURN)
 def vs_cpt_andrus(
-        qt,depth,ic,
-        SF=1.0,age='Holocene',holocene_multiplier=2.27,holocene_qt_exponent=0.412,holocene_ic_exponent=0.989,holocene_z_exponent=0.033,pleistocene_multiplier=2.62,pleistocene_qt_exponent=0.395,pleistocene_ic_exponent=0.912,pleistocene_z_exponent=0.124,tertiary_multiplier=13.0,tertiary_qt_exponent=0.382,tertiary_z_exponent=0.099, **kwargs):
-
+    qt,
+    depth,
+    ic,
+    SF=1.0,
+    age="Holocene",
+    holocene_multiplier=2.27,
+    holocene_qt_exponent=0.412,
+    holocene_ic_exponent=0.989,
+    holocene_z_exponent=0.033,
+    pleistocene_multiplier=2.62,
+    pleistocene_qt_exponent=0.395,
+    pleistocene_ic_exponent=0.912,
+    pleistocene_z_exponent=0.124,
+    tertiary_multiplier=13.0,
+    tertiary_qt_exponent=0.382,
+    tertiary_z_exponent=0.099,
+    **kwargs
+):
     """
     Calculates shear wave velocity from CPT measurements based on a relation calibrated on 229 measurements of which the majority are S-PCPT with some cross-hole tests and suspension logger measurements.
 
@@ -1759,53 +2238,73 @@ def vs_cpt_andrus(
     Reference - Andrus, R.D., Mohanan, N.P., Piratheepan, P., Ellis, B.S., Holzer, T.L., 2007. Predicting Shear-wave velocity from cone penetration resistance, in: Paper No. 1454. Presented at the 4th International Conference on Earthquake Geotechnical Engineering, Thessaloniki, Greece.
 
     """
-    if age == 'Holocene':
-        _Vs = holocene_multiplier * \
-              (1e3 * qt) ** holocene_qt_exponent * \
-              ic ** holocene_ic_exponent * \
-              depth ** holocene_z_exponent * SF
-    elif age == 'Pleistocene':
-        _Vs = pleistocene_multiplier * \
-              (1e3 * qt) ** pleistocene_qt_exponent * \
-              ic ** pleistocene_ic_exponent * \
-              depth ** pleistocene_z_exponent * SF
-    elif age == 'Tertiary':
-        _Vs = tertiary_multiplier * \
-              (1e3 * qt) ** tertiary_qt_exponent * \
-              depth ** tertiary_z_exponent
+    if age == "Holocene":
+        _Vs = (
+            holocene_multiplier
+            * (1e3 * qt) ** holocene_qt_exponent
+            * ic**holocene_ic_exponent
+            * depth**holocene_z_exponent
+            * SF
+        )
+    elif age == "Pleistocene":
+        _Vs = (
+            pleistocene_multiplier
+            * (1e3 * qt) ** pleistocene_qt_exponent
+            * ic**pleistocene_ic_exponent
+            * depth**pleistocene_z_exponent
+            * SF
+        )
+    elif age == "Tertiary":
+        _Vs = (
+            tertiary_multiplier
+            * (1e3 * qt) ** tertiary_qt_exponent
+            * depth**tertiary_z_exponent
+        )
     else:
-        raise ValueError("Age not recognised, must be 'Holocene', 'Pleistocene' or 'Tertiary'")
+        raise ValueError(
+            "Age not recognised, must be 'Holocene', 'Pleistocene' or 'Tertiary'"
+        )
 
     return {
-        'Vs [m/s]': _Vs,
+        "Vs [m/s]": _Vs,
     }
 
 
-
 VS_CPT_HEGAZYMAYNE = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'zhang': {'type': 'bool',},
-    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_stress': {'type': 'float', 'min_value': None, 'max_value': None},
-    'multiplier_ic': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "fs": {"type": "float", "min_value": 0.0, "max_value": 10.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "sigma_vo": {"type": "float", "min_value": 0.0, "max_value": 2000.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "zhang": {
+        "type": "bool",
+    },
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_stress": {"type": "float", "min_value": None, "max_value": None},
+    "multiplier_ic": {"type": "float", "min_value": None, "max_value": None},
 }
 
 VS_CPT_HEGAZYMAYNE_ERRORRETURN = {
-    'Ic uncorrected [-]': np.nan,
-    'qc1N [-]': np.nan,
-    'Ic [-]': np.nan,
-    'Vs [m/s]': np.nan,
+    "Ic uncorrected [-]": np.nan,
+    "qc1N [-]": np.nan,
+    "Ic [-]": np.nan,
+    "Vs [m/s]": np.nan,
 }
+
 
 @Validator(VS_CPT_HEGAZYMAYNE, VS_CPT_HEGAZYMAYNE_ERRORRETURN)
 def vs_cpt_hegazymayne(
-        qt,fs,sigma_vo_eff,sigma_vo,
-        atmospheric_pressure=100.0,zhang=True,multiplier=0.0831,exponent_stress=0.25,multiplier_ic=1.786, **kwargs):
-
+    qt,
+    fs,
+    sigma_vo_eff,
+    sigma_vo,
+    atmospheric_pressure=100.0,
+    zhang=True,
+    multiplier=0.0831,
+    exponent_stress=0.25,
+    multiplier_ic=1.786,
+    **kwargs
+):
     """
     The correlation between shear wave velocity and CPT properties developed by Hegazy and Mayne was based on a global databased from 73 sites with different soil conditions including sands, clays, soil mixtures and mine tailings. The correlation includes the 30 clay sites used for the Mayne and Rix (1993) correlation as well as 30 cohesive and cohesionless sites from Hegazy and Mayne (1995). 12 new sites were added in the 2006 paper. A total of 558 data points are included in the database. A coefficient of determiniaton (r2) of 0.85 is obtained using all data.
 
@@ -1861,62 +2360,79 @@ def vs_cpt_hegazymayne(
     """
     if zhang:
         _ic_result = behaviourindex_pcpt_robertsonwride(
-            qt=qt, fs=fs, sigma_vo=sigma_vo, sigma_vo_eff=sigma_vo_eff,
-            atmospheric_pressure=100.0, **kwargs
+            qt=qt,
+            fs=fs,
+            sigma_vo=sigma_vo,
+            sigma_vo_eff=sigma_vo_eff,
+            atmospheric_pressure=100.0,
+            **kwargs
         )
-        _Ic = _ic_result['Ic [-]']
+        _Ic = _ic_result["Ic [-]"]
         _Ic_uncorrected = _Ic
-        _qc1N = _ic_result['Qtn [-]']
+        _qc1N = _ic_result["Qtn [-]"]
     else:
         _Qt = (1e3 * qt - sigma_vo) / sigma_vo_eff
         _Fr = 100 * (1e3 * fs) / (1e3 * qt - sigma_vo)
         _Ic_uncorrected = np.sqrt(
-            (3.47 - np.log10(_Qt)) ** 2 +
-            (np.log10(_Fr) + 1.22) ** 2)
+            (3.47 - np.log10(_Qt)) ** 2 + (np.log10(_Fr) + 1.22) ** 2
+        )
         if _Ic_uncorrected <= 2.6:
-            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * \
-                    ((atmospheric_pressure / sigma_vo_eff) ** 0.5)
+            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * (
+                (atmospheric_pressure / sigma_vo_eff) ** 0.5
+            )
         else:
-            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * \
-                    ((atmospheric_pressure / sigma_vo_eff) ** 0.75)
-        _Ic = np.sqrt(
-            (3.47 - np.log10(_qc1N)) ** 2 +
-            (np.log10(_Fr) + 1.22) ** 2)
+            _qc1N = ((1e3 * qt - sigma_vo) / atmospheric_pressure) * (
+                (atmospheric_pressure / sigma_vo_eff) ** 0.75
+            )
+        _Ic = np.sqrt((3.47 - np.log10(_qc1N)) ** 2 + (np.log10(_Fr) + 1.22) ** 2)
 
-    _Vs = multiplier * _qc1N * ((sigma_vo_eff / atmospheric_pressure) ** exponent_stress) * \
-        np.exp(multiplier_ic * _Ic)
+    _Vs = (
+        multiplier
+        * _qc1N
+        * ((sigma_vo_eff / atmospheric_pressure) ** exponent_stress)
+        * np.exp(multiplier_ic * _Ic)
+    )
 
     return {
-        'Ic uncorrected [-]': _Ic_uncorrected,
-        'qc1N [-]': _qc1N,
-        'Ic [-]': _Ic,
-        'Vs [m/s]': _Vs,
+        "Ic uncorrected [-]": _Ic_uncorrected,
+        "qc1N [-]": _qc1N,
+        "Ic [-]": _Ic,
+        "Vs [m/s]": _Vs,
     }
 
 
 VS_CPT_LONGDONOHUE = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
-    'u2': {'type': 'float', 'min_value': -1.0, 'max_value': 1.0},
-    'u0': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'Bq': {'type': 'float', 'min_value': -0.6, 'max_value': 1.4},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_qt': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_Bq': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 2.0},
+    "u2": {"type": "float", "min_value": -1.0, "max_value": 1.0},
+    "u0": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "Bq": {"type": "float", "min_value": -0.6, "max_value": 1.4},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_qt": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_Bq": {"type": "float", "min_value": None, "max_value": None},
 }
 
 VS_CPT_LONGDONOHUE_ERRORRETURN = {
-    'Vs [m/s]': np.nan,
-    'Vs1 [m/s]': np.nan,
-    'ocr_class': None
+    "Vs [m/s]": np.nan,
+    "Vs1 [m/s]": np.nan,
+    "ocr_class": None,
 }
+
 
 @Validator(VS_CPT_LONGDONOHUE, VS_CPT_LONGDONOHUE_ERRORRETURN)
 def vs_cpt_longdonohue(
-        qt,u2,u0,Bq,sigma_vo_eff,
-        atmospheric_pressure=100.0,multiplier=1.961,exponent_qt=0.579,exponent_Bq=1.202, **kwargs):
-
+    qt,
+    u2,
+    u0,
+    Bq,
+    sigma_vo_eff,
+    atmospheric_pressure=100.0,
+    multiplier=1.961,
+    exponent_qt=0.579,
+    exponent_Bq=1.202,
+    **kwargs
+):
     """
     The authors propose a correlation between shear wave velocity and CPT properties based on high-quality CPT tests and Gmax obtained from S-PCPT, MASW, cross-hole and block sampling.
     The formula for Vs only applies to soft marine clays.
@@ -1973,36 +2489,32 @@ def vs_cpt_longdonohue(
     _Vs1_ocr_3 = np.interp(_deltau_ratio, _ocr_3_x, _ocr_3_y)
 
     if _Vs1 <= _Vs1_ocr_2:
-        _ocr_class = 'OCR <= 2'
+        _ocr_class = "OCR <= 2"
     elif _Vs1_ocr_2 < _Vs1 <= _Vs1_ocr_3:
-        _ocr_class = '2 < OCR <= 3'
+        _ocr_class = "2 < OCR <= 3"
     else:
-        _ocr_class = 'OCR > 3'
+        _ocr_class = "OCR > 3"
 
-    return {
-        'Vs [m/s]': _Vs,
-        'Vs1 [m/s]': _Vs1,
-        'ocr_class': _ocr_class
-    }
+    return {"Vs [m/s]": _Vs, "Vs1 [m/s]": _Vs1, "ocr_class": _ocr_class}
 
 
 SOILTYPE_VS_LONGODONOHUE = {
-    'Vs': {'type': 'float', 'min_value': 0.0, 'max_value': 600.0},
-    'Qt': {'type': 'float', 'min_value': 0.0, 'max_value': 200.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
+    "Vs": {"type": "float", "min_value": 0.0, "max_value": 600.0},
+    "Qt": {"type": "float", "min_value": 0.0, "max_value": 200.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
 }
 
 SOILTYPE_VS_LONGODONOHUE_ERRORRETURN = {
-    'Vs1 [m/s]': np.nan,
-    'soiltype': None,
+    "Vs1 [m/s]": np.nan,
+    "soiltype": None,
 }
+
 
 @Validator(SOILTYPE_VS_LONGODONOHUE, SOILTYPE_VS_LONGODONOHUE_ERRORRETURN)
 def soiltype_vs_longodonohue(
-        Vs,Qt,sigma_vo_eff,
-        atmospheric_pressure=100.0, **kwargs):
-
+    Vs, Qt, sigma_vo_eff, atmospheric_pressure=100.0, **kwargs
+):
     """
     Determines the soil type based on measured shear wave velocity and normalised cone resistance. The underlying dataset consists of soft clays (Long and Donohue, 2010), sands (Mayne, 2006) and stiff clays (Lunne et al, 2007).
 
@@ -2044,41 +2556,49 @@ def soiltype_vs_longodonohue(
     _Vs1 = Vs / np.sqrt(sigma_vo_eff / atmospheric_pressure)
 
     if Qt <= np.interp(_Vs1, _Vs1_softclay, _Qt_softclay):
-        _soiltype = 'Soft clay'
+        _soiltype = "Soft clay"
     else:
         if Qt <= np.interp(_Vs1, _Vs1_sands, _Qt_sands):
-            _soiltype = 'Stiff clay'
+            _soiltype = "Stiff clay"
         else:
-            _soiltype = 'Sand'
+            _soiltype = "Sand"
 
     return {
-        'Vs1 [m/s]': _Vs1,
-        'soiltype': _soiltype,
+        "Vs1 [m/s]": _Vs1,
+        "soiltype": _soiltype,
     }
 
 
 VS_CPTD50_KARRAYETAL = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'd50': {'type': 'float', 'min_value': 0.1, 'max_value': 10.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_vs1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'multiplier': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_qc1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'exponent_d50': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "d50": {"type": "float", "min_value": 0.1, "max_value": 10.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_vs1": {"type": "float", "min_value": None, "max_value": None},
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_qc1": {"type": "float", "min_value": None, "max_value": None},
+    "exponent_d50": {"type": "float", "min_value": None, "max_value": None},
 }
 
 VS_CPTD50_KARRAYETAL_ERRORRETURN = {
-    'qc1 [MPa]': np.nan,
-    'Vs1 [m/s]': np.nan,
-    'Vs [m/s]': np.nan,
+    "qc1 [MPa]": np.nan,
+    "Vs1 [m/s]": np.nan,
+    "Vs [m/s]": np.nan,
 }
+
 
 @Validator(VS_CPTD50_KARRAYETAL, VS_CPTD50_KARRAYETAL_ERRORRETURN)
 def vs_cptd50_karrayetal(
-        qc,sigma_vo_eff,d50,
-        atmospheric_pressure=100.0,exponent_vs1=0.25,multiplier=125.5,exponent_qc1=0.25,exponent_d50=0.115, **kwargs):
-
+    qc,
+    sigma_vo_eff,
+    d50,
+    atmospheric_pressure=100.0,
+    exponent_vs1=0.25,
+    multiplier=125.5,
+    exponent_qc1=0.25,
+    exponent_d50=0.115,
+    **kwargs
+):
     """
     This correlation between Vs and normalised cone tip resistance takes into account the influence of median grain size. The data was obtained from the Peribonka site where vibrocompaction was performed for soil improvement. Tests before and after compaction were performed. The shear wave velocity was derived from surface wave testing. The soil type at the Peribonka site was gravelly coarse sand with an average median grain size of 1.9mm.
 
@@ -2120,35 +2640,40 @@ def vs_cptd50_karrayetal(
     """
 
     _qc1 = qc * np.sqrt(atmospheric_pressure / sigma_vo_eff)
-    _Vs1 = multiplier * _qc1 ** exponent_qc1 * d50 ** exponent_d50
+    _Vs1 = multiplier * _qc1**exponent_qc1 * d50**exponent_d50
     _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** exponent_vs1)
 
     return {
-        'qc1 [MPa]': _qc1,
-        'Vs1 [m/s]': _Vs1,
-        'Vs [m/s]': _Vs,
+        "qc1 [MPa]": _qc1,
+        "Vs1 [m/s]": _Vs1,
+        "Vs [m/s]": _Vs,
     }
 
 
 VS_CPT_WRIDEETAL = {
-    'qc': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'multiplier': {'type': 'float', 'min_value': 95.6, 'max_value': 110.8},
-    'exponent_qc1': {'type': 'float', 'min_value': 0.23, 'max_value': 0.25},
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "multiplier": {"type": "float", "min_value": 95.6, "max_value": 110.8},
+    "exponent_qc1": {"type": "float", "min_value": 0.23, "max_value": 0.25},
 }
 
 VS_CPT_WRIDEETAL_ERRORRETURN = {
-    'qc1 [MPa]': np.nan,
-    'Vs1 [m/s]': np.nan,
-    'Vs [m/s]': np.nan,
+    "qc1 [MPa]": np.nan,
+    "Vs1 [m/s]": np.nan,
+    "Vs [m/s]": np.nan,
 }
+
 
 @Validator(VS_CPT_WRIDEETAL, VS_CPT_WRIDEETAL_ERRORRETURN)
 def vs_cpt_wrideetal(
-        qc,sigma_vo_eff,
-        atmospheric_pressure=100.0,multiplier=103.2,exponent_qc1=0.25, **kwargs):
-
+    qc,
+    sigma_vo_eff,
+    atmospheric_pressure=100.0,
+    multiplier=103.2,
+    exponent_qc1=0.25,
+    **kwargs
+):
     """
     Calculates shear wave velocity based on normalised cone tip resistance based on test data from the CANLEX project.
 
@@ -2184,37 +2709,44 @@ def vs_cpt_wrideetal(
     """
 
     _qc1 = qc * np.sqrt(atmospheric_pressure / sigma_vo_eff)
-    _Vs1 = multiplier * _qc1 ** exponent_qc1
+    _Vs1 = multiplier * _qc1**exponent_qc1
     _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** 0.25)
 
     return {
-        'qc1 [MPa]': _qc1,
-        'Vs1 [m/s]': _Vs1,
-        'Vs [m/s]': _Vs,
+        "qc1 [MPa]": _qc1,
+        "Vs1 [m/s]": _Vs1,
+        "Vs [m/s]": _Vs,
     }
 
 
 VS_CPT_TONNIANDSIMONINI = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
-    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'atmospheric_pressure': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "ic": {"type": "float", "min_value": 1.0, "max_value": 5.0},
+    "sigma_vo": {"type": "float", "min_value": 0.0, "max_value": 2000.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "atmospheric_pressure": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
 }
 
 VS_CPT_TONNIANDSIMONINI_ERRORRETURN = {
-    'Qtn [-]': np.nan,
-    'Vs1 [m/s]': np.nan,
-    'Vs [m/s]': np.nan,
+    "Qtn [-]": np.nan,
+    "Vs1 [m/s]": np.nan,
+    "Vs [m/s]": np.nan,
 }
+
 
 @Validator(VS_CPT_TONNIANDSIMONINI, VS_CPT_TONNIANDSIMONINI_ERRORRETURN)
 def vs_cpt_tonniandsimonini(
-        qt,ic,sigma_vo,sigma_vo_eff,
-        atmospheric_pressure=100.0,coefficient_1=0.8,coefficient_2=1.17, **kwargs):
-
+    qt,
+    ic,
+    sigma_vo,
+    sigma_vo_eff,
+    atmospheric_pressure=100.0,
+    coefficient_1=0.8,
+    coefficient_2=1.17,
+    **kwargs
+):
     """
     The authors propose a correlation between CPT properties and shear wave velocity for the Treporti site near Venice, Italy which consist mostly of silty sediments.
 
@@ -2263,37 +2795,51 @@ def vs_cpt_tonniandsimonini(
     _Vs = _Vs1 / ((atmospheric_pressure / sigma_vo_eff) ** 0.25)
 
     return {
-        'Qtn [-]': _Qtn,
-        'Vs1 [m/s]': _Vs1,
-        'Vs [m/s]': _Vs,
+        "Qtn [-]": _Qtn,
+        "Vs1 [m/s]": _Vs1,
+        "Vs [m/s]": _Vs,
     }
 
 
 VS_CPT_MCGANNETAL = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'fs': {'type': 'float', 'min_value': 0.0, 'max_value': 10.0},
-    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'coefficient1_general': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient2_general': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient3_general': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient4_general': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient1_loess': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient2_loess': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient3_loess': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient4_loess': {'type': 'float', 'min_value': None, 'max_value': None},
-    'loess': {'type': 'bool',},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "fs": {"type": "float", "min_value": 0.0, "max_value": 10.0},
+    "depth": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "coefficient1_general": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient2_general": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient3_general": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient4_general": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient1_loess": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient2_loess": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient3_loess": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient4_loess": {"type": "float", "min_value": None, "max_value": None},
+    "loess": {
+        "type": "bool",
+    },
 }
 
 VS_CPT_MCGANNETAL_ERRORRETURN = {
-    'Vs [m/s]': np.nan,
-    'sigma_lnVs [-]': np.nan,
+    "Vs [m/s]": np.nan,
+    "sigma_lnVs [-]": np.nan,
 }
+
 
 @Validator(VS_CPT_MCGANNETAL, VS_CPT_MCGANNETAL_ERRORRETURN)
 def vs_cpt_mcgannetal(
-        qt,fs,depth,
-        coefficient1_general=18.4,coefficient2_general=0.144,coefficient3_general=0.083,coefficient4_general=0.278,coefficient1_loess=103.6,coefficient2_loess=0.0074,coefficient3_loess=0.13,coefficient4_loess=0.253,loess=False, **kwargs):
-
+    qt,
+    fs,
+    depth,
+    coefficient1_general=18.4,
+    coefficient2_general=0.144,
+    coefficient3_general=0.083,
+    coefficient4_general=0.278,
+    coefficient1_loess=103.6,
+    coefficient2_loess=0.0074,
+    coefficient3_loess=0.13,
+    coefficient4_loess=0.253,
+    loess=False,
+    **kwargs
+):
     """
     The authors develop a correlation between shear wave velocity and CPT properties based on Christchurch-specific general soils. The soils were predominantly sand and silty sand. While the original formula uses the raw cone tip resistance, the authors suggest that the corrected cone resistance can be used without changes to the formula and prediction standard deviation.
 
@@ -2360,16 +2906,20 @@ def vs_cpt_mcgannetal(
 
     """
     if loess:
-        _Vs = coefficient1_loess * \
-              (1e3 * qt) ** coefficient2_loess * \
-              (1e3 * fs) ** coefficient3_loess * \
-              depth ** coefficient4_loess
+        _Vs = (
+            coefficient1_loess
+            * (1e3 * qt) ** coefficient2_loess
+            * (1e3 * fs) ** coefficient3_loess
+            * depth**coefficient4_loess
+        )
         _sigma_lnVs = 0.2367
     else:
-        _Vs = coefficient1_general * \
-              (1e3 * qt) ** coefficient2_general * \
-              (1e3 * fs) ** coefficient3_general * \
-              depth ** coefficient4_general
+        _Vs = (
+            coefficient1_general
+            * (1e3 * qt) ** coefficient2_general
+            * (1e3 * fs) ** coefficient3_general
+            * depth**coefficient4_general
+        )
         if depth <= 5:
             _sigma_lnVs = 0.162
         elif 5 < depth <= 10:
@@ -2378,31 +2928,43 @@ def vs_cpt_mcgannetal(
             _sigma_lnVs = 0.108
 
     return {
-        'Vs [m/s]': _Vs,
-        'sigma_lnVs [-]': _sigma_lnVs,
+        "Vs [m/s]": _Vs,
+        "sigma_lnVs [-]": _sigma_lnVs,
     }
 
+
 CONSTRAINEDMODULUS_PCPT_ROBERTSON = {
-    'qt': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 5.0},
-    'sigma_vo': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
-    'sigma_vo_eff': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
-    'coefficient1': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient2': {'type': 'float', 'min_value': None, 'max_value': None},
-    'coefficient3': {'type': 'float', 'min_value': None, 'max_value': None},
-    'qt_pivot': {'type': 'float', 'min_value': None, 'max_value': None},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "ic": {"type": "float", "min_value": 1.0, "max_value": 5.0},
+    "sigma_vo": {"type": "float", "min_value": 0.0, "max_value": 2000.0},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": 1000.0},
+    "coefficient1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient2": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient3": {"type": "float", "min_value": None, "max_value": None},
+    "qt_pivot": {"type": "float", "min_value": None, "max_value": None},
 }
 
 CONSTRAINEDMODULUS_PCPT_ROBERTSON_ERRORRETURN = {
-    'alphaM [-]': np.nan,
-    'M [kPa]': np.nan,
-    'mv [1/kPa]': np.nan
+    "alphaM [-]": np.nan,
+    "M [kPa]": np.nan,
+    "mv [1/kPa]": np.nan,
 }
 
 
-@Validator(CONSTRAINEDMODULUS_PCPT_ROBERTSON, CONSTRAINEDMODULUS_PCPT_ROBERTSON_ERRORRETURN)
+@Validator(
+    CONSTRAINEDMODULUS_PCPT_ROBERTSON, CONSTRAINEDMODULUS_PCPT_ROBERTSON_ERRORRETURN
+)
 def constrainedmodulus_pcpt_robertson(
-    qt, ic, sigma_vo, sigma_vo_eff, coefficient1=0.0188, coefficient2=0.55, coefficient3=1.68, qt_pivot=14, **kwargs):
+    qt,
+    ic,
+    sigma_vo,
+    sigma_vo_eff,
+    coefficient1=0.0188,
+    coefficient2=0.55,
+    coefficient3=1.68,
+    qt_pivot=14,
+    **kwargs
+):
     """
     Calculates the one-dimensional constrained modulus. The constrained modulus is compared to direct measurements for
     different clays. The Bothkennar clay which is a soft silty estuarine clay is an outlier which shows an overprediction of :math:`M` with the CPT.
@@ -2420,7 +2982,7 @@ def constrainedmodulus_pcpt_robertson(
 
     .. math::
         M = \\alpha_M \\cdot \\left( q_t - \\sigma_{v0} \\right)
-    
+
         \\text{when } I_c > 2.2 \\text{:}
 
         \\alpha_M = Q_t \\ \\text{when } Q_t \\leq 14
@@ -2462,92 +3024,102 @@ def constrainedmodulus_pcpt_robertson(
     _M = _alphaM * (1e3 * qt - sigma_vo)
     _mv = 1 / _M
 
-    return {
-        'alphaM [-]': _alphaM,
-        'M [kPa]': _M,
-        'mv [1/kPa]': _mv
-    }
-
+    return {"alphaM [-]": _alphaM, "M [kPa]": _M, "mv [1/kPa]": _mv}
 
 
 VS_STRESSDEPENDENT_STUYTS = {
-    'sigma_vo_eff': {'type': 'float', 'min_value': 50.0, 'max_value': 800.0},
-    'ic': {'type': 'float', 'min_value': 1.0, 'max_value': 4.0},
-    'a0': {'type': 'float', 'min_value': 1.7, 'max_value': 2.5},
-    'a1': {'type': 'float', 'min_value': -0.5, 'max_value': -0.05},
-    'a2': {'type': 'float', 'min_value': 0.5, 'max_value': 1.0},
-    'a3': {'type': 'float', 'min_value': -0.5, 'max_value': -0.1},
+    "sigma_vo_eff": {"type": "float", "min_value": 50.0, "max_value": 800.0},
+    "ic": {"type": "float", "min_value": 1.0, "max_value": 4.0},
+    "a0": {"type": "float", "min_value": 1.7, "max_value": 2.5},
+    "a1": {"type": "float", "min_value": -0.5, "max_value": -0.05},
+    "a2": {"type": "float", "min_value": 0.5, "max_value": 1.0},
+    "a3": {"type": "float", "min_value": -0.5, "max_value": -0.1},
 }
 
 VS_STRESSDEPENDENT_STUYTS_ERRORRETURN = {
-    'Vs [m/s]': np.nan,
+    "Vs [m/s]": np.nan,
 }
+
 
 @Validator(VS_STRESSDEPENDENT_STUYTS, VS_STRESSDEPENDENT_STUYTS_ERRORRETURN)
 def vs_stressdependent_stuyts(
-    sigma_vo_eff,ic,
-    a0=2.075,a1=-0.213,a2=0.77,a3=-0.25, **kwargs):
+    sigma_vo_eff, ic, a0=2.075, a1=-0.213, a2=0.77, a3=-0.25, **kwargs
+):
+    """
+        Calculates the shear wave velocity using the calibrated power-law expression proposed by Stuyts et al (2024). The correlation is calibrated on shear wave velocity measurements with the seismic CPT for sedimentary soils from the Southern North Sea. The correlation includes a dependency on the effective stress conditions and on the soil type through Robertson's soil behaviour type index.
+    The correlations shows neutral bias and a coefficient of variation of 0.188 for the calibration dataset.
+
+        :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [kPa] - Suggested range: 50.0 <= sigma_vo_eff <= 800.0
+        :param ic: Soil behaviour type index (:math:`I_c`) [-] - Suggested range: 1.0 <= ic <= 4.0
+        :param a0: Calibration coefficient 0 (:math:`a_0`) [-] - Suggested range: 1.7 <= a0 <= 2.5 (optional, default= 2.075)
+        :param a1: Calibration coefficient 1 (:math:`a_1`) [-] - Suggested range: -0.5 <= a1 <= -0.05 (optional, default= -0.213)
+        :param a2: Calibration coefficient 2 (:math:`a_2`) [-] - Suggested range: 0.5 <= a2 <= 1.0 (optional, default= 0.77)
+        :param a3: Calibration coefficient 3 (:math:`a_3`) [-] - Suggested range: -0.5 <= a3 <= -0.1 (optional, default= -0.25)
+
+        .. math::
+            V_s = {\\alpha} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{\\beta} = 10^{a_0 + a_1 \\cdot I_c} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{a_2 + a_3 \\cdot \\log_{10}(\\alpha)}
+
+            V_s = 10^{2.075 - 0.213 \\cdot I_c} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{0.77 - 0.25 \\cdot \\log_{10}(\\alpha)}
+
+        :returns: Dictionary with the following keys:
+
+            - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [m/s]
+
+        Reference - Stuyts, B.; Weijtjens, W.; Jurado, C.S.; Devriendt, C.; Kheffache, A. A Critical Review of Cone Penetration Test-Based Correlations for Estimating Small-Strain Shear Modulus in North Sea Soils. Geotechnics 2024, 4, 604-635. https://doi.org/10.3390/geotechnics4020033
 
     """
-    Calculates the shear wave velocity using the calibrated power-law expression proposed by Stuyts et al (2024). The correlation is calibrated on shear wave velocity measurements with the seismic CPT for sedimentary soils from the Southern North Sea. The correlation includes a dependency on the effective stress conditions and on the soil type through Robertson's soil behaviour type index.
-The correlations shows neutral bias and a coefficient of variation of 0.188 for the calibration dataset.
-    
-    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [kPa] - Suggested range: 50.0 <= sigma_vo_eff <= 800.0
-    :param ic: Soil behaviour type index (:math:`I_c`) [-] - Suggested range: 1.0 <= ic <= 4.0
-    :param a0: Calibration coefficient 0 (:math:`a_0`) [-] - Suggested range: 1.7 <= a0 <= 2.5 (optional, default= 2.075)
-    :param a1: Calibration coefficient 1 (:math:`a_1`) [-] - Suggested range: -0.5 <= a1 <= -0.05 (optional, default= -0.213)
-    :param a2: Calibration coefficient 2 (:math:`a_2`) [-] - Suggested range: 0.5 <= a2 <= 1.0 (optional, default= 0.77)
-    :param a3: Calibration coefficient 3 (:math:`a_3`) [-] - Suggested range: -0.5 <= a3 <= -0.1 (optional, default= -0.25)
-    
-    .. math::
-        V_s = {\\alpha} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{\\beta} = 10^{a_0 + a_1 \\cdot I_c} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{a_2 + a_3 \\cdot \\log_{10}(\\alpha)}
-        
-        V_s = 10^{2.075 - 0.213 \\cdot I_c} \\left( \\frac{\\sigma_{vo}^{\\prime}}{1 \\text{kPa}} \\right)^{0.77 - 0.25 \\cdot \\log_{10}(\\alpha)}
-    
-    :returns: Dictionary with the following keys:
-        
-        - 'Vs [m/s]': Shear wave velocity (:math:`V_s`)  [m/s]
-    
-    Reference - Stuyts, B.; Weijtjens, W.; Jurado, C.S.; Devriendt, C.; Kheffache, A. A Critical Review of Cone Penetration Test-Based Correlations for Estimating Small-Strain Shear Modulus in North Sea Soils. Geotechnics 2024, 4, 604-635. https://doi.org/10.3390/geotechnics4020033
 
-    """
-    
     _log_alpha = a0 + a1 * ic
     _beta = a2 + a3 * _log_alpha
-     
-    _Vs = (10 ** _log_alpha) * ((sigma_vo_eff / 1) ** _beta)
+
+    _Vs = (10**_log_alpha) * ((sigma_vo_eff / 1) ** _beta)
 
     return {
-        'Vs [m/s]': _Vs,
+        "Vs [m/s]": _Vs,
     }
 
+
 CORRELATIONS = {
-    'Ic Robertson and Wride (1998)': behaviourindex_pcpt_robertsonwride,
-    'Isbt Robertson (2010)': behaviourindex_pcpt_nonnormalised,
-    'Gmax Rix and Stokoe (1991)': gmax_sand_rixstokoe,
-    'Gmax Mayne and Rix (1993)': gmax_clay_maynerix,
-    'Gmax Puechen (2020)': gmax_cpt_puechen,
-    'Dr Baldi et al (1986) - NC sand': relativedensity_ncsand_baldi,
-    'Dr Baldi et al (1986) - OC sand': relativedensity_ocsand_baldi,
-    'Dr Jamiolkowski et al (2003)': relativedensity_sand_jamiolkowski,
-    'Friction angle Kulhawy and Mayne (1990)': frictionangle_sand_kulhawymayne,
-    'Su Rad and Lunne (1988)': undrainedshearstrength_clay_radlunne,
-    'Friction angle Kleven (1986)': frictionangle_overburden_kleven,
-    'OCR Lunne (1989)': ocr_cpt_lunne,
-    'Sensitivity Rad and Lunne (1986)': sensitivity_frictionratio_lunne,
-    'Unit weight Mayne et al (2010)': unitweight_mayne,
-    'Shear wave velocity Robertson and Cabal (2015)': vs_ic_robertsoncabal,
-    'K0 Mayne (2007) - sand': k0_sand_mayne,
-    'Es Bellotti (1989) - sand': drainedsecantmodulus_sand_bellotti,
-    'Gmax void ratio Mayne and Rix (1993)': gmax_voidratio_maynerix,
-    'Vs CPT Andrus (2007)': vs_cpt_andrus,
-    'Vs CPT Hegazy and Mayne (2006)': vs_cpt_hegazymayne,
-    'Vs CPT Long and Donohue (2010)': vs_cpt_longdonohue,
-    'Soiltype Vs Long and Donohue (2010)': soiltype_vs_longodonohue,
-    'Vs CPT d50 Karray et al (2011)': vs_cptd50_karrayetal,
-    'Vs CPT Wride et al (2000)': vs_cpt_wrideetal,
-    'Vs CPT Tonni and Simonini (2013)': vs_cpt_tonniandsimonini,
-    'Vs CPT McGann et al (2018)': vs_cpt_mcgannetal,
-    'Vs CPT Stuyts et al (2024)': vs_stressdependent_stuyts,
-    'M Robertson (2009)': constrainedmodulus_pcpt_robertson
+    "Ic Robertson and Wride (1998)": behaviourindex_pcpt_robertsonwride,
+    "Isbt Robertson (2010)": behaviourindex_pcpt_nonnormalised,
+    "Gmax Rix and Stokoe (1991)": gmax_sand_rixstokoe,
+    "Gmax Mayne and Rix (1993)": gmax_clay_maynerix,
+    "Gmax Puechen (2020)": gmax_cpt_puechen,
+    "Dr Baldi et al (1986) - NC sand": relativedensity_ncsand_baldi,
+    "Dr Baldi et al (1986) - OC sand": relativedensity_ocsand_baldi,
+    "Dr Jamiolkowski et al (2003)": relativedensity_sand_jamiolkowski,
+    "Friction angle Kulhawy and Mayne (1990)": frictionangle_sand_kulhawymayne,
+    "Su Rad and Lunne (1988)": undrainedshearstrength_clay_radlunne,
+    "Friction angle Kleven (1986)": frictionangle_overburden_kleven,
+    "OCR Lunne (1989)": ocr_cpt_lunne,
+    "Sensitivity Rad and Lunne (1986)": sensitivity_frictionratio_lunne,
+    "Unit weight Mayne et al (2010)": unitweight_mayne,
+    "Shear wave velocity Robertson and Cabal (2015)": vs_ic_robertsoncabal,
+    "K0 Mayne (2007) - sand": k0_sand_mayne,
+    "Es Bellotti (1989) - sand": drainedsecantmodulus_sand_bellotti,
+    "Gmax void ratio Mayne and Rix (1993)": gmax_voidratio_maynerix,
+    "Vs CPT Andrus (2007)": vs_cpt_andrus,
+    "Vs CPT Hegazy and Mayne (2006)": vs_cpt_hegazymayne,
+    "Vs CPT Long and Donohue (2010)": vs_cpt_longdonohue,
+    "Soiltype Vs Long and Donohue (2010)": soiltype_vs_longodonohue,
+    "Vs CPT d50 Karray et al (2011)": vs_cptd50_karrayetal,
+    "Vs CPT Wride et al (2000)": vs_cpt_wrideetal,
+    "Vs CPT Tonni and Simonini (2013)": vs_cpt_tonniandsimonini,
+    "Vs CPT McGann et al (2018)": vs_cpt_mcgannetal,
+    "Vs CPT Stuyts et al (2024)": vs_stressdependent_stuyts,
+    "M Robertson (2009)": constrainedmodulus_pcpt_robertson,
+    "Qtn_cs_Robertson & Cabal (2022)": Qtn_cs_robertson_cabal_2022,
+    "Qtn_cs_Robertson & Wride (1998)": Qtn_cs_robertson_wride_1998,
+    "Qtn_cs_Idriss & Boulanger (2008)": Qtn_cs_idriss_boulanger_2008,
+    "Qtn_cs_Boulanger & Idriss (2014)": Qtn_cs_boulanger_idriss_2014,
+    "CRR_Robertson & Cabal (2022)": crr_robertson_cabal_2022,
+    "CRR_Robertson & Wride (1998)": crr_robertson_wride_1998,
+    "CRR_Idriss & Boulanger (2008)": crr_idriss_boulanger_2008,
+    "CRR_Boulanger & Idriss (2014)": crr_boulanger_idriss_2014,
+    "CSR_Robertson & Cabal (2022)": csr_robertson_cabal_2022,
+    "CSR_Robertson & Wride (1998)": csr_robertson_wride_1998,
+    "CSR_Idriss & Boulanger (2008)": csr_idriss_boulanger_2008,
+    "CSR_Boulanger & Idriss (2014)": csr_boulanger_idriss_2014,
+    "FoS liquefaction": fos_liquefaction,
+    "Settlement liquefaction": liquefaction_strains_zhang,
 }

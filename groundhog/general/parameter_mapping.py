@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = 'Bruno Stuyts'
+__author__ = "Bruno Stuyts"
 
 # Native Python packages
 
@@ -79,10 +79,86 @@ SOIL_PARAMETER_MAPPING = {
     'Water content [%]': 'water_content',
     'Vertical coefficient of consolidation [m2/yr]': 'cv',
     'Horizontal coefficient of consolidation [m2/yr]': 'ch',
+    "qc [MPa]": "qc",
+    "fs [MPa]": "fs",
+    "u2 [MPa]": "u2",
+    "qt [MPa]": "qt",
+    "ft [MPa]": "ft",
+    "qnet [MPa]": "qnet",
+    "Vertical total stress [kPa]": "sigma_vo",
+    "Vertical effective stress [kPa]": "sigma_vo_eff",
+    "Effective pressure [kPa]": "p_eff",
+    "Effective unit weight [kN/m3]": "gamma_eff",
+    "Total unit weight [kN/m3]": "gamma_tot",
+    "Unit weight [kN/m3]": "gamma",
+    "Ic [-]": "ic",
+    "Dr [-]": "relative_density",
+    "Gmax [kPa]": "gmax",
+    "Qt [-]": "Qt",
+    "Bq [-]": "Bq",
+    "Fr [%]": "Fr",
+    "Rf [%]": "Rf",
+    "K0 [-]": "k0",
+    "Vs [m/s]": "Vs",
+    "gamma [kN/m3]": "gamma",
+    "OCR [-]": "ocr",
+    "PI [%]": "pi",
+    "z [m]": "depth",
+    "Embedded length [m]": "embedded_length",
+    "Effective friction angle [deg]": "phi_eff",
+    "Friction angle [deg]": "phi",
+    "Critical state friction angle [deg]": "phi_cs",
+    "Cohesion [kPa]": "cohesion",
+    "Minor principal stress [kPa]": "sigma_3",
+    "Major principal stress [kPa]": "sigma_1",
+    "Interface friction angle [deg]": "interface_friction_angle",
+    "Undrained shear strength [kPa]": "undrained_shear_strength",
+    "API soil description": "api_soildescription",
+    "API relative density description": "api_relativedensity",
+    "Limiting unit skin friction [kPa]": "fs_lim",
+    "Limiting unit end bearing [kPa]": "qb_lim",
+    "Tension modifier [-]": "tension_modifier",
+    "Borehole diameter [mm]": "borehole_diameter",
+    "Rod length [m]": "rod_length",
+    "Country": "country",
+    "Hammer type": "hammertype",
+    "Hammer release": "hammerrelease",
+    "Sampler type": "samplertype",
+    "N [-]": "N",
+    "N1_60 [-]": "N1_60",
+    "eta H [%]": "eta_H",
+    "eta B [-]": "eta_B",
+    "eta S [-]": "eta_S",
+    "eta R [-]": "eta_R",
+    "d50 [mm]": "d_50",
+    "N60 [-]": "N_60",
+    "Granular": "granular",
+    "Void ratio [-]": "voidratio",
+    "Dry density [kg/m3]": "dry_density",
+    "Bulk density [kg/m3]": "bulk_density",
+    "Water density [kg/m3]": "water_density",
+    "Density [kg/m3]": "density",
+    "Gs [-]": "specific_gravity",
+    "S [-]": "saturation",
+    "Water content [%]": "water_content",
+    "Qtn_cs [-]": "Qtn_cs",
+    "Fines [%]": "Fines%",
+    "CRR [-]": "CRR",
+    "K_sigma [-]": "K_sigma",
+    "CSR [-]": "CSR",
+    "MSF [-]": "MSF",
+    "FoS_liq [-]": "FoS_liq",
+    "eps_liq [%]": "eps_liq",
 }
 
-def map_depth_properties(target_df, layering_df, target_z_key=None,
-                         layering_zfrom_key=None, layering_zto_key=None):
+
+def map_depth_properties(
+    target_df,
+    layering_df,
+    target_z_key=None,
+    layering_zfrom_key=None,
+    layering_zto_key=None,
+):
     """
     Maps properties defined in a dataframe with layers to a dataframe with nodal depth positions.
 
@@ -108,28 +184,37 @@ def map_depth_properties(target_df, layering_df, target_z_key=None,
 
     # Validation on presence of depth keys
     if target_z_key not in target_df.columns:
-        raise ValueError("Required key for depth is not in the target dataframe (default is 'z [m]')")
-    if (layering_zto_key not in layering_df.columns) or (layering_zfrom_key not in layering_df.columns):
-        raise ValueError("Required key for start and/or end depth not in the layering dataframe"
-                         " (default is 'z from [m]' and 'z to [m]'")
+        raise ValueError(
+            "Required key for depth is not in the target dataframe (default is 'z [m]')"
+        )
+    if (layering_zto_key not in layering_df.columns) or (
+        layering_zfrom_key not in layering_df.columns
+    ):
+        raise ValueError(
+            "Required key for start and/or end depth not in the layering dataframe"
+            " (default is 'z from [m]' and 'z to [m]'"
+        )
     # Validation on depth limits of layering dataframe and target dataframe
     if layering_df[layering_zfrom_key].min() > target_df[target_z_key].min():
-        raise ValueError("Minimum depth for the layering (%.2fm) is greater "
-                         "than minimum depth for the target dataframe (%.2fm)" % (
-                layering_df[layering_zfrom_key].min(), target_df[target_z_key].min()
-        ))
+        raise ValueError(
+            "Minimum depth for the layering (%.2fm) is greater "
+            "than minimum depth for the target dataframe (%.2fm)"
+            % (layering_df[layering_zfrom_key].min(), target_df[target_z_key].min())
+        )
     if layering_df[layering_zto_key].max() < target_df[target_z_key].max():
-        raise ValueError("Maximum depth for the layering (%.2fm) is smaller "
-                         "than maximum depth for the target dataframe (%.2fm)" % (
-                layering_df[layering_zto_key].max(), target_df[target_z_key].max()
-        ))
+        raise ValueError(
+            "Maximum depth for the layering (%.2fm) is smaller "
+            "than maximum depth for the target dataframe (%.2fm)"
+            % (layering_df[layering_zto_key].max(), target_df[target_z_key].max())
+        )
     # Reset the index of the target dataframe to ensure correct calculation
     target_df.reset_index(drop=True, inplace=True)
 
     merged_z = np.insert(
         np.array(layering_df[layering_zto_key]),
         np.arange(len(layering_df[layering_zfrom_key])),
-        np.array(layering_df[layering_zfrom_key]))
+        np.array(layering_df[layering_zfrom_key]),
+    )
 
     for key in layering_df.columns:
         if key == layering_zfrom_key or key == layering_zto_key:
@@ -140,9 +225,10 @@ def map_depth_properties(target_df, layering_df, target_z_key=None,
                 if "from" in key:
                     # Create merged property array for linearly increasing properties
                     if key.replace("from", "to") not in layering_df.columns:
-                        raise ValueError("%s has no corresponding %s key." % (
-                            key, key.replace("from", "to")
-                        ))
+                        raise ValueError(
+                            "%s has no corresponding %s key."
+                            % (key, key.replace("from", "to"))
+                        )
                     target_key = key.replace("from ", "")
                     from_key = key
                     to_key = key.replace("from", "to")
@@ -157,17 +243,27 @@ def map_depth_properties(target_df, layering_df, target_z_key=None,
                 merged_prop = np.insert(
                     np.array(layering_df[to_key]),
                     np.arange(len(layering_df[from_key])),
-                    np.array(layering_df[from_key]))
+                    np.array(layering_df[from_key]),
+                )
 
-                target_df[target_key] = np.interp(target_df[target_z_key], merged_z, merged_prop)
+                target_df[target_key] = np.interp(
+                    target_df[target_z_key], merged_z, merged_prop
+                )
 
             else:
                 # Mapping for string parameter
-                target_df[key] = list(map(lambda _z: layering_df[
-                    (layering_df[layering_zfrom_key] <= _z) & (layering_df[layering_zto_key] >= _z)][key].iloc[-1],
-                                          target_df[target_z_key]))
+                target_df[key] = list(
+                    map(
+                        lambda _z: layering_df[
+                            (layering_df[layering_zfrom_key] <= _z)
+                            & (layering_df[layering_zto_key] >= _z)
+                        ][key].iloc[-1],
+                        target_df[target_z_key],
+                    )
+                )
 
     return target_df
+
 
 def merge_two_dicts(x, y):
     """
@@ -176,9 +272,10 @@ def merge_two_dicts(x, y):
     :param y: Second dictionary
     :return: Updated dictionary
     """
-    z = x.copy()   # start with x's keys and values
-    z.update(y)    # modifies z with y's keys and values & returns None
+    z = x.copy()  # start with x's keys and values
+    z.update(y)  # modifies z with y's keys and values & returns None
     return z
+
 
 def reverse_dict(input_dict):
     """
@@ -186,7 +283,8 @@ def reverse_dict(input_dict):
     :param input_dict: Dictionary with just 1 level
     :return: Dictionary with keys turned into values and vice-versa
     """
-    return {y:x for x,y in input_dict.items()}
+    return {y: x for x, y in input_dict.items()}
+
 
 def latlon_distance(lon1, lat1, lon2, lat2):
     """
@@ -198,9 +296,10 @@ def latlon_distance(lon1, lat1, lon2, lat2):
     :param lat2: Latitude (northing) of the second point
     :return: distance in meters
     """
-    wgs84_geod = Geod(ellps='WGS84')
-    az12,az21,dist = wgs84_geod.inv(lon1, lat1, lon2, lat2)
+    wgs84_geod = Geod(ellps="WGS84")
+    az12, az21, dist = wgs84_geod.inv(lon1, lat1, lon2, lat2)
     return dist
+
 
 def get_projected_point(lon1, lat1, lon2, lat2, lon3, lat3):
     """
@@ -212,13 +311,16 @@ def get_projected_point(lon1, lat1, lon2, lat2, lon3, lat3):
     """
     xx = lon2 - lon1
     yy = lat2 - lat1
-    shortestlength = ((xx * (lon3 - lon1)) + (yy * (lat3 - lat1))) / ((xx * xx) + (yy * yy))
+    shortestlength = ((xx * (lon3 - lon1)) + (yy * (lat3 - lat1))) / (
+        (xx * xx) + (yy * yy)
+    )
     lon4 = lon1 + xx * shortestlength
     lat4 = lat1 + yy * shortestlength
     if lon4 <= lon2 and lon4 >= lon1 and lat4 <= lat2 and lat4 >= lat1:
         return lon4, lat4, False
     else:
         return lon4, lat4, True
+
 
 def offsets(startpoint, endpoint, point, latlon=False):
     """
@@ -245,26 +347,37 @@ def offsets(startpoint, endpoint, point, latlon=False):
 
     """
     if latlon:
-        offset_start = latlon_distance(lon1=startpoint[0], lat1=startpoint[1],
-                                       lon2=point[0], lat2=point[1])
-        offset_end = latlon_distance(lon1=endpoint[0], lat1=endpoint[1],
-                                     lon2=point[0], lat2=point[1])
+        offset_start = latlon_distance(
+            lon1=startpoint[0], lat1=startpoint[1], lon2=point[0], lat2=point[1]
+        )
+        offset_end = latlon_distance(
+            lon1=endpoint[0], lat1=endpoint[1], lon2=point[0], lat2=point[1]
+        )
         projected_point_lon, projected_point_lat, outsidebounds = get_projected_point(
-            lon1=startpoint[0], lat1=startpoint[1],
-            lon2=endpoint[0], lat2=endpoint[1],
-            lon3=point[0], lat3=point[1]
+            lon1=startpoint[0],
+            lat1=startpoint[1],
+            lon2=endpoint[0],
+            lat2=endpoint[1],
+            lon3=point[0],
+            lat3=point[1],
         )
         offset_to_line = latlon_distance(
-            lon1=point[0], lat1=point[1],
-            lon2=projected_point_lon, lat2=projected_point_lat
+            lon1=point[0],
+            lat1=point[1],
+            lon2=projected_point_lon,
+            lat2=projected_point_lat,
         )
         offset_to_start = latlon_distance(
-            lon1=projected_point_lon, lat1=projected_point_lat,
-            lon2=startpoint[0], lat2=startpoint[1]
+            lon1=projected_point_lon,
+            lat1=projected_point_lat,
+            lon2=startpoint[0],
+            lat2=startpoint[1],
         )
         offset_to_end = latlon_distance(
-            lon1=projected_point_lon, lat1=projected_point_lat,
-            lon2=endpoint[0], lat2=endpoint[1]
+            lon1=projected_point_lon,
+            lat1=projected_point_lat,
+            lon2=endpoint[0],
+            lat2=endpoint[1],
         )
         angle_start = np.nan
         angle_end = np.nan
@@ -302,9 +415,9 @@ def offsets(startpoint, endpoint, point, latlon=False):
 
         offset_start = np.linalg.norm(vector_2)
         offset_end = np.linalg.norm(vector_3)
-        offset_to_line = np.abs(a * point[0] + b * point[1] + c) / np.sqrt(a ** 2 + b ** 2)
-        offset_to_start = np.sqrt(offset_start ** 2 - offset_to_line ** 2)
-        offset_to_end = np.sqrt(offset_end ** 2 - offset_to_line ** 2)
+        offset_to_line = np.abs(a * point[0] + b * point[1] + c) / np.sqrt(a**2 + b**2)
+        offset_to_start = np.sqrt(offset_start**2 - offset_to_line**2)
+        offset_to_end = np.sqrt(offset_end**2 - offset_to_line**2)
 
         if before_start:
             offset_to_start = -1 * offset_to_start
@@ -312,13 +425,13 @@ def offsets(startpoint, endpoint, point, latlon=False):
             offset_to_end = -1 * offset_to_end
 
     return {
-        'offset start to point': offset_start,
-        'offset end to point': offset_end,
-        'offset to line': offset_to_line,
-        'offset to start projected': offset_to_start,
-        'offset to end projected': offset_to_end,
-        'angle start [deg]': angle_start,
-        'angle end [deg]': angle_end,
-        'before start': before_start,
-        'behind end': behind_end
+        "offset start to point": offset_start,
+        "offset end to point": offset_end,
+        "offset to line": offset_to_line,
+        "offset to start projected": offset_to_start,
+        "offset to end projected": offset_to_end,
+        "angle start [deg]": angle_start,
+        "angle end [deg]": angle_end,
+        "before start": before_start,
+        "behind end": behind_end,
     }

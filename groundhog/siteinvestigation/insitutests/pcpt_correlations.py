@@ -718,6 +718,14 @@ def frictionangle_sand_kulhawymayne(
 
         - 'Phi [deg]': Effective friction angle for sand (:math:`\\varphi`)  [:math:`deg`]
 
+    .. figure:: images/kulhawy_mayne_data.png
+        :figwidth: 500
+        :width: 400
+        :align: center
+
+        Data and interpretation chart according to Kulhawy and Mayne 1990)
+
+
     Reference - Kulhawy, F.H. and Mayne, P.H. (1990), “Manual on Estimating Soil Properties for Foundation Design”, Electric Power Research Institute EPRI, Palo Alto, EPRI Report, EL-6800.
 
     """

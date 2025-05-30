@@ -8,6 +8,7 @@ __author__ = "Bruno Stuyts"
 # 3rd party packages
 import numpy as np
 from scipy.optimize import brentq
+import warnings
 
 # Project imports
 from groundhog.general.validation import Validator
@@ -805,6 +806,14 @@ def frictionangle_sand_kulhawymayne(
     :returns: Dictionary with the following keys:
 
         - 'Phi [deg]': Effective friction angle for sand (:math:`\\varphi`)  [:math:`deg`]
+
+    .. figure:: images/kulhawy_mayne_data.png
+        :figwidth: 500
+        :width: 400
+        :align: center
+
+        Data and interpretation chart according to Kulhawy and Mayne 1990)
+
 
     Reference - Kulhawy, F.H. and Mayne, P.H. (1990), “Manual on Estimating Soil Properties for Foundation Design”, Electric Power Research Institute EPRI, Palo Alto, EPRI Report, EL-6800.
 
@@ -3078,6 +3087,290 @@ def vs_stressdependent_stuyts(
         "Vs [m/s]": _Vs,
     }
 
+
+DISSIPATION_TEST_TEH = {
+    'ch': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
+    'shearmodulus': {'type': 'float', 'min_value': 0.0, 'max_value': 500000.0},
+    'undrained_shear_strength': {'type': 'float', 'min_value': 1.0, 'max_value': 500.0},
+    'u_initial': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
+    'cone_area': {'type': 'float', 'min_value': 2.0, 'max_value': 15.0},
+    'sensor_location': {'type': 'string', 'options': ("u1", "u2"), 'regex': None},
+}
+
+DISSIPATION_TEST_TEH_ERRORRETURN = {
+    'delta u [kPa]': np.nan,
+    't [s]': np.nan,
+    'delta u / delta u_i [-]': np.nan,
+    'T* [-]': np.nan,
+    'Ir [-]': np.nan,
+    'Cone radius [m]': np.nan
+}
+
+@Validator(DISSIPATION_TEST_TEH, DISSIPATION_TEST_TEH_ERRORRETURN)
+def dissipation_test_teh(
+    ch,shearmodulus,undrained_shear_strength,u_initial,
+    cone_area=10.0,sensor_location='u2', **kwargs):
+
+    """
+    Calculates the pore pressure dissipation from a dissipation tests in clay according to the normalised dissipation curves proposed by Teh & Houlsby (1991).
+    
+    :param ch: Horizontal coefficient of consolidation (:math:`c_h`) [m2/yr] - Suggested range: 0.0 <= ch <= 100.0
+    :param shearmodulus: Shear modulus of the soil (:math:`G`) [kPa] - Suggested range: 0.0 <= shearmodulus <= 500000.0
+    :param undrained_shear_strength: Undrained shear strength (:math:`S_u`) [kPa] - Suggested range: 1.0 <= undrained_shear_strength <= 500.0
+    :param u_initial: Initial excess pore pressure (:math:`\\Delta u_i`) [kPa] - Suggested range: 0.0 <= u_initial <= 2000.0
+    :param cone_area: Cone area (:math:`\\pi a^2`) [cm2] - Suggested range: 2.0 <= cone_area <= 15.0 (optional, default= 10.0)
+    :param sensor_location: Location of the pore pressure sensor (optional, default= 'u2') - Options: ('u1', ' u2')
+    
+    .. math::
+        T^{*} = \\frac{c_h \\cdot t}{a^2 \\cdot \\sqrt{I_r}}
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'delta u [kPa]': List with excess pore pressures (:math:`\\Delta u`)  [kPa]
+        - 't [s]': List with times for excess pore pressure dissipation (:math:`t`)  [s]
+        - 'delta u / delta u_i [-]': Normalised excess pore pressure decay (:math:`\\Delta u \\Delta u_i`)  [-]
+        - 'T* [-]': Time factors (:math:`T^*`) [-]
+        - 'Ir [-]': Rigidity index (G/Su) [-]
+        - 'Cone radius [m]': Radius of the cone [m]
+    
+    Reference - Teh, C. I., & Houlsby, G. T. (1991). An analytical study of the cone penetration test in clay. Geotechnique, 41(1), 17-34.
+
+    """
+    _Tstar = np.logspace(-3, 3, 500)
+
+    if sensor_location == 'u2':
+        _Tstars = [
+            0.001,
+            0.0011207799270614612,
+            0.0013175562821951996,
+            0.0015488406387142064,
+            0.0018206571442778232,
+            0.002140118885047493,
+            0.002515595970069114,
+            0.0029568381483332123,
+            0.0034753492282147413,
+            0.004084659725665474,
+            0.004800413117035902,
+            0.0056415517936697235,
+            0.006629921072547998,
+            0.0077910808623623045,
+            0.009155361623518873,
+            0.01075874471963869,
+            0.01264212029519802,
+            0.014855133712348239,
+            0.017453308237031902,
+            0.020506030619613688,
+            0.02409214543680561,
+            0.0283035399135407,
+            0.033247790307674684,
+            0.039051080144662804,
+            0.045859743477340585,
+            0.05388068675637314,
+            0.06328953913030798,
+            0.07432422788973225,
+            0.08728614325718796,
+            0.10250499934779678,
+            0.1203725286764446,
+            0.14135355680170372,
+            0.16598704221642147,
+            0.19491008181040648,
+            0.22887367941459844,
+            0.26875555629656633,
+            0.3156008622759439,
+            0.3706342324655061,
+            0.43527286753183664,
+            0.5111815698787668,
+            0.6003444037605523,
+            0.705069976972798,
+            0.8281577438344176,
+            0.9727506958161034,
+            1.1425574984952547,
+            1.3421096187521824,
+            1.5765361440512415,
+            1.8519337746883595,
+            2.175644416803292,
+            2.5561838092525764,
+            3.0033199454015063,
+            3.52884617167986,
+            4.146425679459897,
+            4.872259619113969,
+            5.72558845838506,
+            6.728220369767181,
+            7.906904458795576,
+            9.292549285142744,
+            10.92065753880555,
+            12.835225327227075,
+            15.08547952261628,
+            17.730773070889512,
+            20.838812555137217,
+            24.49487123969776,
+            28.793578411465823,
+            33.601692644552806,
+            1000
+        ]
+        _normalised_pressures = [
+            1,
+            0.9982547049364386,
+            0.9982102348214444,
+            0.997457460196713,
+            0.9956915191579917,
+            0.993190131345978,
+            0.9902653242225026,
+            0.9863145395366394,
+            0.9813733155588034,
+            0.975585831993,
+            0.9676179923009625,
+            0.9594764421221713,
+            0.9506947938540908,
+            0.9406297709378348,
+            0.9298382417379596,
+            0.9195687764149281,
+            0.9075535398592689,
+            0.8954334397145706,
+            0.8798290196917605,
+            0.8643910728910102,
+            0.8483267931211795,
+            0.8304657997033944,
+            0.809887331597764,
+            0.78605618474117,
+            0.7577202761241724,
+            0.7421352106084669,
+            0.7200977401582693,
+            0.6917557269265412,
+            0.6644457658063094,
+            0.6361835213373688,
+            0.60682760371141,
+            0.5772844623990239,
+            0.5469928683414271,
+            0.5162408534100327,
+            0.4855786946878178,
+            0.45491983659735347,
+            0.42546292927936735,
+            0.3976785547496384,
+            0.37044205339613345,
+            0.34304994122353616,
+            0.3163922469236564,
+            0.2901414777501171,
+            0.2669751699635585,
+            0.24428877762893497,
+            0.22085038294657278,
+            0.19951120352068719,
+            0.17855021806278537,
+            0.15793966991021802,
+            0.13990177401527415,
+            0.12448395366081555,
+            0.10940275827962376,
+            0.09567915609882172,
+            0.08258586659302636,
+            0.07045881881315408,
+            0.06041600735684671,
+            0.0497682157245567,
+            0.040766965665649746,
+            0.03315423029557185,
+            0.024632491028727443,
+            0.018673968432898258,
+            0.012772836097125317,
+            0.007684102964287787,
+            0.0011341751203755024,
+            0,
+            0,
+            0,
+            0]
+    else:
+        _Tstars = [
+            0.001,
+            0.0011833597168288195,
+            0.0016962011041704089,
+            0.0024315730843402386,
+            0.00348616024773265,
+            0.004998935580613255,
+            0.0071692823507906265,
+            0.010283135853232423,
+            0.014752681876131737,
+            0.02116869090595761,
+            0.03038286336404988,
+            0.043610386309631884,
+            0.06261623581997469,
+            0.08989977250758097,
+            0.12907263866520685,
+            0.18534283505967009,
+            0.26611812887410224,
+            0.3820446265729276,
+            0.5483907703530928,
+            0.7870535487599691,
+            1.1293729416144007,
+            1.6203883394204823,
+            2.3244407763404578,
+            3.3335803675324955,
+            4.780138467470233,
+            6.853141094613972,
+            9.824161601925871,
+            14.085639029131519,
+            20.187335265640506,
+            28.93026045405225,
+            41.451839989457426,
+            59.391231176738955,
+            85.09700076063608,
+            110.01944456864565,
+            1000
+        ]
+        _normalised_pressures = [
+            0.9450785179505145,
+            0.9450785179505145,
+            0.9328099406853014,
+            0.9176252600887749,
+            0.8994886267686839,
+            0.8772116752623342,
+            0.8509256328653462,
+            0.8215866838037835,
+            0.7866123289364855,
+            0.7470583885084512,
+            0.7009156359240841,
+            0.6532073611386034,
+            0.597487508553326,
+            0.5432654494289394,
+            0.48880978198711666,
+            0.4304590818854198,
+            0.37464266483520436,
+            0.322308709780601,
+            0.27372677063899165,
+            0.22879672141058505,
+            0.1886484881673991,
+            0.1515308491125591,
+            0.11927214082728299,
+            0.09332240846186268,
+            0.0710835992978216,
+            0.05358550847365939,
+            0.03864634991410054,
+            0.01926848099440437,
+            0.010428938384991815,
+            0.003305901395839639,
+            0.001013685261339603,
+            0,
+            0,
+            0,
+            0
+        ]
+
+    _normalised_delta_u = np.interp(_Tstar, _Tstars, _normalised_pressures)
+    
+    _delta_u = _normalised_delta_u * u_initial
+    _ch = ch / (3600 * 24 * 365) # m2/s
+    _Ir = shearmodulus / undrained_shear_strength
+
+    if _Ir < 25 or _Ir > 500:
+        warnings.warn('Rigidity index Ir = %.1f outside validation ranges (25 < Ir < 500)' % _Ir)
+    _a = np.sqrt((1e-4 * cone_area) / np.pi) # Cone radius in m
+    _t = _Tstar * (_a ** 2) * np.sqrt(_Ir) / _ch
+    
+    return {
+        'delta u [kPa]': _delta_u,
+        't [s]': _t,
+        'delta u / delta u_i [-]': _normalised_delta_u,
+        'T* [-]': _Tstar,
+        'Ir [-]': _Ir,
+        'Cone radius [m]': _a
+    }
 
 CORRELATIONS = {
     "Ic Robertson and Wride (1998)": behaviourindex_pcpt_robertsonwride,

@@ -324,10 +324,10 @@ class SPTProcessing(InsituTestProcessing):
         except:
             pass
         fig['layout']['xaxis1'].update(
-            title='N [-] $', side='top', anchor='y',
+            title='N [-]', side='top', anchor='y',
             range=n_range, dtick=n_tick)
         fig['layout']['yaxis1'].update(
-            title='z [m]$', range=z_range, dtick=z_tick)
+            title='z [m]', range=z_range, dtick=z_tick)
         fig['layout'].update(
             title=plot_title, hovermode='closest',
             height=plot_height, width=plot_width,

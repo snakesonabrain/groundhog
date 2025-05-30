@@ -65,6 +65,21 @@ class Test_onedimensionalsolutions(unittest.TestCase):
             2
         )
 
+    def test_fd_doubledrainage_cv_as_list(self):
+        calc = onedimensionalconsolidation.ConsolidationCalculation(
+            height=1, total_time=1e4, no_nodes=21)
+        calc.set_cv(cv=[100, 100], cv_depths=np.array([0, 1]), uniform=False)
+        calc.set_top_boundary(freedrainage=True)
+        calc.set_bottom_boundary(freedrainage=True)
+        calc.set_initial(u0=[50, 50], u0_depths=[0, 1])
+        calc.set_output_times(output_times=[1, 10, 100, 1000, 10000])
+        calc.calculate()
+        self.assertAlmostEqual(
+            np.interp(0.5, calc.z, calc.u_steps[-1]),
+            45.23,
+            2
+        )
+
     def test_fd_topdrainage(self):
         calc = onedimensionalconsolidation.ConsolidationCalculation(
             height=1, total_time=1e4, no_nodes=21)

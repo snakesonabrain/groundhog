@@ -296,6 +296,8 @@ class ConsolidationCalculation(object):
             self.cv = np.ones(self.z.__len__()) * cv / (365 * 24 * 3600)
             self.cv_depths = None
         else:
+            cv_depths = np.array(cv_depths)
+            cv = np.array(cv)
             if cv_depths is None:
                 raise ValueError("Depths corresponding to the given values of cv need to be specified")
             self.cv = np.interp(self.z, cv_depths, cv / (365 * 24 * 3600))

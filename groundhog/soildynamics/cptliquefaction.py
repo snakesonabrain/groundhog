@@ -712,9 +712,7 @@ QTN_CS_ROBERTSON_CABAL_2022 = {
     "atmospheric_pressure": {"type": "float", "min_value": 0, "max_value": 110},
 }
 
-QTN_CS_ROBERTSON_CABAL_2022_ERRORRETURN = {
-    "Qtn_cs [-]": np.nan,
-}
+QTN_CS_ROBERTSON_CABAL_2022_ERRORRETURN = {"Qtn_cs [-]": np.nan, "Kc [-]": np}
 
 
 @Validator(QTN_CS_ROBERTSON_CABAL_2022, QTN_CS_ROBERTSON_CABAL_2022_ERRORRETURN)
@@ -761,7 +759,9 @@ def Qtn_cs_robertson_cabal_2022(
         - Robertson, P. K., & Cabal, K. L. (2022). Guide to Cone Penetration Testing for Geotechnical Engineering. Gregg Drilling & Testing, Inc.
     """
     # Calculate Kc based on ic and Fr (page 116)
-    if ic > 1.7:
+    if ic is None or np.isnan(ic):
+        Kc = np.nan
+    elif ic > 1.7:
         if ic < 2.36 and Fr < 0.5:
             Kc = 1.0
         else:
@@ -771,7 +771,8 @@ def Qtn_cs_robertson_cabal_2022(
 
     # Helper function to calculate Qtn
     def Qtn(qt, sigma_vo, sigma_vo_eff, n, pa=0.001 * atmospheric_pressure):
-        return ((qt - 0.001 * sigma_vo) / pa) * (pa / (0.001 * sigma_vo_eff)) ** n
+        cn = min(1.7, (pa / (0.001 * sigma_vo_eff)) ** n)
+        return ((qt - 0.001 * sigma_vo) / pa) * cn
 
     # Helper function to calculate exponent n
     def exponent_zhang(ic, sigma_vo_eff, pa=atmospheric_pressure):
@@ -786,6 +787,7 @@ def Qtn_cs_robertson_cabal_2022(
 
     return {
         "Qtn_cs [-]": Qtn_cs,
+        "Kc [-]": Kc,
     }
 
 

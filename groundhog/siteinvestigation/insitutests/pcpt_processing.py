@@ -179,6 +179,20 @@ class InsituTestProcessing(object):
         else:
             self.data["Vertical effective stress [kPa]"] = vertical_effective_stress
 
+    @property
+    def min_depth(self):
+        """
+        Returns the minimum depth of the in-situ test
+        """
+        return self.data['z [m]'].min()
+
+    @property
+    def max_depth(self):
+        """
+        Returns the maximum depth of the in-situ test
+        """
+        return self.data['z [m]'].max()
+
 
 class PCPTProcessing(InsituTestProcessing):
     """

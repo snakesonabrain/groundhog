@@ -1,4 +1,7 @@
 v0.15.0, TBD
+    - Added notebook with soil parameter selection demo
+    - TODO: Add plotting for LogPlot and LogPlotMatplotlib with CPT data
+    - TODO: Add functionality for quickly selecting layering with a dummy soil profile. The base case is selection from CPT data.
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

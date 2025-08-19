@@ -19,7 +19,7 @@ import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 
 # Project imports
-from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, GROUNDHOG_PLOTTING_CONFIG
+from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, LogPlot, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
 from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
@@ -996,6 +996,29 @@ class PCPTProcessing(InsituTestProcessing):
 
     # endregion
 
+    # region Layering selection
+    def select_layering(self, default_soiltype="Unknown", default_unitweight=20, stop_threshold=0, secondaryprofile=None, **kwargs):
+        """
+        Creates a dummy soil profile and creates a ``LogPlotMatplotlib`` from it.
+        It then allows the user to click on the plot to select layers.
+        The ``SoilProfile`` with the selected layering is then returned to the user.
+
+        :param default_soiltype: Default soil type to use for the soil profile resulting from the layer selection.
+        :param default_unitweight: Default unit weight to use for the soil profile resulting from the layer selection.
+        :param stop_threshold: qc values which controls ending the layer selection. Click below the threshold to stop the selection.
+        """
+        dummy_profile = SoilProfile({
+            "Depth from [m]": [0, ],
+            "Depth to [m]": [self.max_depth,],
+            "Soil type": [default_soiltype,],
+            "Total unit weight [kN/m3]": [default_unitweight,]
+        })
+        logplot = self.plot_raw_pcpt_withlog_matplotlib(soilprofile=dummy_profile, secondaryprofile=secondaryprofile, **kwargs)
+        logplot.select_layering()
+        return dummy_profile
+
+    # endregion
+
     # region Layer-based processing and correction
 
     def map_properties(self, layer_profile, cone_profile=DEFAULT_CONE_PROPERTIES,
@@ -1353,7 +1376,216 @@ class PCPTProcessing(InsituTestProcessing):
         else:
             fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
+    def plot_raw_pcpt_withlog(self, soilprofile, qc_range=(-10, 100), qc_tick=10, fs_range=(0, 1), fs_tick=0.1,
+                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2, rf_range=(0, 5), rf_tick=0.5,
+                      plot_friction_ratio=False,
+                      plot_height=700, plot_width=1000, return_fig=False,
+                      plot_title=None, latex_titles=True,
+                      fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}, **kwargs) :
+        """
+        Plots the raw PCPT data using the Plotly package using a ``groundhog`` ``LogPlot``. This generates an interactive plot.
 
+        :param soilprofile: ``SoilProfile`` object to use for the ``LogPlot``
+        :param qc_range: Range for the cone tip resistance (default=(0, 100MPa))
+        :param qc_tick: Tick interval for the cone tip resistance (default=10MPa)
+        :param fs_range: Range for the sleeve friction (default=(0, 1MPa))
+        :param fs_tick: Tick interval for sleeve friction (default=0.1MPa)
+        :param u2_range: Range for the pore pressure at the shoulder (default=(-0.1, 0.5MPa))
+        :param u2_tick: Tick interval for the pore pressure at the shoulder (default=0.05MPa)
+        :param z_range: Range for the depth (default=None for plotting from zero to maximum cone penetration)
+        :param z_tick: Tick interval for depth (default=2m)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param rf_range: Range for the friction ratio, if used (default=None for plotting from zero to 5%)
+        :param rf_tick: Tick interval for friction ratio, if used (default=0.5%)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted (default=False)
+        :param friction_ratio_panel: Panel for plotting friction ratio (default=3 for pore pressure panel). Only used when ``plot_friction_ratio=True``
+        :param plot_height: Height for the plot (default=700px)
+        :param plot_width: Width for the plot (default=1000px)
+        :param return_fig: Boolean determining whether the figure needs to be returned (True) or plotted (False)
+        :param plot_title: Plot for the title (default=None)
+        :param plot_margin: Margin for the plot (default=dict(t=100, l=50, b=50))
+        :param color: Color to be used for plotting (default=None for default plotly colors)
+        :param color: Color to be used for plotting the hydrostatic pressure (default=None for default plotly colors)
+        :param show_hydrostatic_legend: Boolean determining whether to show the hydrostatic pressure in the legend
+        :param waterlevel_override: If a waterlevel is not specified in a soil profile which is mapped to the CPT, this can be used to get the water table at the correct elevation (default=0m for water level at the surface, >0 for water level below groundlevel)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
+        :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :return:
+        """
+        if latex_titles:
+            qc_axis_title = r'$ q_c \ \text{[MPa]} $'
+            fs_axis_title = r'$ f_s \ \text{[MPa]} $'
+            u2_axis_title = r'$ u_2 \ \text{[MPa]} $'
+            Rf_axis_title = r'$ R_f \ \text{[%]} $'
+            z_axis_title = r'$ \text{Depth below mudline, } z \ \text{[m]} $'
+        else:
+            qc_axis_title = 'qc [MPa]'
+            fs_axis_title = 'fs [MPa]'
+            u2_axis_title = 'u2 [MPa]'
+            Rf_axis_title = 'Rf [%]'
+            z_axis_title = 'z [m]'
+
+        if z_range is None:
+            z_range = (self.data['z [m]'].max(), 0)
+        
+        cptplot = LogPlot(
+            soilprofile=soilprofile, no_panels=3, fillcolordict=fillcolordict, **kwargs)
+        cptplot.add_trace(
+            x=self.data['qc [MPa]'],
+            z=self.data['z [m]'],
+            name='qc',
+            panel_no=1,
+            showlegend=False,
+            line=dict(color='black', width=1)
+        )
+        cptplot.add_trace(
+            x=self.data['fs [MPa]'],
+            z=self.data['z [m]'],
+            name='fs',
+            panel_no=2,
+            showlegend=False,
+            line=dict(color='black', width=1)
+        )
+
+        if plot_friction_ratio:
+            cptplot.add_trace(
+                x=self.data['Rf [%]'],
+                z=self.data['z [m]'],
+                name='Rf',
+                panel_no=3,
+                showlegend=False,
+                line=dict(color='black', width=1)
+            )
+        else:
+            cptplot.add_trace(
+                x=self.data['u2 [MPa]'],
+                z=self.data['z [m]'],
+                name='u2',
+                panel_no=3,
+                showlegend=False,
+                line=dict(color='black', width=1)
+            )
+        cptplot.set_xaxis(title=qc_axis_title, panel_no=1, range=qc_range, dtick=qc_tick)
+        cptplot.set_xaxis(title=fs_axis_title, panel_no=2, range=fs_range, dtick=fs_tick)
+        if plot_friction_ratio:
+            cptplot.set_xaxis(title=Rf_axis_title, panel_no=3, range=rf_range, dtick=rf_tick)
+        else:
+            cptplot.set_xaxis(title=u2_axis_title, panel_no=3, range=u2_range, dtick=u2_tick)
+        cptplot.set_zaxis(title=z_axis_title, range=z_range, dtick=z_tick)
+        cptplot.fig.layout.update(title=plot_title, height=plot_height, width=plot_width)
+
+        if return_fig:
+            return cptplot.fig
+        else:
+            cptplot.fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+
+    def plot_raw_pcpt_withlog_matplotlib(self, soilprofile, qc_range=(-10, 100), fs_range=(0, 1),
+                      u2_range=(-0.5, 2.5), z_range=None, rf_range=(0, 5),
+                      plot_friction_ratio=False,
+                      plot_height=8, plot_width=10, return_fig=False,
+                      latex_titles=True,
+                      fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}, **kwargs) :
+        """
+        Plots the raw PCPT data using the Matplotlib package using a ``groundhog`` ``LogPlotMatplotlib``. This generates an Matplotlib plot.
+
+        :param soilprofile: ``SoilProfile`` object to use for the ``LogPlot``
+        :param qc_range: Range for the cone tip resistance (default=(0, 100MPa))
+        :param qc_tick: Tick interval for the cone tip resistance (default=10MPa)
+        :param fs_range: Range for the sleeve friction (default=(0, 1MPa))
+        :param fs_tick: Tick interval for sleeve friction (default=0.1MPa)
+        :param u2_range: Range for the pore pressure at the shoulder (default=(-0.1, 0.5MPa))
+        :param u2_tick: Tick interval for the pore pressure at the shoulder (default=0.05MPa)
+        :param z_range: Range for the depth (default=None for plotting from zero to maximum cone penetration)
+        :param z_tick: Tick interval for depth (default=2m)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param rf_range: Range for the friction ratio, if used (default=None for plotting from zero to 5%)
+        :param rf_tick: Tick interval for friction ratio, if used (default=0.5%)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted (default=False)
+        :param friction_ratio_panel: Panel for plotting friction ratio (default=3 for pore pressure panel). Only used when ``plot_friction_ratio=True``
+        :param plot_height: Height for the plot (default=700px)
+        :param plot_width: Width for the plot (default=1000px)
+        :param return_fig: Boolean determining whether the figure needs to be returned (True) or plotted (False)
+        :param plot_title: Plot for the title (default=None)
+        :param plot_margin: Margin for the plot (default=dict(t=100, l=50, b=50))
+        :param color: Color to be used for plotting (default=None for default plotly colors)
+        :param color: Color to be used for plotting the hydrostatic pressure (default=None for default plotly colors)
+        :param show_hydrostatic_legend: Boolean determining whether to show the hydrostatic pressure in the legend
+        :param waterlevel_override: If a waterlevel is not specified in a soil profile which is mapped to the CPT, this can be used to get the water table at the correct elevation (default=0m for water level at the surface, >0 for water level below groundlevel)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
+        :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :return:
+        """
+        if latex_titles:
+            qc_axis_title = r'$ q_c \ \text{[MPa]} $'
+            fs_axis_title = r'$ f_s \ \text{[MPa]} $'
+            u2_axis_title = r'$ u_2 \ \text{[MPa]} $'
+            Rf_axis_title = r'$ R_f \ \text{[%]} $'
+            z_axis_title = r'$ \text{Depth below mudline, } z \ \text{[m]} $'
+        else:
+            qc_axis_title = 'qc [MPa]'
+            fs_axis_title = 'fs [MPa]'
+            u2_axis_title = 'u2 [MPa]'
+            Rf_axis_title = 'Rf [%]'
+            z_axis_title = 'z [m]'
+
+        if z_range is None:
+            z_range = (self.data['z [m]'].max(), 0)
+        
+        cptplot = LogPlotMatplotlib(
+            soilprofile=soilprofile, no_panels=3, fillcolordict=fillcolordict, **kwargs)
+        cptplot.add_trace(
+            x=self.data['qc [MPa]'],
+            z=self.data['z [m]'],
+            name='qc',
+            panel_no=1,
+            showlegend=False,
+            c='black'
+        )
+        cptplot.add_trace(
+            x=self.data['fs [MPa]'],
+            z=self.data['z [m]'],
+            name='fs',
+            panel_no=2,
+            showlegend=False,
+            c='black'
+        )
+
+        if plot_friction_ratio:
+            cptplot.add_trace(
+                x=self.data['Rf [%]'],
+                z=self.data['z [m]'],
+                name='Rf',
+                panel_no=3,
+                showlegend=False,
+                c='black'
+            )
+        else:
+            cptplot.add_trace(
+                x=self.data['u2 [MPa]'],
+                z=self.data['z [m]'],
+                name='u2',
+                panel_no=3,
+                showlegend=False,
+                c='black'
+            )
+        cptplot.set_xaxis_title(title=qc_axis_title, panel_no=1)
+        cptplot.set_xaxis_range(min_value=qc_range[0], max_value=qc_range[1], panel_no=1)
+        cptplot.set_xaxis_title(title=fs_axis_title, panel_no=2)
+        cptplot.set_xaxis_range(min_value=fs_range[0], max_value=fs_range[1], panel_no=2)
+        if plot_friction_ratio:
+            cptplot.set_xaxis_range(title=Rf_axis_title, panel_no=3)
+            cptplot.set_xaxis_range(min_value=rf_range[0], max_value=rf_range[1], panel_no=3)
+        else:
+            cptplot.set_xaxis_title(title=u2_axis_title, panel_no=3)
+            cptplot.set_xaxis_range(min_value=u2_range[0], max_value=u2_range[1], panel_no=3)
+        cptplot.set_zaxis_title(title=z_axis_title)
+        cptplot.set_zaxis_range(min_depth=z_range[1], max_depth=z_range[0])
+        cptplot.set_size(width=plot_width, height=plot_height)
+        
+        return cptplot
+        
     def plot_normalised_pcpt(
             self, qt_range=(0, 3), fr_range=(-1, 1),
             bq_range=(-0.6, 1.4), bq_tick=0.2, z_range=None, z_tick=2,

@@ -1869,14 +1869,18 @@ class PCPTProcessing(InsituTestProcessing):
             fig.show()
         return fig
 
-    def plot_robertson_chart(self, start_depth=None, end_depth=None,
+    def plot_robertson_chart(self, charttype='combined', start_depth=None, end_depth=None,
                              qt_range=(0, 3), fr_range=(-1, 1),
-            bq_range=(-0.6, 1.4), bq_tick=0.2,
-            plot_height=700, plot_width=1000, return_fig=False, plot_title=None,
+            bq_range=(-0.6, 1.4), bq_tick=0.2, layerchangetolerance=0,
+            plot_height=700, plot_width=1000, plot_width_single=600, return_fig=False, plot_title=None,
             backgroundimagedir="", latex_titles=True):
         """
         Plots the normalised PCPT points in the Robertson chart to distinguish the soil type. The display can be limited
         to a specific depth range (by specifying `start_depth` and `end_depth`. The color coding is based on the layer.
+
+        From v0.15.0, the Robertson chart can be split in two using the ``charttype`` argument. By default, both Qt-Fr and Qt-Bq plots are shown,
+        but the user can also choose to display only the Qt-Fr plot (``charttype='QtFr'``) or only the Qt-Bq plot (``charttype='QtBq'``).
+
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
         frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFr.png'))
@@ -1889,35 +1893,96 @@ class PCPTProcessing(InsituTestProcessing):
 
         selected_data = self.data[(self.data["z [m]"] >= start_depth) & (self.data["z [m]"] <= end_depth)]
 
-        fig = subplots.make_subplots(rows=1, cols=2, print_grid=False)
-        for i, layer in enumerate(selected_data["Layer no"].unique()):
-            color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
-            layer_data = selected_data[selected_data["Layer no"] == layer]
-            layer_min_depth = layer_data['z [m]'].min()
-            layer_max_depth = layer_data['z [m]'].max()
-            friction_trace = go.Scatter(
-                x=layer_data['Fr [%]'],
-                y=layer_data['Qt [-]'],
-                showlegend=True,  # Don't show the legend
-                mode='markers',
-                name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
-                text=layer_data["z [m]"],
-                marker=dict(size=10,  # Make markers transparent (last number is 0)
-                            opacity=0.5,  # Add some opacity for better display
-                            color=color,
-                            line=dict(width=1, color=color)))  # Add a line around the markers
-            fig.append_trace(friction_trace, 1, 1)
-            pressure_trace = go.Scatter(
-                x=layer_data['Bq [-]'],
-                y=layer_data['Qt [-]'],
-                showlegend=False,
-                mode='markers',
-                text=layer_data["z [m]"],
-                marker=dict(size=10,   # Make markers transparent (last number is 0)
-                            opacity=0.5,  # Add some opacity for better display
-                            color=color,
-                            line=dict(width=1, color=color)))  # Add a line around the markers
-            fig.append_trace(pressure_trace, 1, 2)
+        if charttype == 'combined':
+        
+            fig = subplots.make_subplots(rows=1, cols=2, print_grid=False)
+            for i, layer in enumerate(selected_data["Layer no"].unique()):
+                color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
+                layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
+                layer_min_depth = layer_data['z [m]'].min()
+                layer_max_depth = layer_data['z [m]'].max()
+                for j, row in layer_data.iterrows():
+                    _top_offset = row['z [m]'] - layer_min_depth
+                    _bottom_offset = layer_max_depth - row['z [m]']
+                    _min_offset = min(_top_offset, _bottom_offset)
+                    layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+                layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+                
+                friction_trace = go.Scatter(
+                    x=layer_data['Fr [%]'],
+                    y=layer_data['Qt [-]'],
+                    showlegend=True,  # Don't show the legend
+                    mode='markers',
+                    name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,  # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(friction_trace, 1, 1)
+                pressure_trace = go.Scatter(
+                    x=layer_data['Bq [-]'],
+                    y=layer_data['Qt [-]'],
+                    showlegend=False,
+                    mode='markers',
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,   # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(pressure_trace, 1, 2)
+
+        elif charttype == 'QtFr':
+            fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+            for i, layer in enumerate(selected_data["Layer no"].unique()):
+                color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
+                layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
+                layer_min_depth = layer_data['z [m]'].min()
+                layer_max_depth = layer_data['z [m]'].max()
+                for j, row in layer_data.iterrows():
+                    _top_offset = row['z [m]'] - layer_min_depth
+                    _bottom_offset = layer_max_depth - row['z [m]']
+                    _min_offset = min(_top_offset, _bottom_offset)
+                    layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+                layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+                friction_trace = go.Scatter(
+                    x=layer_data['Fr [%]'],
+                    y=layer_data['Qt [-]'],
+                    showlegend=True,  # Don't show the legend
+                    mode='markers',
+                    name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,  # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(friction_trace, 1, 1)
+        elif charttype == 'QtBq':
+            fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+            for i, layer in enumerate(selected_data["Layer no"].unique()):
+                color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
+                layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
+                layer_min_depth = layer_data['z [m]'].min()
+                layer_max_depth = layer_data['z [m]'].max()
+                for j, row in layer_data.iterrows():
+                    _top_offset = row['z [m]'] - layer_min_depth
+                    _bottom_offset = layer_max_depth - row['z [m]']
+                    _min_offset = min(_top_offset, _bottom_offset)
+                    layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+                layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+                pressure_trace = go.Scatter(
+                    x=layer_data['Bq [-]'],
+                    y=layer_data['Qt [-]'],
+                    showlegend=False,
+                    mode='markers',
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,   # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(pressure_trace, 1, 1)
+        else:
+            raise ValueError("Selected charttype is not recognised. Has to be 'combined', 'QtFr' or 'QtBq'.")
 
         if latex_titles:
             Fr_axis_title = r'$ F_r \ \text{[%]} $'
@@ -1928,44 +1993,97 @@ class PCPTProcessing(InsituTestProcessing):
             Qt_axis_title = 'Qt [-]'
             Bq_axis_title = 'Bq [-]'
 
-        fig['layout']['xaxis1'].update(title=Fr_axis_title, range=fr_range, type='log')
-        fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
-        fig['layout']['xaxis2'].update(title=Bq_axis_title, range=bq_range, dtick=bq_tick)
-        fig['layout']['yaxis2'].update(title=Qt_axis_title, range=qt_range, type='log')
-        fig['layout'].update(
-            height=plot_height,
-            width=plot_width,
-            title=plot_title,
-            hovermode='closest',
-            images=[
-                # Image for Qt-Fr relation
-                dict(
-                    source=frqt_img,
-                    xref='x',
-                    yref='y',
-                    x=-1,
-                    y=3,
-                    sizex=2,
-                    sizey=3,
-                    sizing='stretch',
-                    opacity=0.7,
-                    layer='below',
-                ),
-                # Image for Qt-Bq relation
-                dict(
-                    source=frbq_img,
-                    xref='x2',
-                    yref='y2',
-                    x=-0.6,
-                    y=3,
-                    sizex=2,
-                    sizey=3,
-                    sizing='stretch',
-                    opacity=0.7,
-                    layer='below',
-                )
-            ]
-        )
+        if charttype == 'combined':
+            fig['layout']['xaxis1'].update(title=Fr_axis_title, range=fr_range, type='log')
+            fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
+            fig['layout']['xaxis2'].update(title=Bq_axis_title, range=bq_range, dtick=bq_tick)
+            fig['layout']['yaxis2'].update(title=Qt_axis_title, range=qt_range, type='log')
+        elif charttype == 'QtFr':
+            fig['layout']['xaxis1'].update(title=Fr_axis_title, range=fr_range, type='log')
+            fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
+        elif charttype == 'QtBq':
+            fig['layout']['xaxis1'].update(title=Bq_axis_title, range=bq_range, dtick=bq_tick)
+            fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
+
+        if charttype == 'combined':
+            fig['layout'].update(
+                height=plot_height,
+                width=plot_width,
+                title=plot_title,
+                hovermode='closest',
+                images=[
+                    # Image for Qt-Fr relation
+                    dict(
+                        source=frqt_img,
+                        xref='x',
+                        yref='y',
+                        x=-1,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    ),
+                    # Image for Qt-Bq relation
+                    dict(
+                        source=frbq_img,
+                        xref='x2',
+                        yref='y2',
+                        x=-0.6,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    )
+                ]
+            )
+        elif charttype == 'QtFr':
+            fig['layout'].update(
+                height=plot_height,
+                width=plot_width_single,
+                title=plot_title,
+                hovermode='closest',
+                images=[
+                    # Image for Qt-Fr relation
+                    dict(
+                        source=frqt_img,
+                        xref='x',
+                        yref='y',
+                        x=-1,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    ),
+                ]
+            )
+        elif charttype == 'QtBq':
+            fig['layout'].update(
+                height=plot_height,
+                width=plot_width_single,
+                title=plot_title,
+                hovermode='closest',
+                images=[
+                    # Image for Qt-Bq relation
+                    dict(
+                        source=frbq_img,
+                        xref='x1',
+                        yref='y1',
+                        x=-0.6,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    ),
+                ]
+            )
         if return_fig:
             return fig
         else:

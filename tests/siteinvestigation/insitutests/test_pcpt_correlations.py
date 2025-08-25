@@ -467,3 +467,10 @@ class Test_dissipation_test_teh(unittest.TestCase):
                 result['delta u / delta u_i [-]']),
                 0.0, 2)
         
+class Test_clippingdepths_qc1N_tianlehane(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.clippingdepths_qc1N_tianlehane(
+            qc1NW=50, qc1NS=350, cone_diameter=0.016)
+        self.assertAlmostEqual(result['z clipping weak [m]'], -0.13, 3)
+        self.assertAlmostEqual(result['z clipping strong [m]'], 0.162, 3)

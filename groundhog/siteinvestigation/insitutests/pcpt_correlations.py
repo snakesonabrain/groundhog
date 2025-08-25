@@ -8,6 +8,7 @@ __author__ = "Bruno Stuyts"
 # 3rd party packages
 import numpy as np
 from scipy.optimize import brentq
+from scipy.interpolate import interp1d
 import warnings
 
 # Project imports
@@ -3370,6 +3371,119 @@ def dissipation_test_teh(
         'T* [-]': _Tstar,
         'Ir [-]': _Ir,
         'Cone radius [m]': _a
+    }
+
+
+CLIPPINGDEPTHS_QC1N_TIANLEHANE = {
+    'qc1NW': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'qc1NS': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'cone_diameter': {'type': 'float', 'min_value': 0.001, 'max_value': 0.1},
+    'tolerance': {'type': 'float', 'min_value': 0.001, 'max_value': 0.999}
+}
+
+CLIPPINGDEPTHS_QC1N_TIANLEHANE_ERRORRETURN = {
+    'r': np.nan,
+    'eta': np.nan,
+    'qc1N0': np.nan,
+    'as': np.nan,
+    'aw': np.nan,
+    'z*W': np.nan,
+    'z*S': np.nan,
+    'qc1N weak': np.nan,
+    'qc1N strong': np.nan,
+    'qc1N weak function': None,
+    'qc1N strong function': None,
+    'z* clipping weak': np.nan,
+    'z* clipping strong': np.nan,
+    'z clipping weak [m]': np.nan,
+    'z clipping strong [m]': np.nan,
+}
+
+@Validator(CLIPPINGDEPTHS_QC1N_TIANLEHANE, CLIPPINGDEPTHS_QC1N_TIANLEHANE_ERRORRETURN)
+def clippingdepths_qc1N_tianlehane(qc1NW, qc1NS, cone_diameter=0.03568, tolerance=0.05):
+    """
+    Calculates the depths where the normalised cone resistance reaches steady values in weak over strong layer systems based on the equations proposed by Tian and Lehane (2025).
+    These depths can be used to filter CPT data which belongs to a layer transition.
+    The equations were developed based on centrifuge and pressure chamber testing with various two-layer systems (denser sand over looser sand, looser sand over denser sand, sand over clay).
+    Note that the equations provided by Tian and Lehane only work for weaker layers (lower normalised cone resistance) overlying stronger layers (higher normalised cone resistance).
+    
+    :param qc1NW: Steady-state normalised cone resistance in the weaker layer (:math:`q_{c1N,W}`) [-] - Suggested range: 0.0 <= qc1NW <= 1000.0
+    :param qc1NS: Steady-state normalised cone resistance in the stronger layer (:math:`q_{c1N,S}`) [-] - Suggested range: 0.0 <= qc1NS <= 1000.0
+    :param cone_diameter: Cone diameter (:math:`d_c`) [m] - Suggested range: 0.001 <= cone_diameter <= 1000.0 (optional, default=0.03568 for a 10cm2 cone)
+    :param tolerance: Defines the multiplier to detect which data needs to be clipped [-] - Suggested range: 0.001 <= tolerance <= 0.999 (optional, default=0.05)
+
+    .. math::
+        q_{c1N}=q_{c1N,0} - \\tanh \\left[ a_w z^* \\right] \\left( q_{c1N,0} - q_{c1N,W} \\right) \\quad \\text{in weak layer} \\\\
+        q_{c1N}=q_{c1N,0} + \\tanh \\left[ a_s z^* \\right] \\left( q_{c1N,S} - q_{c1N,0} \\right) \\quad \\text{in strong layer} \\\\
+        a_s = 0.7 r^2 + 0.15 \\\\
+        a_w = a_s + 0.4r < 1 \\\\
+        r = \\frac{q_{c1N,W}}{q_{c1N,S}} \\\\
+        z^* = \\frac{z-H_t}{d_c} \\\\
+        q_{c1N,0} = \\eta q_{c1N,S} \\\\
+        \\eta = 0.96 r^{0.64} \\quad 0<r<0.95
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'r': Ratio of weak to strong normalised cone resistance (:math:`r`) [-]
+        - 'eta': Multiplier on the normalised cone resistance of the strongest layer defining the normalised cone resistance at the interface (:math:`\\eta`) [-]
+        - 'qc1N0': Normalised cone tip resistance at the interface (:math:`q_{c1N0}`) [-]
+        - 'as': Fitting parameter for strong layer (:math:`a_s`) [-]
+        - 'aw': Fitting parameter for weak layer (:math:`a_w`) [-]
+        - 'z*W': Array of normalised depths in the weak layer (:math:`z^*_W`) [-]
+        - 'z*S': Array of normalised depths in the strong layer (:math:`z^*_S`) [-]
+        - 'qc1N weak': Array of normalised cone resistances in the weak layer (:math:`q_{c1N,W}`) [-]
+        - 'qc1N strong': Array of normalised cone resistances in the strong layer (:math:`q_{c1N,S}`) [-]
+        - 'qc1N weak function': Interpolation function providing normalised depth as a function of normalised cone resistance for the weak layer
+        - 'qc1N strong function': Interpolation function providing normalised depth as a function of normalised cone resistance for the strong layer
+        - 'z* clipping weak': Normalised offset from the interface in the weak layer below which CPT data needs to be clipped because it belongs to the layer transition [-]
+        - 'z* clipping strong': Normalised offset from the interface in the weak layer above which CPT data needs to be clipped because it belongs to the layer transition [-]
+        - 'z clipping weak': Absolute offset from the interface in the weak layer below which CPT data needs to be clipped because it belongs to the layer transition [m]
+        - 'z clipping strong': Absolute offset from the interface in the weak layer above which CPT data needs to be clipped because it belongs to the layer transition [m]
+    
+    Reference - Tian, Y. and Lehane, B. (2025). The influence of soil layering and penetrometer diameter on penetration resistance. Canadian Geotechnical Journal, DOI: 10.1139/cgj-2024-0491
+
+    """
+    _r = qc1NW / qc1NS
+    if _r > 0.95 or _r < 0:
+        raise ValueError("r should be between 0 and 0.95. Check qc1N contrast. _r = %.3f" % _r)
+    _eta = 0.96 * (_r ** 0.64)
+    _qc1N0 = _eta * qc1NS
+    
+    _as = 0.7 * (_r ** 2) + 0.15
+    _aw = _as + 0.4 * _r
+    if _aw > 1:
+        raise ValueError("aw should be smaller than 1")
+    
+    _zstar_weak = np.linspace(-20, 0, 101)
+    _zstar_strong = np.linspace(0, 20, 101)
+    _qc1N_weak = _qc1N0 + np.tanh(_aw * _zstar_weak) * (_qc1N0 - qc1NW)
+    _qc1N_strong = _qc1N0 + np.tanh(_as * _zstar_strong) * (qc1NS - _qc1N0)
+    
+    _qc1Nweak_func = interp1d(_qc1N_weak, _zstar_weak)
+    _qc1Nstrong_func = interp1d(_qc1N_strong, _zstar_strong)
+        
+    _zstar_clipping_weak = _qc1Nweak_func([(1 + tolerance) * qc1NW,])[0]
+    _zstar_clipping_strong = _qc1Nstrong_func([(1 - tolerance) * qc1NS,])[0]
+    
+    _z_clipping_weak = _zstar_clipping_weak * cone_diameter
+    _z_clipping_strong = _zstar_clipping_strong * cone_diameter
+
+    return {
+        'r': _r,
+        'eta': _eta,
+        'qc1N0': _qc1N0,
+        'as': _as,
+        'aw': _aw,
+        'z*W': _zstar_weak,
+        'z*S': _zstar_strong,
+        'qc1N weak': _qc1N_weak,
+        'qc1N strong': _qc1N_strong,
+        'qc1N weak function': _qc1Nweak_func,
+        'qc1N strong function': _qc1Nstrong_func,
+        'z* clipping weak': _zstar_clipping_weak,
+        'z* clipping strong': _zstar_clipping_strong,
+        'z clipping weak [m]': _z_clipping_weak,
+        'z clipping strong [m]': _z_clipping_strong,
     }
 
 CORRELATIONS = {

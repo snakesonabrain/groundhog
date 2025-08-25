@@ -3,6 +3,8 @@ v0.15.0, TBD
     - Added plotting for LogPlot and LogPlotMatplotlib with CPT data
     - Added functionality for quickly selecting layering with a dummy soil profile. The base case is selection from CPT data.
     - Added functionality for creating a LogPlotMatplotlib with two SoilProfile objects next to it.
+    - Added functionality for clipping points close to layer boundaries in Robertsons chart
+    - Added function for calculating clipping depths at layer transitions
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

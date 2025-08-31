@@ -5,6 +5,9 @@ v0.15.0, TBD
     - Added functionality for creating a LogPlotMatplotlib with two SoilProfile objects next to it.
     - Added functionality for clipping points close to layer boundaries in Robertsons chart
     - Added function for calculating clipping depths at layer transitions
+    - Added Ic and Qtn calculation to CPT normalisation
+    - Added the Schneider et al (2008) chart for plotting CPT data
+    - Started added functionality for pipeline and cable penetration
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

@@ -38,6 +38,12 @@ PCPT_NORMALISATIONS_ERRORRETURN = {
     "Qt [-]": np.nan,
     "Fr [-]": np.nan,
     "qnet [MPa]": np.nan,
+    "exponent_zhang [-]": np.nan,
+    "Qtn [-]": np.nan,
+    "Fr [%]": np.nan,
+    "Ic [-]": np.nan,
+    "Ic class number [-]": np.nan,
+    "Ic class": None,
 }
 
 
@@ -52,6 +58,14 @@ def pcpt_normalisations(
     cone_area_ratio,
     start_depth=0.0,
     unitweight_water=10.25,
+    atmospheric_pressure=100,
+    ic_min=1.0,
+    ic_max=4.0,
+    zhang_multiplier_1=0.381,
+    zhang_multiplier_2=0.05,
+    zhang_subtraction=0.15,
+    robertsonwride_coefficient1=3.47,
+    robertsonwride_coefficient2=1.22,
     **kwargs
 ):
     """
@@ -74,6 +88,14 @@ def pcpt_normalisations(
     :param cone_area_ratio: Ratio between the cone rod area and the maximum cone area (:math:`a`) [:math:`-`] - Suggested range: 0.0 <= cone_area_ratio <= 1.0
     :param start_depth: Start depth of the test, specify this for a downhole test. Leave at zero for a test starting from surface (:math:`d`) [:math:`m`] - Suggested range: start_depth >= 0.0 (optional, default= 0.0)
     :param unitweight_water: Unit weight of water, default is for seawater (:math:`\\gamma_w`) [:math:`kN/m3`] - Suggested range: 9.0 <= unitweight_water <= 11.0 (optional, default= 10.25)
+    :param atmospheric_pressure: Atmospheric pressure (used for normalisation) (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param ic_min: Minimum value for soil behaviour type index used in the optimisation routine (:math:`I_{c,min}`) [:math:`-`] (optional, default= 1.0)
+    :param ic_max: Maximum value for soil behaviour type index used in the optimisation routine (:math:`I_{c,max}`) [:math:`-`] (optional, default= 4.0)
+    :param zhang_multiplier_1: First multiplier in the equation for exponent n (:math:``) [:math:`-`] (optional, default= 0.381)
+    :param zhang_multiplier_2: Second multiplier in the equation for exponent n (:math:``) [:math:`-`] (optional, default= 0.05)
+    :param zhang_subtraction: Term subtracted in the equation for exponent n (:math:``) [:math:`-`] (optional, default= 0.15)
+    :param robertsonwride_coefficient1: First coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 3.47)
+    :param robertsonwride_coefficient2: Second coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 1.22)
 
     .. math::
         q_c = q_c^* + d \\cdot a \\cdot \\gamma_w
@@ -90,6 +112,10 @@ def pcpt_normalisations(
 
         Q_t = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
 
+        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^n
+        
+        n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1
+
         F_r = \\frac{f_s}{q_t - \\sigma_{vo}}
 
         q_{net} = q_t - \\sigma_{vo}
@@ -105,6 +131,13 @@ def pcpt_normalisations(
         - 'Qt [-]': Normalised cone resistance (:math:`Q_t`)  [:math:`-`]
         - 'Fr [-]': Normalised friction ratio (:math:`F_r`)  [:math:`-`]
         - 'qnet [MPa]': Net cone resistance (:math:`q_{net}`)  [:math:`MPa`]
+        - 'exponent_zhang [-]': Exponent n according to Zhang et al (:math:`n`)  [:math:`-`]
+        - 'Qtn [-]': Normalised cone resistance (:math:`Q_{tn}`)  [:math:`-`]
+        - 'Fr [%]': Normalised friction ratio (:math:`F_r`)  [:math:`%`]
+        - 'Ic [-]': Soil behaviour type index (:math:`I_c`)  [:math:`-`]
+        - 'Ic class number [-]': Soil behaviour type class number according to the Robertson chart
+        - 'Ic class': Soil behaviour type class description according to the Robertson chart
+
 
     .. figure:: images/pcpt_normalisations_1.png
         :figwidth: 500.0
@@ -124,8 +157,57 @@ def pcpt_normalisations(
     _Rf = 100.0 * measured_fs / _qt
     _Bq = _Delta_u2 / (_qt - 0.001 * sigma_vo_tot)
     _Qt = (_qt - 0.001 * sigma_vo_tot) / (0.001 * sigma_vo_eff)
-    _Fr = measured_fs / (_qt - 0.001 * sigma_vo_tot)
     _qnet = _qt - 0.001 * sigma_vo_tot
+
+    def Qtn(qt, sigma_vo, sigma_vo_eff, n, pa=0.001 * atmospheric_pressure):
+        return ((qt - 0.001 * sigma_vo) / pa) * ((pa / (0.001 * sigma_vo_eff)) ** n)
+
+    def Fr(fs, qt, sigma_vo):
+        return 100 * fs / (qt - 0.001 * sigma_vo)
+
+    def exponent_zhang(ic, sigma_vo_eff, pa=atmospheric_pressure):
+        return min(
+            1,
+            zhang_multiplier_1 * ic
+            + zhang_multiplier_2 * (sigma_vo_eff / pa)
+            - zhang_subtraction,
+        )
+
+    def soilbehaviourtypeindex(qt, fr):
+        return np.sqrt(
+            (robertsonwride_coefficient1 - np.log10(qt)) ** 2
+            + (np.log10(fr) + robertsonwride_coefficient2) ** 2
+        )
+
+    def rootfunction(ic, qt, fs, sigma_vo, sigma_vo_eff):
+        _fr = Fr(fs, qt, sigma_vo)
+        _n = exponent_zhang(ic, sigma_vo_eff)
+        _qtn = Qtn(qt, sigma_vo, sigma_vo_eff, _n)
+        return ic - soilbehaviourtypeindex(_qtn, _fr)
+
+    _Ic = brentq(rootfunction, ic_min, ic_max, args=(_qt, measured_fs, sigma_vo_tot, sigma_vo_eff))
+    _exponent_zhang = exponent_zhang(_Ic, sigma_vo_eff)
+    _Qtn = Qtn(_qt, sigma_vo_tot, sigma_vo_eff, _exponent_zhang)
+    _Fr = Fr(measured_fs, _qt, sigma_vo_tot)
+
+    if _Ic < 1.31:
+        _Ic_class_number = 7
+        _Ic_class = "Gravelly sand to sand"
+    elif 1.31 <= _Ic < 2.05:
+        _Ic_class_number = 6
+        _Ic_class = "Sands: clean sands to silty sands"
+    elif 2.05 <= _Ic < 2.6:
+        _Ic_class_number = 5
+        _Ic_class = "Sand mixtures: silty sand to sand silty"
+    elif 2.6 <= _Ic < 2.95:
+        _Ic_class_number = 4
+        _Ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif 2.95 <= _Ic < 3.6:
+        _Ic_class_number = 3
+        _Ic_class = "Clays: clay to silty clay"
+    else:
+        _Ic_class_number = 2
+        _Ic_class = "Organic soils-peats"
 
     return {
         "qt [MPa]": _qt,
@@ -137,6 +219,12 @@ def pcpt_normalisations(
         "Qt [-]": _Qt,
         "Fr [-]": _Fr,
         "qnet [MPa]": _qnet,
+        "exponent_zhang [-]": _exponent_zhang,
+        "Qtn [-]": _Qtn,
+        "Fr [%]": _Fr,
+        "Ic [-]": _Ic,
+        "Ic class number [-]": _Ic_class_number,
+        "Ic class": _Ic_class,
     }
 
 

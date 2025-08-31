@@ -1110,7 +1110,7 @@ class PCPTProcessing(InsituTestProcessing):
         else:
             warnings.warn("Downhole corrections have already been applied")
 
-    def normalise_pcpt(self, qc_for_rf=False):
+    def normalise_pcpt(self, qc_for_rf=False, calculate_ic=True, **kwargs):
         """
         Carries out the necessary normalisation and correction on PCPT data to allow calculation of derived parameters and soil type classification.
 
@@ -1123,6 +1123,8 @@ class PCPTProcessing(InsituTestProcessing):
         Note that the absence of pore water pressure measurements will lead to NaN values. Reasoning can be used (e.g. presence of rapidly draining layers) to edit the pore pressure data before running this method.
 
         The total sleeve friction is also calculated. If the cross-sectional area of the friction sleeve is equal at the top and bottom of the sleeve, a correction is not required. This is the default behaviour (cross-sectional areas equal to NaN) but the areas can be entered to calculate the total sleeve friction.
+
+        Soil behaviour type index :math:`I_c` and the corrected normalised cone resistance :math:`Q_{tn}` are calculated if ``calculate_ic`` is set to ``True``. For quicker calculation, set this boolean to False.
 
         .. math::
             q_c = q_c^* + d \\cdot a \\cdot \\gamma_w
@@ -1139,6 +1141,10 @@ class PCPTProcessing(InsituTestProcessing):
 
             Q_t = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
 
+            Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^n
+        
+            n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1
+
             F_r = \\frac{f_s}{q_t - \\sigma_{vo}}
 
             q_{net} = q_t - \\sigma_{vo}
@@ -1150,28 +1156,56 @@ class PCPTProcessing(InsituTestProcessing):
         :return: Supplements the PCPT data (`.data`) with the normalised properties (column keys 'qt [MPa]', 'Delta u2 [MPa]', 'Rf [%]', 'Bq [-]', 'Qt [-]', 'Fr [%]', 'qnet [MPa]', 'ft [MPa]'
         """
         try:
-            self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
-            self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Hydrostatic pressure [kPa]"]
-            if qc_for_rf:
-                self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qc [MPa]']
-            else:
-                self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qt [MPa]']
-            self.data['Bq [-]'] = self.data['Delta u2 [MPa]'] / (
-                    self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
-            self.data['Qt [-]'] = (self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]) / (
-                    0.001 * self.data["Vertical effective stress [kPa]"])
-            self.data['Fr [%]'] = 100 * self.data['fs [MPa]'] / (
-                    self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
-            self.data['qnet [MPa]'] = self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]
-            for i, row in self.data.iterrows():
-                try:
-                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
-                        (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+            if calculate_ic:
+                for i, row in self.data.iterrows():
+                    _result = pcpt_normalisations(
+                        measured_qc=row['qc [MPa]'],
+                        measured_fs=row['fs [MPa]'],
+                        measured_u2=row['u2 [MPa]'],
+                        sigma_vo_tot=row['Vertical total stress [kPa]'],
+                        sigma_vo_eff=row['Vertical effective stress [kPa]'],
+                        depth=row['z [m]'],
+                        cone_area_ratio=row['area ratio [-]'],
+                        **kwargs
                     )
-                    if np.isnan(self.data.loc[i, "ft [MPa]"]):
+                    
+                    for _key in ['qt [MPa]', 'Delta u2 [MPa]', 'Rf [pct]', 'Bq [-]',
+                                 'Qt [-]', 'Fr [-]', 'qnet [MPa]',
+                                 'Qtn [-]', 'Fr [%]', 'Ic [-]', 'Ic class number [-]', 
+                                 'Ic class']:
+                        self.data.loc[i, _key] = _result[_key]
+                
+                    try:
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
+                            (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+                        )
+                        if np.isnan(self.data.loc[i, "ft [MPa]"]):
+                            self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+                    except:
                         self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
-                except:
-                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+            else:
+                self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
+                self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Hydrostatic pressure [kPa]"]
+                if qc_for_rf:
+                    self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qc [MPa]']
+                else:
+                    self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qt [MPa]']
+                self.data['Bq [-]'] = self.data['Delta u2 [MPa]'] / (
+                        self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
+                self.data['Qt [-]'] = (self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]) / (
+                        0.001 * self.data["Vertical effective stress [kPa]"])
+                self.data['Fr [%]'] = 100 * self.data['fs [MPa]'] / (
+                        self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
+                self.data['qnet [MPa]'] = self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]
+                for i, row in self.data.iterrows():
+                    try:
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
+                            (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+                        )
+                        if np.isnan(self.data.loc[i, "ft [MPa]"]):
+                            self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+                    except:
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
 
         except Exception as err:
             raise ValueError("Error during calculation of normalised properties."
@@ -1870,7 +1904,7 @@ class PCPTProcessing(InsituTestProcessing):
         return fig
 
     def plot_robertson_chart(self, charttype='combined', start_depth=None, end_depth=None,
-                             qt_range=(0, 3), fr_range=(-1, 1),
+                             qt_range=(0, 3), fr_range=(-1, 1), modified=False,
             bq_range=(-0.6, 1.4), bq_tick=0.2, layerchangetolerance=0,
             plot_height=700, plot_width=1000, plot_width_single=600, return_fig=False, plot_title=None,
             backgroundimagedir="", latex_titles=True):
@@ -1881,9 +1915,14 @@ class PCPTProcessing(InsituTestProcessing):
         From v0.15.0, the Robertson chart can be split in two using the ``charttype`` argument. By default, both Qt-Fr and Qt-Bq plots are shown,
         but the user can also choose to display only the Qt-Fr plot (``charttype='QtFr'``) or only the Qt-Bq plot (``charttype='QtBq'``).
 
+        The modified Robertson chart can also be shown by setting the boolean ``modified`` to ``True``.
+
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
-        frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFr.png'))
+        if modified:
+            frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFrmodified.png'))
+        else:
+            frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFr.png'))
         frbq_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonBq.png'))
 
         if start_depth is None:
@@ -1910,7 +1949,7 @@ class PCPTProcessing(InsituTestProcessing):
                 
                 friction_trace = go.Scatter(
                     x=layer_data['Fr [%]'],
-                    y=layer_data['Qt [-]'],
+                    y=layer_data['Qtn [-]'],
                     showlegend=True,  # Don't show the legend
                     mode='markers',
                     name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
@@ -1922,7 +1961,7 @@ class PCPTProcessing(InsituTestProcessing):
                 fig.append_trace(friction_trace, 1, 1)
                 pressure_trace = go.Scatter(
                     x=layer_data['Bq [-]'],
-                    y=layer_data['Qt [-]'],
+                    y=layer_data['Qtn [-]'],
                     showlegend=False,
                     mode='markers',
                     text=layer_data["z [m]"],
@@ -1947,7 +1986,7 @@ class PCPTProcessing(InsituTestProcessing):
                 layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
                 friction_trace = go.Scatter(
                     x=layer_data['Fr [%]'],
-                    y=layer_data['Qt [-]'],
+                    y=layer_data['Qtn [-]'],
                     showlegend=True,  # Don't show the legend
                     mode='markers',
                     name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
@@ -1972,7 +2011,7 @@ class PCPTProcessing(InsituTestProcessing):
                 layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
                 pressure_trace = go.Scatter(
                     x=layer_data['Bq [-]'],
-                    y=layer_data['Qt [-]'],
+                    y=layer_data['Qtn [-]'],
                     showlegend=False,
                     mode='markers',
                     text=layer_data["z [m]"],
@@ -1986,11 +2025,11 @@ class PCPTProcessing(InsituTestProcessing):
 
         if latex_titles:
             Fr_axis_title = r'$ F_r \ \text{[%]} $'
-            Qt_axis_title = r'$ Q_t \ \text{[-]} $'
+            Qt_axis_title = r'$ Q_{tn} \ \text{[-]} $'
             Bq_axis_title = r'$ B_q \ \text{[-]} $'
         else:
             Fr_axis_title = 'Fr [%]'
-            Qt_axis_title = 'Qt [-]'
+            Qt_axis_title = 'Qtn [-]'
             Bq_axis_title = 'Bq [-]'
 
         if charttype == 'combined':
@@ -2084,6 +2123,93 @@ class PCPTProcessing(InsituTestProcessing):
                     ),
                 ]
             )
+        if return_fig:
+            return fig
+        else:
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+
+    def plot_schneider_chart(self, start_depth=None, end_depth=None,
+            layerchangetolerance=0,
+            plot_height=700, plot_width=600, return_fig=False, plot_title=None,
+            latex_titles=True):
+        """
+        Plots the normalised PCPT points in the Schneider (2008) chart to distinguish the soil type. The display can be limited
+        to a specific depth range (by specifying `start_depth` and `end_depth`. The color coding is based on the layer.
+
+        The Schneider chart is especially useful to differentiate between different types of contractive fine-grained soil.
+
+        Reference - Schneider, J.A., Randolph, M.F., Mayne, P.W. & Ramsey, N.R. 2008. Analysis of factors influencing soil classification using normalized piezocone tip resistance and pore pressure parameters. Journal Geotechnical and Geoenvironmental Engrg. 134 (11): 1569-1586. 
+
+        :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
+        """
+        img = PIL.Image.open(os.path.join(IMG_DIR, 'schneiderchart.png'))
+
+        if start_depth is None:
+            start_depth = self.data["z [m]"].min()
+        if end_depth is None:
+            end_depth = self.data["z [m]"].max()
+
+        selected_data = self.data[(self.data["z [m]"] >= start_depth) & (self.data["z [m]"] <= end_depth)]
+
+        
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+        for i, layer in enumerate(selected_data["Layer no"].unique()):
+            color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
+            layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
+            layer_min_depth = layer_data['z [m]'].min()
+            layer_max_depth = layer_data['z [m]'].max()
+            for j, row in layer_data.iterrows():
+                _top_offset = row['z [m]'] - layer_min_depth
+                _bottom_offset = layer_max_depth - row['z [m]']
+                _min_offset = min(_top_offset, _bottom_offset)
+                layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+            layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+            _trace = go.Scatter(
+                x=1000 * layer_data['Delta u2 [MPa]'] / layer_data['Vertical effective stress [kPa]'],
+                y=layer_data['Qt [-]'],
+                showlegend=True,  # Don't show the legend
+                mode='markers',
+                name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
+                text=layer_data["z [m]"],
+                marker=dict(size=10,  # Make markers transparent (last number is 0)
+                            opacity=0.5,  # Add some opacity for better display
+                            color=color,
+                            line=dict(width=1, color=color)))  # Add a line around the markers
+            fig.append_trace(_trace, 1, 1)
+        
+        if latex_titles:
+            X_axis_title = r'$ \Delta u / \sigma_{v0}^{\prime} \ \text{[-]} $'
+            Qt_axis_title = r'$ Q_{tn} \ \text{[-]} $'
+        else:
+            X_axis_title = 'du/sigma_vo_eff [-]'
+            Qt_axis_title = 'Qt [-]'
+
+        fig['layout']['xaxis1'].update(title=X_axis_title, range=(-2, 10))
+        fig['layout']['yaxis1'].update(title=Qt_axis_title, range=(0, 3), type='log')
+    
+        
+        fig['layout'].update(
+            height=plot_height,
+            width=plot_width,
+            title=plot_title,
+            hovermode='closest',
+            images=[
+                # Image for Qt-Fr relation
+                dict(
+                    source=img,
+                    xref='x',
+                    yref='y',
+                    x=-2,
+                    y=3,
+                    sizex=12,
+                    sizey=3,
+                    sizing='stretch',
+                    opacity=0.7,
+                    layer='below',
+                ),
+            ]
+        )
+        
         if return_fig:
             return fig
         else:

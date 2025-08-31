@@ -45,3 +45,12 @@ class Test_DNV_Undrained_Method1(unittest.TestCase):
             gamma_eff=4,
             penetration=0.5)
         self.assertAlmostEqual(result['Qv0 [kN/m]'], 28.17, 2)
+
+    def test_penetration_undrained_method2(self):
+        result = pen.embedment_undrained_method2(
+            diameter=1,
+            penetration=0.5,
+            undrained_shear_strength=2,
+            gamma_eff=3
+        )
+        self.assertAlmostEqual(result['Qv [kN/m]'], 11.86, 2)

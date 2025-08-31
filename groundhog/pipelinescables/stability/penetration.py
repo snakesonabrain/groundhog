@@ -264,3 +264,67 @@ def embedment_undrained_method1(
         'Qv0 [kN/m]': _Qv0,
         'Qv [kN/m]': _Qv,
     }
+
+
+EMBEDMENT_UNDRAINED_METHOD2 = {
+    'diameter': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'penetration': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'undrained_shear_strength': {'type': 'float', 'min_value': 0.0, 'max_value': 50.0},
+    'gamma_eff': {'type': 'float', 'min_value': 2.0, 'max_value': 12.0},
+    'calibration_factor_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_4': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor_5': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+EMBEDMENT_UNDRAINED_METHOD2_ERRORRETURN = {
+    'Qv [kN/m]': np.nan,
+}
+
+@Validator(EMBEDMENT_UNDRAINED_METHOD2, EMBEDMENT_UNDRAINED_METHOD2_ERRORRETURN)
+def embedment_undrained_method2(
+    diameter,penetration,undrained_shear_strength,gamma_eff,
+    calibration_factor_1=6.0,calibration_factor_2=0.25,calibration_factor_3=3.4,calibration_factor_4=0.5,calibration_factor_5=1.5, **kwargs):
+
+    """
+    Calculates the pipeline penetration for deepwater soft clay. The formulation contains a component for soil resistance to pipeline penetration, the second term accounts for buoyancy effects with enhancement to fit the data.
+
+    For very high embedment (more than half of the diameter), the method may underestimate the penetration resistance.
+
+    Note that the undrained shear strength at the pipeline invert level is used, so this might have to be calculated or derived from e.g. T-bar tests.
+
+    This formula calculates the penetration resistance for a specified depth. For determining the pipeline penetration, a root finding routine needs to be applied to find the penetration where the penetration resistance is in equilbrium with the submerged weight of the pipeline.
+    
+    :param diameter: Pipeliine diameter (:math:`D`) [m] - Suggested range: 0.0 <= diameter <= 2.0
+    :param penetration: Pipeline penetration (:math:`z`) [m] - Suggested range: 0.0 <= penetration <= 2.0
+    :param undrained_shear_strength: Undrained shear strength at the pipeline invert level (:math:`s_u`) [kPa] - Suggested range: 0.0 <= undrained_shear_strength <= 50.0
+    :param gamma_eff: Submerged unit weight of the soil (:math:`\\gamma^{\\prime}`) [kN/m3] - Suggested range: 2.0 <= gamma_eff <= 12.0
+    :param calibration_factor_1: First calibration factor (:math:`-`) [-] (optional, default= 6.0)
+    :param calibration_factor_2: Second calibration factor (:math:`-`) [-] (optional, default= 0.25)
+    :param calibration_factor_3: Third calibration factor (:math:`-`) [-] (optional, default= 3.4)
+    :param calibration_factor_4: Fourth calibration factor (:math:`-`) [-] (optional, default= 0.5)
+    :param calibration_factor_5: Calibration factor on then buoyancy term (:math:`-`) [-] (optional, default= 1.5)
+    
+    .. math::
+        Q_v = \\left[ \\min \\left( 6 \\cdot \\left( \\frac{z}{D} \\right)^{0.25}; 3.4 \\cdot \\left( \\frac{10 \\cdot z}{D} \\right)^{0.5} \\right) + 1.5 \\cdot \\frac{\\gamma^{\\prime} \\cdot A_{bm}}{D \\cdot s_u} \\right] \\cdot D \\cdot s_u
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Qv [kN/m]': Pipeline penetration resistance (:math:`Q_v`)  [kN/m]
+    
+    Reference - DNV-RP-F114
+
+    """
+    _Abm = penetratedarea(diameter=diameter, penetration=penetration)["Abm [m2]"]
+    _Qv = diameter * undrained_shear_strength * (
+        min(
+            calibration_factor_1 * (penetration / diameter) ** calibration_factor_2,
+            calibration_factor_3 * (10 * penetration / diameter) ** calibration_factor_4
+        ) + \
+        calibration_factor_5 * ((gamma_eff * _Abm) / (diameter * undrained_shear_strength))
+    )
+
+    return {
+        'Qv [kN/m]': _Qv,
+    }

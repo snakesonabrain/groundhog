@@ -10,6 +10,8 @@ import numpy as np
 
 # Project imports
 from groundhog.general.validation import Validator
+from groundhog.shallowfoundations.capacity import nq_frictionangle_sand, ngamma_frictionangle_vesic, \
+        ngamma_frictionangle_meyerhof, ngamma_frictionangle_davisbooker
 
 """
 Implements pipeline penetration formulae
@@ -326,5 +328,91 @@ def embedment_undrained_method2(
     )
 
     return {
+        'Qv [kN/m]': _Qv,
+    }
+
+
+
+EMBEDMENT_DRAINED = {
+    'penetration': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'gamma_eff': {'type': 'float', 'min_value': 3.0, 'max_value': 12.0},
+    'phi_eff': {'type': 'float', 'min_value': 15.0, 'max_value': 50.0},
+    'diameter': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'Ngamma_theory': {'type': 'string', 'options': ('Vesic', 'Meyerhof', 'DavisBooker'), 'regex': None},
+}
+
+EMBEDMENT_DRAINED_ERRORRETURN = {
+    'Nq [-]': np.nan,
+    'Ngamma [-]': np.nan,
+    'B [m]': np.nan,
+    'z0 [m]': np.nan,
+    'dq [-]': np.nan,
+    'Qv [kN/m]': np.nan,
+}
+
+@Validator(EMBEDMENT_DRAINED, EMBEDMENT_DRAINED_ERRORRETURN)
+def embedment_drained(
+    penetration,gamma_eff,phi_eff,diameter, roughness_factor=0.67,
+    Ngamma_theory='Vesic', **kwargs):
+
+    """
+    Calculates pipeline embedment in drained conditions using bearing capacity theory. The vertical force required to penetrate the pipe to a given embedment is calculated.
+
+    Note that there is no embedment effect as long as the pipeline is within the active Rankine zone.
+
+    Bearing capacity factors are taken in accordance with shallow foundation theory.
+    
+    :param penetration: Pipeline or cable penetration below virgin seabed (:math:`z`) [m] - Suggested range: 0.0 <= penetration <= 2.0
+    :param gamma_eff: Submerged unit weight of the soil (:math:`\\gamma^{\\prime}`) [kN/m3] - Suggested range: 3.0 <= gamma_eff <= 12.0
+    :param phi_eff: Effective friction angle of the soil (:math:`\\varphi^{\\prime}`) [deg] - Suggested range: 15.0 <= phi_eff <= 50.0
+    :param roughness_factor: Pipeline roughness factor where 0 is fully smooth and 1 is fully rough, used when theory for :math:`N_{\\gamma}` is set to ``'DavisBooker'`` (:math:`R_{inter}`) [:math:`-`] - Suggested range: 0.0 <= roughness_factor <= 1.0
+    :param diameter: Pipeline or cable diameter (:math:`D`) [m] - Suggested range: 0.0 <= diameter <= 2.0
+    :param Ngamma_theory: Select the theoretical formulate of bearing capacity factor Ngamma (optional, default= 'Vesic') - Options: ('Vesic', 'Meyerhof', 'DavisBooker')
+    
+    .. math::
+        Q_v = 0.5 \\cdot \\gamma^{\\prime} \\cdot N_{\\gamma} \\cdot B^2 + z_0 \\cdot \\gamma^{\\prime} \\cdot N_q \\cdot d_q \\cdot B
+        
+        z_0 = 0 \\quad \\text{for } z < \\frac{D}{2} \\cdot \\left[ 1 - \\cos \\left( \\frac{\\pi}{4} + \\frac{\\varphi^{\\prime}}{2} \\right) \\right]
+        
+        z_0 = z - \\frac{D}{2} + \\left[ \\frac{D/2}{\\sin \\left( \\pi/4 + \\varphi^{\\prime}/2 \\right)} - B/2 \\right] \\cdot \\tan \\left( \\frac{\\pi}{4} + \\frac{\\varphi^{\\prime}}{2} \\right)  \\quad \\text{for } z \\geq \\frac{D}{2} \\cdot \\left[ 1 - \\cos \\left( \\frac{\\pi}{4} + \\frac{\\varphi^{\\prime}}{2} \\right) \\right]
+        
+        d_q = 1 + 1.2 \\cdot \\frac{z_0}{B} \\cdot \\tan \\varphi^{\\prime} \\cdot \\left( 1 - \\sin \\varphi^{\\prime} \\right)^2
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Nq [-]': Bearing capacity factor for stress level (:math:`N_q`)  [-]
+        - 'Ngamma [-]': Bearing capacity factor for unit weight (:math:`N_{\\gamma}`)  [-]
+        - 'B [m]': Pipe-soil contact width (:math:`B`)  [m]
+        - 'z0 [m]': Reference depth level (:math:`z_0`)  [m]
+        - 'dq [-]': Factor accounting for depth effects (:math:`d_q`)  [-]
+        - 'Qv [kN/m]': Vertical force required for penetration to depth z (:math:`Q_v`)  [kN/m]
+    
+    Reference - DNV-RP-F114
+
+    """
+    
+    
+    _Nq = nq_frictionangle_sand(friction_angle=phi_eff)['Nq [-]']
+    if Ngamma_theory == 'Vesic':
+        _Ngamma = ngamma_frictionangle_vesic(friction_angle=phi_eff)['Ngamma [-]']
+    elif Ngamma_theory == 'Meyerhof':
+        _Ngamma = ngamma_frictionangle_meyerhof(friction_angle=phi_eff, frictionangle_multiplier=1.5)['Ngamma [-]']
+    elif Ngamma_theory == 'DavisBooker':
+        _Ngamma = ngamma_frictionangle_davisbooker(friction_angle=phi_eff, roughness_factor=roughness_factor)['Ngamma [-]']
+    _B = contactwidth(diameter=diameter, penetration=penetration)['B [m]']
+    _z_shift = 0.5 * diameter * (1 - np.cos(0.25 * np.pi + 0.5 * np.radians(phi_eff)))
+    if penetration < _z_shift:
+        _z0 = 0
+    else:
+        _z0 = penetration - 0.5 * diameter + (((0.5 * diameter) / (np.sin(0.25 * np.pi + 0.5 * np.radians(phi_eff)))) - 0.5 * _B) * np.tan(0.25 * np.pi + 0.5 * np.radians(phi_eff))
+    _dq = 1 + 1.2 * (_z0 / _B) * np.tan(np.radians(phi_eff)) * ((1 - np.sin(np.radians(phi_eff))) ** 2)
+    _Qv = 0.5 * gamma_eff * _Ngamma * (_B ** 2) + _z0 * gamma_eff * _Nq * _dq * _B
+
+    return {
+        'Nq [-]': _Nq,
+        'Ngamma [-]': _Ngamma,
+        'B [m]': _B,
+        'z0 [m]': _z0,
+        'dq [-]': _dq,
         'Qv [kN/m]': _Qv,
     }

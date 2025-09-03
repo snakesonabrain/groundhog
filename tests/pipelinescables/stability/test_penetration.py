@@ -13,7 +13,7 @@ import numpy as np
 from groundhog.pipelinescables.stability import penetration as pen
 
 
-class Test_DNV_Undrained_Method1(unittest.TestCase):
+class Test_DNV_Undrained(unittest.TestCase):
 
     def test_contactwidth(self):
         self.assertEqual(pen.contactwidth(diameter=1, penetration=0)['B [m]'], 0)
@@ -54,3 +54,15 @@ class Test_DNV_Undrained_Method1(unittest.TestCase):
             gamma_eff=3
         )
         self.assertAlmostEqual(result['Qv [kN/m]'], 11.86, 2)
+
+
+class Test_DNV_Drained(unittest.TestCase):
+
+    def test_penetration_drained(self):
+        result = pen.embedment_drained(
+            penetration=0.1,
+            gamma_eff=8,
+            phi_eff=35,
+            diameter=0.5)
+        
+        self.assertAlmostEqual(result['Qv [kN/m]'], 30.74, 2)

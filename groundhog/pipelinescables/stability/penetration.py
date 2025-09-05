@@ -416,3 +416,69 @@ def embedment_drained(
         'dq [-]': _dq,
         'Qv [kN/m]': _Qv,
     }
+
+
+
+LAY_TOUCHDOWN_FACTOR = {
+    'penetration': {'type': 'float', 'min_value': 0.0, 'max_value': 2.0},
+    'submerged_weight': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'seabed_stiffness': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'lay_tension': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'bending_stiffness': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'calibration_factor1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'calibration_factor2': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+LAY_TOUCHDOWN_FACTOR_ERRORRETURN = {
+    'k_lay [-]': np.nan,
+}
+
+@Validator(LAY_TOUCHDOWN_FACTOR, LAY_TOUCHDOWN_FACTOR_ERRORRETURN)
+def lay_touchdown_factor(
+    penetration,submerged_weight,seabed_stiffness,lay_tension,bending_stiffness,
+    calibration_factor1=0.6,calibration_factor2=0.4, **kwargs):
+
+    """
+    Calculates the load concentration factor at the touchdown point. Load concentration at this point leads to additional pipeline embedment over the static embedment. Pipeline weight, bending stiffness and effective lay tension during pipelay contribute to this factor.
+
+    The equation is derived by modelling a catenary hanging off a vessel, touching down on a seabed with linearly increasing resistance with penetration depth. There is a minimum lay tension for this equation to apply (see Equations).
+
+    The lay tension can be uncertain, so it is best to consider a range of values.
+
+    The calculation is performed by first calculating seabed stiffness from the static penetration and then plugging this value into the amplification factor equation. Both curves are a function of pipeline embedment. The penetration depth accounting for amplification and the laydown factor are found at the intersection of both curves.
+    
+    :param penetration: Pipeline penetration after laying (:math:`z_{ini}`) [m] - Suggested range: 0.0 <= penetration <= 2.0
+    :param submerged_weight: Submerged weight of the pipeline during installation (:math:`W_i`) [kN/m] - Suggested range: submerged_weight >= 0.0
+    :param seabed_stiffness: Stiffness of the seabed (penetration resistance divided by penetration) (:math:`k=Q_v/W_i`) [kN/m/m] - Suggested range: seabed_stiffness >= 0.0
+    :param lay_tension: Lay tension during laydown (:math:`T_0`) [kN] - Suggested range: lay_tension >= 0.0
+    :param bending_stiffness: Bending stiffness of the pipeline (:math:`EI`) [kNm2] - Suggested range: bending_stiffness >= 0.0
+    :param calibration_factor1: First calibration factor (:math:`-`) [-] (optional, default= 0.6)
+    :param calibration_factor2: Second calibration factor (:math:`-`) [-] (optional, default= 0.4)
+    
+    .. math::
+        k_{lay} = 0.6 + 0.4 \\cdot \\left( \\frac{EI \\cdot k \\cdot W_i}{z_{ini} \\cdot T_0^2} \\right)^{0.25} \\geq 1 \\quad \\text{for } T_0 > \\left[ 3 \\cdot \\sqrt{EI} \\cdot W_i \\right]^{2/3}
+        
+        k = Q_v \\ W_i
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'k_lay [-]': Lay amplification factor (:math:`k_{lay}`)  [-]
+    
+    Reference - DNV-RP-F114
+
+    """
+    _minimum_lay_tension = (3 * np.sqrt(bending_stiffness) * submerged_weight) ** (2 / 3)
+    if lay_tension < _minimum_lay_tension:
+        raise ValueError("Lay tension lower than minimum lay tension, check inputs")
+    
+    _k_lay = calibration_factor1 + calibration_factor2 * (
+        (bending_stiffness * seabed_stiffness * submerged_weight) /
+        (penetration * (lay_tension ** 2))
+    ) ** 0.25
+    if _k_lay < 1:
+        raise ValueError("Lay amplification factor smaller than 1, check the inputs")
+    
+
+    return {
+        'k_lay [-]': _k_lay,
+    }

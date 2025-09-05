@@ -17,6 +17,7 @@ import pandas as pd
 from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
+import matplotlib.pyplot as plt
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, LogPlot, GROUNDHOG_PLOTTING_CONFIG
@@ -1620,7 +1621,12 @@ class PCPTProcessing(InsituTestProcessing):
         cptplot.set_zaxis_range(min_depth=z_range[1], max_depth=z_range[0])
         cptplot.set_size(width=plot_width, height=plot_height)
         
-        return cptplot
+        plt.legend(handles=cptplot._legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+         
+        if return_fig:
+            return cptplot
+        else:
+            plt.show()
         
     def plot_normalised_pcpt(
             self, qt_range=(0, 3), fr_range=(-1, 1),

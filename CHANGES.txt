@@ -9,6 +9,7 @@ v0.15.0, TBD
     - Added the Schneider et al (2008) chart for plotting CPT data
     - Started added functionality for pipeline and cable penetration
     - Added automatic detection of depth column for pydov CPTs
+    - Added secondary soilprofile to LogPlot too
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

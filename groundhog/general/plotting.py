@@ -176,7 +176,7 @@ class LogPlot(object):
     Class for planneled plots with a minilog on the side.
     """
 
-    def __init__(self, soilprofile, no_panels=1, logwidth=0.05,
+    def __init__(self, soilprofile, secondaryprofile=None, no_panels=1, logwidth=0.05,
                  fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
                  soiltypelegend=True,
                  soiltypecolumn="Soil type",
@@ -185,6 +185,7 @@ class LogPlot(object):
         """
         Initializes a figure with a minilog on the side.
         :param soilprofile: Soilprofile used for the minilog
+        :param secondaryprofile: A second Soilprofile used as an additional minilog. Note that only the ``SoilProfile`` provided in ``soilprofile`` will get update if layers and parameters are selected.
         :param no_panels: Number of panels
         :param logwidth: Width of the minilog as a ratio to the total width of the figure (default=0.05)
         :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
@@ -195,15 +196,30 @@ class LogPlot(object):
         """
         self.soilprofile = soilprofile
 
-        # Determine the panel widths
-        panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, range(0, no_panels)))
+        if secondaryprofile is None:
+            secondary_exists = False
+        else:
+            secondary_exists = True
 
-        panel_widths = list(np.append(logwidth, panel_widths))
+        self.no_panels = no_panels
+        # Determine the panel widths
+        if secondary_exists:
+            
+            panel_widths = list(map(lambda _x: (1 - 2 * logwidth) / no_panels, range(0, no_panels)))
+            panel_widths = list(np.append([logwidth, logwidth], panel_widths))
+            self.no_logs = 2
+        else:
+            panel_widths = list(map(lambda _x: (1 - logwidth) / no_panels, range(0, no_panels)))
+            panel_widths = list(np.append(logwidth, panel_widths))
+            self.no_logs = 1
+
+        total_panels = no_panels + self.no_logs
 
         # Set up the figure
         self.fig = subplots.make_subplots(
-            rows=1, cols=no_panels+1, column_widths=panel_widths, shared_yaxes=True,
+            rows=1, cols=total_panels, column_widths=panel_widths, shared_yaxes=True,
             print_grid=False, **kwargs)
+        
         self.fig['layout']['yaxis1'].update(range=(soilprofile.max_depth, soilprofile.min_depth))
 
         # Create rectangles for the log plot
@@ -217,6 +233,17 @@ class LogPlot(object):
             _y1 = row[self.soilprofile.depth_to_col]
             _layers.append(
                 dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1, line_width=line_width))
+
+        if secondary_exists:
+            for i, row in secondaryprofile.iterrows():
+                try:
+                    _fillcolor = fillcolordict[row[soiltypecolumn]]
+                except:
+                    _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
+                _y0 = row[secondaryprofile.depth_from_col]
+                _y1 = row[secondaryprofile.depth_to_col]
+                _layers.append(
+                    dict(type='rect', xref='x2', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1, line_width=line_width))
 
         for _soiltype in soilprofile[soiltypecolumn].unique():
             try:
@@ -234,11 +261,34 @@ class LogPlot(object):
                     self.fig.append_trace(_trace, 1, 1)
             except:
                 pass
+        
+        if secondary_exists:
+            for _soiltype in secondaryprofile[soiltypecolumn].unique():
+                try:
+                    _fillcolor = fillcolordict[_soiltype]
+                except:
+                    soiltypelegend = False
+
+                try:
+                    if soiltypelegend:
+                        _trace = go.Bar(
+                            x=[-10, -10],
+                            y=[row['Depth to [m]'], row['Depth to [m]']],
+                            name=_soiltype,
+                            marker=dict(color=_fillcolor))
+                        self.fig.append_trace(_trace, 1, 2)
+                except:
+                    pass
+        
 
         self.fig['layout'].update(shapes=_layers)
         self.fig['layout']['xaxis1'].update(
             anchor='y', title=None, side='top', tickvals=[], range=(0, 1))
         self.fig['layout']['yaxis1'].update(title='Depth [m]')
+
+        if secondary_exists:
+            self.fig['layout']['xaxis2'].update(
+                anchor='y', title=None, side='top', tickvals=[], range=(0, 1))           
 
         for i in range(0, no_panels):
             _dummy_data = go.Scatter(
@@ -248,9 +298,9 @@ class LogPlot(object):
                 name='Dummy',
                 showlegend=False,
                 line=dict(color='black'))
-            self.fig.append_trace(_dummy_data, 1, i + 2)
-            self.fig['layout']['xaxis%i' % (i + 2)].update(
-                anchor='y', title='X-axis %i' % (i+1), side='top')
+            self.fig.append_trace(_dummy_data, 1, i + self.no_logs + 1)
+            self.fig['layout']['xaxis%i' % (i + self.no_logs + 1)].update(
+                anchor='y', title='X-axis %i' % (i + self.no_logs), side='top')
 
     def add_trace(self, x, z, name, panel_no, resetaxisrange=False, **kwargs):
         """
@@ -274,10 +324,10 @@ class LogPlot(object):
             mode=mode,
             name=name,
             **kwargs)
-        self.fig.append_trace(_data, 1, panel_no + 1)
+        self.fig.append_trace(_data, 1, panel_no + self.no_logs)
 
         if resetaxisrange:
-            self.fig['layout']['xaxis%i' % (panel_no + 1)].update(
+            self.fig['layout']['xaxis%i' % (panel_no + self.no_logs)].update(
                 range=(np.array(x).min(), np.array(x).max()))
 
     def add_soilparameter_trace(self, parametername, panel_no, legendname=None, resetaxisrange=False, **kwargs):
@@ -309,7 +359,7 @@ class LogPlot(object):
         :param kwargs: Additional keyword arguments for the axis layout update function, e.g. ``range=(0, 100)``
         :return: Adjusts the X-axis of the specified panel
         """
-        self.fig['layout']['xaxis%i' % (panel_no + 1)].update(
+        self.fig['layout']['xaxis%i' % (panel_no + self.no_logs)].update(
             title=title, **kwargs)
 
     def set_zaxis(self, title, **kwargs):
@@ -376,7 +426,6 @@ class LogPlotMatplotlib(object):
             secondary_exists = False
         else:
             secondary_exists = True
-        
         
         self.no_panels = no_panels
         # Determine the panel widths

@@ -66,3 +66,16 @@ class Test_DNV_Drained(unittest.TestCase):
             diameter=0.5)
         
         self.assertAlmostEqual(result['Qv [kN/m]'], 30.74, 2)
+
+
+class Test_lay_touchdown_factor(unittest.TestCase):
+
+    def test_lay_touchdown_factor(self):
+        result = pen.lay_touchdown_factor(
+            penetration=0.2,
+            submerged_weight=0.5,
+            seabed_stiffness=100.0,
+            lay_tension=100,
+            bending_stiffness=1e4)
+        
+        self.assertAlmostEqual(result['k_lay [-]'], 2.19, 2)

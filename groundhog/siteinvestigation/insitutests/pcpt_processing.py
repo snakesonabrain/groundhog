@@ -912,6 +912,8 @@ class PCPTProcessing(InsituTestProcessing):
         query = PropertyIsEqualTo(propertyname='sondeernummer',
                                   literal=name)
         self.data = sondering.search(query=query)
+        if self.data['diepte'].dropna().__len__() == 0:
+            z_key = 'lengte'
         if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key)

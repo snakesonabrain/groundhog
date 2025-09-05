@@ -10,6 +10,7 @@ v0.15.0, TBD
     - Started added functionality for pipeline and cable penetration
     - Added automatic detection of depth column for pydov CPTs
     - Added secondary soilprofile to LogPlot too
+    - Added functionality for retrieving stratigraphic information from DOV (Flanders 3D geological model)
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

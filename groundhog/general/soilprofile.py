@@ -15,9 +15,10 @@ from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 import matplotlib.pyplot as plt
+import requests
 
 # Project imports
-from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, GROUNDHOG_PLOTTING_CONFIG
+from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import offsets, latlon_distance
 
 
@@ -1324,3 +1325,53 @@ class CalculationGrid(object):
         z = np.insert(second_array_z, np.arange(len(first_array_z)), first_array_z)
         x = np.insert(second_array_x, np.arange(len(first_array_x)), first_array_x)
         return z, x
+
+# region DOV functionality
+def retrieve_geological_profile_dov(x, y, model="g3dv3_L", **kwargs):
+    """
+    Retrieves a geological profile at a location with given coordinates (x,y Lambert L72)
+
+    :param x: X-coordinate of the location in Lambert72 coordinates
+    :param y: Y-coordinate of the location in Lambert72 coordinates
+    :param model: Type of model for stratigraphic information (see https://www.milieuinfo.be/confluence/display/DDOV/Virtuele+Boring+-+Virtueel+Profiel+API)
+    """
+    url_lambert = \
+        "https://services.dov.vlaanderen.be/virtueleboringserver/base/virtueleprofielen/doorprik/%s?x=%.0f&y=%.0f" % (
+        model, x, y)
+    try:
+        r = requests.get(url_lambert)
+        # Layer information parsing
+        layer_df = pd.DataFrame()
+        for i, _item in enumerate(r.json()['layers']):
+            for _key in ['code', 'beschrijving', 'name', 'dovlayercolor', 'texturen']:
+                try:
+                    layer_df.loc[i, _key] = _item[_key]
+                except:
+                    pass
+        layer_df.rename(columns={'name': 'naam'}, inplace=True) 
+        # Stratigraphic information parsing
+        strati_df = pd.DataFrame()
+        for i, _item in enumerate(r.json()['data']):
+            for _key in ['name', 'top', 'base', 'thickness']:
+                strati_df.loc[i, _key] = _item[_key]
+        for i, row in strati_df.iterrows():
+            _layer = layer_df[layer_df['code'] == row['name']].iloc[0]
+            for _key in ['beschrijving', 'naam', 'dovlayercolor', 'texturen']:
+                strati_df.loc[i, _key] = _layer[_key]
+        sp = profile_from_dataframe(
+            strati_df.rename(
+                columns={'top': 'Depth from [m]', 'base': 'Depth to [m]', 'beschrijving': 'Soil type'}))
+        maaiveld = sp['Depth from [m]'].iloc[0]
+        sp.convert_depth_sign()
+        sp.shift_depths(maaiveld)
+        fillcolors = dict()
+        for i, row in sp.iterrows():
+            if row['Soil type'].__len__() > 30:
+                sp.loc[i, "Soil type"] = row['Soil type'][:30] + '...'
+            fillcolors[sp.loc[i, "Soil type"]] = row['dovlayercolor']
+        return sp, fillcolors
+
+    except Exception as err:
+        print("Error during retrieval of geological layering - %s" % str(err))
+
+# endregion

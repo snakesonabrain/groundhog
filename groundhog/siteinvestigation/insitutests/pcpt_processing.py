@@ -18,12 +18,13 @@ from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
 import matplotlib.pyplot as plt
+import requests
 
 # Project imports
 from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, LogPlot, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
-from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
+from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram, retrieve_geological_profile_dov
 from groundhog.general.parameter_mapping import offsets, latlon_distance
 from groundhog.general.agsconversion import AGSConverter
 
@@ -214,6 +215,7 @@ class PCPTProcessing(InsituTestProcessing):
         super().__init__(title, waterunitweight)
         self.downhole_corrected = False
         self.coneprofile = pd.DataFrame()
+        self.pydov_name = None
 
     # region Utility functions
 
@@ -418,7 +420,6 @@ class PCPTProcessing(InsituTestProcessing):
             u2_multiplier=u2_multiplier,
             add_zero_row=add_zero_row,
             **kwargs)
-
 
     def load_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
@@ -778,7 +779,6 @@ class PCPTProcessing(InsituTestProcessing):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-
     def load_a00(self, path, column_widths=[], skiprows=None, custom_headers=None,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
@@ -909,6 +909,7 @@ class PCPTProcessing(InsituTestProcessing):
         except:
             raise IOError("Package pydov not available. Install it first: https://pydov.readthedocs.io/en/stable/")
 
+        self.pydov_name = name
         sondering = SonderingSearch()
         query = PropertyIsEqualTo(propertyname='sondeernummer',
                                   literal=name)
@@ -935,6 +936,17 @@ class PCPTProcessing(InsituTestProcessing):
         except Exception as err:
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
+
+    def get_stratigraphy_pydov(self, **kwargs):
+        """
+        Retrieves stratigraphic info from the 3D geological model of Flanders based on a CPT loaded in pydov
+        """
+        if self.pydov_name is None:
+            raise ValueError("No pydov CPT available")
+        else:
+            lambert_x = self.data['x'].iloc[1]
+            lambert_y = self.data['y'].iloc[1]
+            return retrieve_geological_profile_dov(x=lambert_x, y=lambert_y, **kwargs)
 
     def combine_pcpt(self, obj, keep="first"):
         """

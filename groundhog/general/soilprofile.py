@@ -1327,13 +1327,18 @@ class CalculationGrid(object):
         return z, x
 
 # region DOV functionality
-def retrieve_geological_profile_dov(x, y, model="g3dv3_L", **kwargs):
+def retrieve_geological_profile_dov(x, y, model="g3dv3_L", namecutoff=30, **kwargs):
     """
-    Retrieves a geological profile at a location with given coordinates (x,y Lambert L72)
+    Retrieves a geological profile at a location with given coordinates (x,y Lambert L72).
+    The routine creates a soil profile, starting from the ground surface, with depth increasing downwards.
+    The fillcolors for the geological layers are also returned.
 
     :param x: X-coordinate of the location in Lambert72 coordinates
     :param y: Y-coordinate of the location in Lambert72 coordinates
     :param model: Type of model for stratigraphic information (see https://www.milieuinfo.be/confluence/display/DDOV/Virtuele+Boring+-+Virtueel+Profiel+API)
+    :param namecutoff: Maximum number of characters for the geological units
+
+    :returns: soilprofile, fillcolors
     """
     url_lambert = \
         "https://services.dov.vlaanderen.be/virtueleboringserver/base/virtueleprofielen/doorprik/%s?x=%.0f&y=%.0f" % (
@@ -1366,8 +1371,8 @@ def retrieve_geological_profile_dov(x, y, model="g3dv3_L", **kwargs):
         sp.shift_depths(maaiveld)
         fillcolors = dict()
         for i, row in sp.iterrows():
-            if row['Soil type'].__len__() > 30:
-                sp.loc[i, "Soil type"] = row['Soil type'][:30] + '...'
+            if row['Soil type'].__len__() > namecutoff:
+                sp.loc[i, "Soil type"] = row['Soil type'][:namecutoff] + '...'
             fillcolors[sp.loc[i, "Soil type"]] = row['dovlayercolor']
         return sp, fillcolors
 

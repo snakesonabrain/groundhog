@@ -948,6 +948,35 @@ class PCPTProcessing(InsituTestProcessing):
             lambert_y = self.data['y'].iloc[1]
             return retrieve_geological_profile_dov(x=lambert_x, y=lambert_y, **kwargs)
 
+    def load_bro(self, name, **kwargs):
+        """
+        Load CPT data from BasisRegistratie Ondergrond (BRO) based on the unique CPT name which can be found in BRO.
+        The data loading is handled by the geotexx package written by Thomas van der Linden (https://github.com/ic144/geotexxx_package).
+        
+        :param name: Unique identifier of the CPT in BRO (see https://www.dinoloket.nl/ondergrondgegevens)
+        :return: Sets the `data` attribute of the PCPTProcessing object
+        """
+        try:
+            from geotexxx.gefxml_reader import Cpt
+        except:
+            raise IOError("Package geotexxx not available. Install it first: https://github.com/ic144/geotexxx_package")
+
+        self.bro_name = name
+        detail_url = f"https://publiek.broservices.nl/sr/cpt/v1/objects/%s" % name
+        
+        resp = requests.get(detail_url)
+        cpt_detail = Cpt()
+        cpt_detail.load_xml(resp.text, from_file=False)
+        try:
+            cpt_detail.data['porePressureU2']
+            self.load_pandas(
+                cpt_detail.data, z_key="penetrationLength", qc_key="coneResistance", fs_key="localFriction", u2_key="porePressureU2", **kwargs)
+        except Exception as err:
+            warnings.warn("No pore pressure data found")
+            cpt_detail.data.loc[:, 'u2 [MPa]'] = np.nan
+            self.load_pandas(
+                cpt_detail.data, z_key="penetrationLength", qc_key="coneResistance", fs_key="localFriction", **kwargs)
+
     def combine_pcpt(self, obj, keep="first"):
         """
         Combine PCPT data for two PCPTProcessing objects. The data of the second PCPT (`obj`) will be merged

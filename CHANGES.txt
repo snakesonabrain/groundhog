@@ -12,6 +12,7 @@ v0.15.0, TBD
     - Added secondary soilprofile to LogPlot too
     - Added functionality for retrieving stratigraphic information from DOV (Flanders 3D geological model)
     - Added function to retrieve BRO CPT data based on BRO CPT ID
+    - Added function to retrieve BRO stratigraphy based on GeoTop voxel model
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

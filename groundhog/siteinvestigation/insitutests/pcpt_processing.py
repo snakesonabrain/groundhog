@@ -24,7 +24,7 @@ import requests
 from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, LogPlot, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
-from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram, retrieve_geological_profile_dov
+from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram, retrieve_geological_profile_dov, retrieve_geological_profile_bro
 from groundhog.general.parameter_mapping import offsets, latlon_distance
 from groundhog.general.agsconversion import AGSConverter
 
@@ -216,6 +216,7 @@ class PCPTProcessing(InsituTestProcessing):
         self.downhole_corrected = False
         self.coneprofile = pd.DataFrame()
         self.pydov_name = None
+        self.bro_name = None
 
     # region Utility functions
 
@@ -976,6 +977,22 @@ class PCPTProcessing(InsituTestProcessing):
             cpt_detail.data.loc[:, 'u2 [MPa]'] = np.nan
             self.load_pandas(
                 cpt_detail.data, z_key="penetrationLength", qc_key="coneResistance", fs_key="localFriction", **kwargs)
+        self.set_position(
+            northing=cpt_detail.northing, easting=cpt_detail.easting,
+            elevation=cpt_detail.groundlevel, srid=28992)
+
+    def get_stratigraphy_bro(self, **kwargs):
+        """
+        Retrieves stratigraphic info from the 3D geological model GeoTop of The Netherlands based on a CPT loaded from BRO
+        """
+        if self.bro_name is None:
+            raise ValueError("No pydov CPT available")
+        else:
+            return retrieve_geological_profile_bro(
+                x=self.easting,
+                y=self.northing,
+                zmin=self.elevation - self.max_depth,
+                zmax=self.elevation, **kwargs)
 
     def combine_pcpt(self, obj, keep="first"):
         """
@@ -1599,7 +1616,7 @@ class PCPTProcessing(InsituTestProcessing):
             qc_axis_title = r'$ q_c \ \text{[MPa]} $'
             fs_axis_title = r'$ f_s \ \text{[MPa]} $'
             u2_axis_title = r'$ u_2 \ \text{[MPa]} $'
-            Rf_axis_title = r'$ R_f \ \text{[%]} $'
+            Rf_axis_title = r'$ R_f \ \text{[\%]} $'
             z_axis_title = r'$ \text{Depth below mudline, } z \ \text{[m]} $'
         else:
             qc_axis_title = 'qc [MPa]'
@@ -1653,7 +1670,7 @@ class PCPTProcessing(InsituTestProcessing):
         cptplot.set_xaxis_title(title=fs_axis_title, panel_no=2)
         cptplot.set_xaxis_range(min_value=fs_range[0], max_value=fs_range[1], panel_no=2)
         if plot_friction_ratio:
-            cptplot.set_xaxis_range(title=Rf_axis_title, panel_no=3)
+            cptplot.set_xaxis_title(title=Rf_axis_title, panel_no=3)
             cptplot.set_xaxis_range(min_value=rf_range[0], max_value=rf_range[1], panel_no=3)
         else:
             cptplot.set_xaxis_title(title=u2_axis_title, panel_no=3)

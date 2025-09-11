@@ -608,6 +608,41 @@ class SoilProfile(pd.DataFrame):
         self.dropna(subset=(self.depth_from_col, self.depth_to_col), inplace=True)
         self.reset_index(drop=True, inplace=True)
 
+    def merge_soiltypes(self):
+        """
+        Merge adjacent layers with same soil type
+        """
+        layer_no = 0
+        for i, row in self.iterrows():
+            self.loc[i, 'Layer no'] = layer_no
+            if i > 0:
+                if row['Soil type'] != self.loc[i-1, "Soil type"]:
+                    layer_no += 1
+                self.loc[i, 'Layer no'] = layer_no
+        
+        for _layer in self['Layer no'].unique():
+            _layer_data = self[self['Layer no'] == _layer]
+            _layer_top = _layer_data[self.depth_from_col].min()
+            _layer_bottom = _layer_data[self.depth_to_col].max()
+            values_dict = dict()
+            for _param in self.numerical_soil_parameters():
+                if self.check_linear_variation(_param):
+                    values_dict[_param] = [
+                        self.loc[_layer_data.index[0], _param.replace(' [', ' from [')],
+                        self.loc[_layer_data.index[-1], _param.replace(' [', ' to [')],
+                    ]
+            
+            if _layer_data.__len__() == 1:
+                pass
+            else:
+                self.loc[_layer_data.index[0], "Depth to [m]"] = _layer_bottom
+                for _key, _value in values_dict.items():
+                    self.loc[_layer_data.index[0], _key.replace(' [', ' from [')] = _value[0]
+                    self.loc[_layer_data.index[0], _key.replace(' [', ' to [')] = _value[1]
+                self.drop(index=_layer_data.index[1:], inplace=True)
+        self.drop('Layer no', axis=1, inplace=True)
+        self.reset_index(drop=True, inplace=True)
+
     def remove_parameter(self, parameter):
         """
         Removes a soil parameter from the dataframe
@@ -1326,7 +1361,7 @@ class CalculationGrid(object):
         x = np.insert(second_array_x, np.arange(len(first_array_x)), first_array_x)
         return z, x
 
-# region DOV functionality
+# region DOV and BRO functionality
 def retrieve_geological_profile_dov(x, y, model="g3dv3_L", namecutoff=30, **kwargs):
     """
     Retrieves a geological profile at a location with given coordinates (x,y Lambert L72).
@@ -1378,5 +1413,457 @@ def retrieve_geological_profile_dov(x, y, model="g3dv3_L", namecutoff=30, **kwar
 
     except Exception as err:
         print("Error during retrieval of geological layering - %s" % str(err))
+
+BRO_FILLCOLORS_PLOTLY_LITHOK = {
+    'antropogeen': 'rgb(200,200,200)',
+    'organisch materiaal (veen)': 'rgb(157,78,64)',
+    'klei': 'rgb(0,146,0)',
+    'kleiig zand, zandige klei en leem': 'rgb(194,207,92)',
+    'zand fijn': 'rgb(255,255,0)',
+    'zand midden': 'rgb(243,225,6)',
+    'zand grof': 'rgb(231,195,22)',
+    'grind': 'rgb(216,163,32)',
+    'schelpen': 'rgb(95,95,255)'}
+BRO_FILLCOLORS_MPL_LITHOK = {
+    'antropogeen': (0.7843137254901961, 0.7843137254901961, 0.7843137254901961),
+    'organisch materiaal (veen)': (0.615686274509804, 0.3058823529411765, 0.25098039215686274),
+    'klei': (0.0, 0.5725490196078431, 0.0),
+    'kleiig zand, zandige klei en leem': (0.7607843137254902, 0.8117647058823529, 0.3607843137254902),
+    'zand fijn': (1.0, 1.0, 0.0),
+    'zand midden': (0.9529411764705882, 0.8823529411764706, 0.023529411764705882),
+    'zand grof': (0.9058823529411765, 0.7647058823529411, 0.08627450980392157),
+    'grind': (0.8470588235294118, 0.6392156862745098, 0.12549019607843137),
+    'schelpen': (0.37254901960784315, 0.37254901960784315, 1.0)
+}
+BRO_LITHOK_MAPPING = {
+    0: 'antropogeen',
+    1: 'organisch materiaal (veen)',
+    2: 'klei',
+    3: 'kleiig zand, zandige klei en leem',
+    5: 'zand fijn',
+    6: 'zand midden',
+    7: 'zand grof',
+    8: 'grind',
+    9: 'schelpen'
+}
+BRO_FILLCOLORS_PLOTLY_STRAT = {
+    'Antropogene afzettingen, opgebrachte grond': 'rgb(200,200,200)',
+    'Antropogene afzettingen, esdekken': 'rgb(110,110,110)',
+    'Formatie van Nieuwkoop, Laagpakket van Griendtsveen': 'rgb(132,88,44)',
+    'Formatie van Nieuwkoop, Laag van Nij Beets': 'rgb(180,90,20)',
+    'Formatie van Naaldwijk, Laagpakket van Schoorl': 'rgb(255,255,160)',
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (gedeelte boven NAZA)': 'rgb(152,220,117)',
+    'Formatie van Naaldwijk, Laagpakket van Zandvoort': 'rgb(254,183,56)',
+    'Formatie van Naaldwijk, Laagpakket van Walcheren, gelegen onder Formatie van Naaldwijk, Laagpakket van Zandvoort': 'rgb(152,220,117)',
+    'Formatie van Echteld (gedeelte buiten NIHO)': 'rgb(170,255,245)',
+    'Formatie van Echteld (gedeelte boven NIHO)': 'rgb(170,255,245)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer, Laag van Bergen': 'rgb(0,157,155)',
+    'Kreekrak Formatie (gedeelte boven NIHO)': 'rgb(68,138,112)',
+    'Formatie van Nieuwkoop, Hollandveen Laagpakket': 'rgb(208,130,40)',
+    'Formatie van Naaldwijk, Laagpakket van Zandvoort (gedeelte onder NIHO)': 'rgb(254,183,56)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer': 'rgb(63,165,76)',
+    'Formatie van Naaldwijk, laagpakketten van Wormer en Zandvoort': 'rgb(63,165,76)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer, Laag van Velsen': 'rgb(189,183,107)',
+    'Kreekrak Formatie (gedeelte onder NIHO)': 'rgb(68,138,112)',
+    'Formatie van Nieuwkoop, Basisveen Laag': 'rgb(152,47,10)',
+    'Formatie van Naaldwijk': 'rgb(105,200,100)',
+    'Formatie van Echteld': 'rgb(170,255,245)',
+    'Formatie van Nieuwkoop': 'rgb(208,130,40)',
+    'Kreekrak Formatie': 'rgb(68,138,112)',
+    'Formatie van Boxtel, Laagpakket van Kootwijk': 'rgb(255,255,190)',
+    'Formatie van Boxtel, Laagpakket van Singraven': 'rgb(190,190,0)',
+    'Formatie van Boxtel Laagpakket van Singraven (bovenste deel)': 'rgb(190,190,0)',
+    'Formatie van Boxtel, Laagpakket van Wierden': 'rgb(255,255,80)',
+    'Formatie van Boxtel Laagpakket van Singraven (onderste deel)': 'rgb(255,255,130)',
+    'Formatie van Boxtel, laagpakketten van Wierden en Kootwijk': 'rgb(255,255,80)',
+    'Formatie van Boxtel, laagpakketten van Wierden, Singraven en Kootwijk': 'rgb(255,255,80)',
+    'Formatie van Boxtel, Laagpakket van Delwijnen': 'rgb(225,225,130)',
+    'Formatie van Boxtel, laagpakketten van Delwijnen en Kootwijk': 'rgb(225,225,130)',
+    'Formatie van Boxtel, Laagpakket van Schimmert': 'rgb(255,205,0)',
+    'Formatie van Boxtel, Laagpakket van Liempde': 'rgb(225,190,0)',
+    'Formatie van Boxtel, Laagpakket van Best': 'rgb(235,205,0)',
+    'Formatie van Boxtel': 'rgb(255,235,0)',
+    'Formatie van Kreftenheye, Laag van Wijchen': 'rgb(86,0,0)',
+    'Formatie van Kreftenheye en Formatie van Boxtel, Laagpakket van Delwijnen': 'rgb(176,48,96)',
+    'Formatie van Kreftenheye, Laagpakket van Zutphen': 'rgb(136,0,0)',
+    'Formatie van Kreftenheye, gelegen onder de Eem Formatie': 'rgb(176,48,96)',
+    'Formatie van Kreftenheye, Laagpakket van Twello': 'rgb(156,18,46)',
+    'Formatie van Kreftenheye': 'rgb(176,48,96)',
+    'Formatie van Beegden, Laagpakket van Oost-Maarland': 'rgb(129,105,123)',
+    'Formatie van Beegden, Laag van Wijchen': 'rgb(170,155,180)',
+    'Formatie van Beegden, Laag van Rosmalen': 'rgb(160,140,155)',
+    'Formatie van Beegden': 'rgb(200,200,255)',
+    'Formatie van Koewacht (kleiige top)': 'rgb(152,139,0)',
+    'Formatie van Koewacht': 'rgb(172,169,43)',
+    'Formatie van Woudenberg': 'rgb(137,67,30)',
+    'Eem Formatie': 'rgb(210,255,115)',
+    'Formatie van Woudenberg en Eem Formatie': 'rgb(210,255,115)',
+    'Formatie van Drente': 'rgb(255,127,80)',
+    'Formatie van Drente, Laagpakket van Gieten': 'rgb(235,97,30)',
+    'Door landijs gestuwde afzettingen': 'rgb(156,156,156)',
+    'Formatie van Drachten': 'rgb(250,250,210)',
+    'Formatie van Urk, Laagpakket van Tynje': 'rgb(169,163,87)',
+    'Formatie van Peelo': 'rgb(238,130,238)',
+    'Formatie van Urk': 'rgb(189,183,107)',
+    'Formatie van Sterksel': 'rgb(205,92,92)',
+    'Formatie van Appelscha': 'rgb(218,165,32)',
+    'Formatie van Stramproy': 'rgb(255,228,181)',
+    'Formatie van Peize': 'rgb(255,255,0)',
+    'Formatie van Waalre': 'rgb(255,165,0)',
+    'Formatie van Peize en Formatie van Waalre': 'rgb(255,204,0)',
+    'Formatie van Maassluis': 'rgb(135,206,235)',
+    'Kiezeloöliet Formatie': 'rgb(188,143,143)',
+    'Formatie van Oosterhout': 'rgb(118,157,39)',
+    'Formatie van Inden': 'rgb(236,121,193)',
+    'Formatie van Ville': 'rgb(153,102,0)',
+    'Formatie van Breda': 'rgb(108,188,150)',
+    'Formatie van Veldhoven': 'rgb(102,100,16)',
+    'Rupel Formatie, Laagpakket van Boom': 'rgb(154,78,163)',
+    'Rupel Formatie': 'rgb(184,123,238)',
+    'Formatie van Tongeren, Laagpakket van Zelzate, Laag van Watervliet': 'rgb(80,144,194)',
+    'Formatie van Tongeren, Laagpakket van Goudsberg': 'rgb(70,129,169)',
+    'Formatie van Tongeren': 'rgb(90,159,219)',
+    'Formatie van Dongen, Laagpakket van Asse': 'rgb(186,146,141)',
+    'Formatie van Dongen, Laagpakket van Ieper': 'rgb(206,176,191)',
+    'Formatie van Dongen': 'rgb(216,191,216)',
+    'Formatie van Landen': 'rgb(208,32,144)',
+    'Formatie van Heijenrath': 'rgb(178,34,34)',
+    'Formatie van Houthem': 'rgb(210,105,30)',
+    'Formatie van Maastricht': 'rgb(255,160,102)',
+    'Formatie van Gulpen': 'rgb(245,222,179)',
+    'Formatie van Vaals': 'rgb(21,153,79)',
+    'Formatie van Aken': 'rgb(152,231,205)',
+    'Formatie van Echteld (geulafzettingen generatie A)': 'rgb(118,147,60)',
+    'Formatie van Beegden, Laagpakket van Oost-Maarland (geulafzettingen generatie A)': 'rgb(118,147,60)',
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie A)': 'rgb(118,147,60)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie A)': 'rgb(118,147,60)',
+    'Formatie van Echteld (geulafzettingen generatie B)': 'rgb(102,205,171)',
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie B)': 'rgb(102,205,171)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie B)': 'rgb(102,205,171)',
+    'Formatie van Echteld (geulafzettingen generatie C)': 'rgb(170,196,255)',
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie C)': 'rgb(170,196,255)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie C)': 'rgb(170,196,255)',
+    'Formatie van Echteld (geulafzettingen generatie D)': 'rgb(102,153,205)',
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie D)': 'rgb(102,153,205)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie D)': 'rgb(102,153,205)',
+    'Formatie van Echteld (geulafzettingen generatie E)': 'rgb(27,101,175)',
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie E)': 'rgb(27,101,175)',
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie E)': 'rgb(27,101,175)'
+}
+BRO_FILLCOLORS_MPL_STRAT = {
+    'Antropogene afzettingen, opgebrachte grond': (0.7843137254901961, 0.7843137254901961, 0.7843137254901961),
+    'Antropogene afzettingen, esdekken': (0.43137254901960786, 0.43137254901960786, 0.43137254901960786),
+    'Formatie van Nieuwkoop, Laagpakket van Griendtsveen': (0.5176470588235295, 0.34509803921568627, 0.17254901960784313),
+    'Formatie van Nieuwkoop, Laag van Nij Beets': (0.7058823529411765, 0.35294117647058826, 0.0784313725490196),
+    'Formatie van Naaldwijk, Laagpakket van Schoorl': (1.0, 1.0, 0.6274509803921569),
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (gedeelte boven NAZA)': (0.596078431372549, 0.8627450980392157, 0.4588235294117647),
+    'Formatie van Naaldwijk, Laagpakket van Zandvoort': (0.996078431372549, 0.7176470588235294, 0.2196078431372549),
+    'Formatie van Naaldwijk, Laagpakket van Walcheren, gelegen onder Formatie van Naaldwijk, Laagpakket van Zandvoort': (0.596078431372549, 0.8627450980392157, 0.4588235294117647),
+    'Formatie van Echteld (gedeelte buiten NIHO)': (0.6666666666666666, 1.0, 0.9607843137254902),
+    'Formatie van Echteld (gedeelte boven NIHO)': (0.6666666666666666, 1.0, 0.9607843137254902),
+    'Formatie van Naaldwijk, Laagpakket van Wormer, Laag van Bergen': (0.0, 0.615686274509804, 0.6078431372549019),
+    'Kreekrak Formatie (gedeelte boven NIHO)': (0.26666666666666666, 0.5411764705882353, 0.4392156862745098),
+    'Formatie van Nieuwkoop, Hollandveen Laagpakket': (0.8156862745098039, 0.5098039215686274, 0.1568627450980392),
+    'Formatie van Naaldwijk, Laagpakket van Zandvoort (gedeelte onder NIHO)': (0.996078431372549, 0.7176470588235294, 0.2196078431372549),
+    'Formatie van Naaldwijk, Laagpakket van Wormer': (0.24705882352941178, 0.6470588235294118, 0.2980392156862745),
+    'Formatie van Naaldwijk, laagpakketten van Wormer en Zandvoort': (0.24705882352941178, 0.6470588235294118, 0.2980392156862745),
+    'Formatie van Naaldwijk, Laagpakket van Wormer, Laag van Velsen': (0.7411764705882353, 0.7176470588235294, 0.4196078431372549),
+    'Kreekrak Formatie (gedeelte onder NIHO)': (0.26666666666666666, 0.5411764705882353, 0.4392156862745098),
+    'Formatie van Nieuwkoop, Basisveen Laag': (0.596078431372549, 0.1843137254901961, 0.0392156862745098),
+    'Formatie van Naaldwijk': (0.4117647058823529, 0.7843137254901961, 0.39215686274509803),
+    'Formatie van Echteld': (0.6666666666666666, 1.0, 0.9607843137254902),
+    'Formatie van Nieuwkoop': (0.8156862745098039, 0.5098039215686274, 0.1568627450980392),
+    'Kreekrak Formatie': (0.26666666666666666, 0.5411764705882353, 0.4392156862745098),
+    'Formatie van Boxtel, Laagpakket van Kootwijk': (1.0, 1.0, 0.7450980392156863),
+    'Formatie van Boxtel, Laagpakket van Singraven': (0.7450980392156863, 0.7450980392156863, 0.0),
+    'Formatie van Boxtel Laagpakket van Singraven (bovenste deel)': (0.7450980392156863, 0.7450980392156863, 0.0),
+    'Formatie van Boxtel, Laagpakket van Wierden': (1.0, 1.0, 0.3137254901960784),
+    'Formatie van Boxtel Laagpakket van Singraven (onderste deel)': (1.0, 1.0, 0.5098039215686274),
+    'Formatie van Boxtel, laagpakketten van Wierden en Kootwijk': (1.0, 1.0, 0.3137254901960784),
+    'Formatie van Boxtel, laagpakketten van Wierden, Singraven en Kootwijk': (1.0, 1.0, 0.3137254901960784),
+    'Formatie van Boxtel, Laagpakket van Delwijnen': (0.8823529411764706, 0.8823529411764706, 0.5098039215686274),
+    'Formatie van Boxtel, laagpakketten van Delwijnen en Kootwijk': (0.8823529411764706, 0.8823529411764706, 0.5098039215686274),
+    'Formatie van Boxtel, Laagpakket van Schimmert': (1.0, 0.803921568627451, 0.0),
+    'Formatie van Boxtel, Laagpakket van Liempde': (0.8823529411764706, 0.7450980392156863, 0.0),
+    'Formatie van Boxtel, Laagpakket van Best': (0.9215686274509803, 0.803921568627451, 0.0),
+    'Formatie van Boxtel': (1.0, 0.9215686274509803, 0.0),
+    'Formatie van Kreftenheye, Laag van Wijchen': (0.33725490196078434, 0.0, 0.0),
+    'Formatie van Kreftenheye en Formatie van Boxtel, Laagpakket van Delwijnen': (0.6901960784313725, 0.18823529411764706, 0.3764705882352941),
+    'Formatie van Kreftenheye, Laagpakket van Zutphen': (0.5333333333333333, 0.0, 0.0),
+    'Formatie van Kreftenheye, gelegen onder de Eem Formatie': (0.6901960784313725, 0.18823529411764706, 0.3764705882352941),
+    'Formatie van Kreftenheye, Laagpakket van Twello': (0.611764705882353, 0.07058823529411765, 0.1803921568627451),
+    'Formatie van Kreftenheye': (0.6901960784313725, 0.18823529411764706, 0.3764705882352941),
+    'Formatie van Beegden, Laagpakket van Oost-Maarland': (0.5058823529411764, 0.4117647058823529, 0.4823529411764706),
+    'Formatie van Beegden, Laag van Wijchen': (0.6666666666666666, 0.6078431372549019, 0.7058823529411765),
+    'Formatie van Beegden, Laag van Rosmalen': (0.6274509803921569, 0.5490196078431373, 0.6078431372549019),
+    'Formatie van Beegden': (0.7843137254901961, 0.7843137254901961, 1.0),
+    'Formatie van Koewacht (kleiige top)': (0.596078431372549, 0.5450980392156862, 0.0),
+    'Formatie van Koewacht': (0.6745098039215687, 0.6627450980392157, 0.16862745098039217),
+    'Formatie van Woudenberg': (0.5372549019607843, 0.2627450980392157, 0.11764705882352941),
+    'Eem Formatie': (0.8235294117647058, 1.0, 0.45098039215686275),
+    'Formatie van Woudenberg en Eem Formatie': (0.8235294117647058, 1.0, 0.45098039215686275),
+    'Formatie van Drente': (1.0, 0.4980392156862745, 0.3137254901960784),
+    'Formatie van Drente, Laagpakket van Gieten': (0.9215686274509803, 0.3803921568627451, 0.11764705882352941),
+    'Door landijs gestuwde afzettingen': (0.611764705882353, 0.611764705882353, 0.611764705882353),
+    'Formatie van Drachten': (0.9803921568627451, 0.9803921568627451, 0.8235294117647058),
+    'Formatie van Urk, Laagpakket van Tynje': (0.6627450980392157, 0.6392156862745098, 0.3411764705882353),
+    'Formatie van Peelo': (0.9333333333333333, 0.5098039215686274, 0.9333333333333333),
+    'Formatie van Urk': (0.7411764705882353, 0.7176470588235294, 0.4196078431372549),
+    'Formatie van Sterksel': (0.803921568627451, 0.3607843137254902, 0.3607843137254902),
+    'Formatie van Appelscha': (0.8549019607843137, 0.6470588235294118, 0.12549019607843137),
+    'Formatie van Stramproy': (1.0, 0.8941176470588236, 0.7098039215686275),
+    'Formatie van Peize': (1.0, 1.0, 0.0),
+    'Formatie van Waalre': (1.0, 0.6470588235294118, 0.0),
+    'Formatie van Peize en Formatie van Waalre': (1.0, 0.8, 0.0),
+    'Formatie van Maassluis': (0.5294117647058824, 0.807843137254902, 0.9215686274509803),
+    'Kiezeloöliet Formatie': (0.7372549019607844, 0.5607843137254902, 0.5607843137254902),
+    'Formatie van Oosterhout': (0.4627450980392157, 0.615686274509804, 0.15294117647058825),
+    'Formatie van Inden': (0.9254901960784314, 0.4745098039215686, 0.7568627450980392),
+    'Formatie van Ville': (0.6, 0.4, 0.0),
+    'Formatie van Breda': (0.4235294117647059, 0.7372549019607844, 0.5882352941176471),
+    'Formatie van Veldhoven': (0.4, 0.39215686274509803, 0.06274509803921569),
+    'Rupel Formatie, Laagpakket van Boom': (0.6039215686274509, 0.3058823529411765, 0.6392156862745098),
+    'Rupel Formatie': (0.7215686274509804, 0.4823529411764706, 0.9333333333333333),
+    'Formatie van Tongeren, Laagpakket van Zelzate, Laag van Watervliet': (0.3137254901960784, 0.5647058823529412, 0.7607843137254902),
+    'Formatie van Tongeren, Laagpakket van Goudsberg': (0.27450980392156865, 0.5058823529411764, 0.6627450980392157),
+    'Formatie van Tongeren': (0.35294117647058826, 0.6235294117647059, 0.8588235294117647),
+    'Formatie van Dongen, Laagpakket van Asse': (0.7294117647058823, 0.5725490196078431, 0.5529411764705883),
+    'Formatie van Dongen, Laagpakket van Ieper': (0.807843137254902, 0.6901960784313725, 0.7490196078431373),
+    'Formatie van Dongen': (0.8470588235294118, 0.7490196078431373, 0.8470588235294118),
+    'Formatie van Landen': (0.8156862745098039, 0.12549019607843137, 0.5647058823529412),
+    'Formatie van Heijenrath': (0.6980392156862745, 0.13333333333333333, 0.13333333333333333),
+    'Formatie van Houthem': (0.8235294117647058, 0.4117647058823529, 0.11764705882352941),
+    'Formatie van Maastricht': (1.0, 0.6274509803921569, 0.4),
+    'Formatie van Gulpen': (0.9607843137254902, 0.8705882352941177, 0.7019607843137254),
+    'Formatie van Vaals': (0.08235294117647059, 0.6, 0.30980392156862746),
+    'Formatie van Aken': (0.596078431372549, 0.9058823529411765, 0.803921568627451),
+    'Formatie van Echteld (geulafzettingen generatie A)': (0.4627450980392157, 0.5764705882352941, 0.23529411764705882),
+    'Formatie van Beegden, Laagpakket van Oost-Maarland (geulafzettingen generatie A)': (0.4627450980392157, 0.5764705882352941, 0.23529411764705882),
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie A)': (0.4627450980392157, 0.5764705882352941, 0.23529411764705882),
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie A)': (0.4627450980392157, 0.5764705882352941, 0.23529411764705882),
+    'Formatie van Echteld (geulafzettingen generatie B)': (0.4, 0.803921568627451, 0.6705882352941176),
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie B)': (0.4, 0.803921568627451, 0.6705882352941176),
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie B)': (0.4, 0.803921568627451, 0.6705882352941176),
+    'Formatie van Echteld (geulafzettingen generatie C)': (0.6666666666666666, 0.7686274509803922, 1.0),
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie C)': (0.6666666666666666, 0.7686274509803922, 1.0),
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie C)': (0.6666666666666666, 0.7686274509803922, 1.0),
+    'Formatie van Echteld (geulafzettingen generatie D)': (0.4, 0.6, 0.803921568627451),
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie D)': (0.4, 0.6, 0.803921568627451),
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie D)': (0.4, 0.6, 0.803921568627451),
+    'Formatie van Echteld (geulafzettingen generatie E)': (0.10588235294117647, 0.396078431372549, 0.6862745098039216),
+    'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie E)': (0.10588235294117647, 0.396078431372549, 0.6862745098039216),
+    'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie E)': (0.10588235294117647, 0.396078431372549, 0.6862745098039216)
+}
+BRO_STRAT_MAPPING = {
+    1000: 'Antropogene afzettingen, opgebrachte grond',
+    1005: 'Antropogene afzettingen, esdekken',
+    1010: 'Formatie van Nieuwkoop, Laagpakket van Griendtsveen',
+    1045: 'Formatie van Nieuwkoop, Laag van Nij Beets',
+    1020: 'Formatie van Naaldwijk, Laagpakket van Schoorl',
+    1030: 'Formatie van Naaldwijk, Laagpakket van Walcheren (gedeelte boven NAZA)',
+    1040: 'Formatie van Naaldwijk, Laagpakket van Zandvoort',
+    1050: 'Formatie van Naaldwijk, Laagpakket van Walcheren, gelegen onder Formatie van Naaldwijk, Laagpakket van Zandvoort',
+    1060: 'Formatie van Echteld (gedeelte buiten NIHO)',
+    1070: 'Formatie van Echteld (gedeelte boven NIHO)',
+    1080: 'Formatie van Naaldwijk, Laagpakket van Wormer, Laag van Bergen',
+    1085: 'Kreekrak Formatie (gedeelte boven NIHO)',
+    1090: 'Formatie van Nieuwkoop, Hollandveen Laagpakket',
+    1095: 'Formatie van Naaldwijk, Laagpakket van Zandvoort (gedeelte onder NIHO)',
+    1100: 'Formatie van Naaldwijk, Laagpakket van Wormer',
+    1110: 'Formatie van Naaldwijk, laagpakketten van Wormer en Zandvoort',
+    1120: 'Formatie van Naaldwijk, Laagpakket van Wormer, Laag van Velsen',
+    1125: 'Kreekrak Formatie (gedeelte onder NIHO)',
+    1130: 'Formatie van Nieuwkoop, Basisveen Laag',
+    2000: 'Formatie van Naaldwijk',
+    2010: 'Formatie van Echteld',
+    2020: 'Formatie van Nieuwkoop',
+    2030: 'Kreekrak Formatie',
+    3000: 'Formatie van Boxtel, Laagpakket van Kootwijk',
+    3010: 'Formatie van Boxtel, Laagpakket van Singraven',
+    3011: 'Formatie van Boxtel Laagpakket van Singraven (bovenste deel)',
+    3020: 'Formatie van Boxtel, Laagpakket van Wierden',
+    3012: 'Formatie van Boxtel Laagpakket van Singraven (onderste deel)',
+    3025: 'Formatie van Boxtel, laagpakketten van Wierden en Kootwijk',
+    3030: 'Formatie van Boxtel, laagpakketten van Wierden, Singraven en Kootwijk',
+    3040: 'Formatie van Boxtel, Laagpakket van Delwijnen',
+    3045: 'Formatie van Boxtel, laagpakketten van Delwijnen en Kootwijk',
+    3050: 'Formatie van Boxtel, Laagpakket van Schimmert',
+    3060: 'Formatie van Boxtel, Laagpakket van Liempde',
+    3090: 'Formatie van Boxtel, Laagpakket van Best',
+    3100: 'Formatie van Boxtel',
+    4000: 'Formatie van Kreftenheye, Laag van Wijchen',
+    4010: 'Formatie van Kreftenheye en Formatie van Boxtel, Laagpakket van Delwijnen',
+    4020: 'Formatie van Kreftenheye, Laagpakket van Zutphen',
+    4030: 'Formatie van Kreftenheye, gelegen onder de Eem Formatie',
+    4040: 'Formatie van Kreftenheye, Laagpakket van Twello',
+    4050: 'Formatie van Kreftenheye',
+    4055: 'Formatie van Beegden, Laagpakket van Oost-Maarland',
+    4060: 'Formatie van Beegden, Laag van Wijchen',
+    4070: 'Formatie van Beegden, Laag van Rosmalen',
+    4080: 'Formatie van Beegden',
+    4085: 'Formatie van Koewacht (kleiige top)',
+    4090: 'Formatie van Koewacht',
+    4100: 'Formatie van Woudenberg',
+    4110: 'Eem Formatie',
+    4120: 'Formatie van Woudenberg en Eem Formatie',
+    5000: 'Formatie van Drente',
+    5010: 'Formatie van Drente, Laagpakket van Gieten',
+    5020: 'Door landijs gestuwde afzettingen',
+    5030: 'Formatie van Drachten',
+    5040: 'Formatie van Urk, Laagpakket van Tynje',
+    5050: 'Formatie van Peelo',
+    5060: 'Formatie van Urk',
+    5070: 'Formatie van Sterksel',
+    5080: 'Formatie van Appelscha',
+    5090: 'Formatie van Stramproy',
+    5100: 'Formatie van Peize',
+    5110: 'Formatie van Waalre',
+    5120: 'Formatie van Peize en Formatie van Waalre',
+    5130: 'Formatie van Maassluis',
+    5140: 'Kiezeloöliet Formatie',
+    5150: 'Formatie van Oosterhout',
+    5160: 'Formatie van Inden',
+    5170: 'Formatie van Ville',
+    5180: 'Formatie van Breda',
+    5185: 'Formatie van Veldhoven',
+    5190: 'Rupel Formatie, Laagpakket van Boom',
+    5200: 'Rupel Formatie',
+    5210: 'Formatie van Tongeren, Laagpakket van Zelzate, Laag van Watervliet',
+    5220: 'Formatie van Tongeren, Laagpakket van Goudsberg',
+    5230: 'Formatie van Tongeren',
+    5240: 'Formatie van Dongen, Laagpakket van Asse',
+    5250: 'Formatie van Dongen, Laagpakket van Ieper',
+    5260: 'Formatie van Dongen',
+    5270: 'Formatie van Landen',
+    5280: 'Formatie van Heijenrath',
+    5290: 'Formatie van Houthem',
+    5300: 'Formatie van Maastricht',
+    5310: 'Formatie van Gulpen',
+    5320: 'Formatie van Vaals',
+    5330: 'Formatie van Aken',
+    6000: 'Formatie van Echteld (geulafzettingen generatie A)',
+    6005: 'Formatie van Beegden, Laagpakket van Oost-Maarland (geulafzettingen generatie A)',
+    6010: 'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie A)',
+    6020: 'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie A)',
+    6100: 'Formatie van Echteld (geulafzettingen generatie B)',
+    6110: 'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie B)',
+    6120: 'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie B)',
+    6200: 'Formatie van Echteld (geulafzettingen generatie C)',
+    6210: 'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie C)',
+    6220: 'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie C)',
+    6300: 'Formatie van Echteld (geulafzettingen generatie D)',
+    6310: 'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie D)',
+    6320: 'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie D)',
+    6400: 'Formatie van Echteld (geulafzettingen generatie E)',
+    6410: 'Formatie van Naaldwijk, Laagpakket van Walcheren (geulafzettingen generatie E)',
+    6420: 'Formatie van Naaldwijk, Laagpakket van Wormer (geulafzettingen generatie E)'
+}
+
+def retrieve_geological_profile_bro(x, y, zmin, zmax, model="lithok", namecutoff=30):
+    """
+    Retrieves a geological profile at a location with given coordinates (x,y EPSG 28992).
+    The routine creates a soil profile, starting from the ground surface, with depth increasing downwards.
+    The fillcolors for the geological layers are also returned.
+
+    :param x: X-coordinate of the location in EPSG 28992 (RD) coordinates
+    :param y: Y-coordinate of the location in EPSG 28992 (RD) coordinates
+    :param zmin: Minimum z coordinate in NAP
+    :param zmax: Maximum z coordinate in NAP
+    :param model: Type of model for stratigraphic information (choose from ``'lithok'`` or ``'strat'``)
+    :param namecutoff: Maximum number of characters for the geological units
+
+    :returns: soilprofile, fillcolors_plotly, fillcolors_matplotlib
+    """
+
+    try:
+        from netCDF4 import Dataset
+
+        # Code from Thomas Van der Linden (https://github.com/snakesonabrain/geotop_kaarten_profielen/blob/main/profiel_en_statische_kaart.py)
+        def x_van_rd_naar_geotop(_x):
+            # voor GeoTop v1.5 (anders dan v1.4!!)
+            # x: waarde tussen 0 en 2645, in RD is dat 13600 en 278200
+            # je kan een range opgeven door [x_start:stapgrootte:x_end]
+            return (_x - 13_600) / 100
+
+        def y_van_rd_naar_geotop(_y):
+            # voor GeoTop v1.5 (anders dan v1.4!!)
+            # y: waarde tussen 0 en 2810, in RD is dat 338500 en 619600
+            return (_y - 338_500) / 100
+
+        def z_van_nap_naar_geotop(_z):
+            # voor GeoTop v1.5 (anders dan v1.4!!)
+            # z: waarde tussen 0 en 312, in NAP is dat -50 en 106,5
+            return (_z - -50) * 2
+
+        zmin_rounded = int(round(zmin, 0))
+        zmax_rounded = int(round(zmax, 0))
+
+        base_url = 'https://www.dinodata.nl/opendap/GeoTOP/geotop.nc?%s[%i:1:%i][%i:1:%i][%i:1:%i]' % (
+            model,
+            int(x_van_rd_naar_geotop(x)), int(x_van_rd_naar_geotop(x)),
+            int(y_van_rd_naar_geotop(y)), int(y_van_rd_naar_geotop(y)),
+            int(z_van_nap_naar_geotop(zmin_rounded)), int(z_van_nap_naar_geotop(zmax_rounded)) 
+        )
+    
+        nc = Dataset(base_url)
+
+        stap = 0.5
+        zs = np.arange(zmin_rounded - stap, zmax_rounded + stap, stap)
+
+        sp = SoilProfile({
+            "Depth from [m]": [],
+            "Depth to [m]": []})
+        for i, _z in enumerate(zs):
+            try:
+                sp.loc[i, "Depth from [m]"] = zs[i+1]
+                sp.loc[i, "Depth to [m]"] = _z
+                
+                sp.loc[i, "Soil type"] = None
+                sp.loc[i, "Total unit weight [kN/m3]"] = 20
+            except:
+                pass
+
+        sp['Soil type'] = nc[model][0,0,:].data
+        nc.close()
+
+        sp.sort_values("Depth from [m]", ascending=False, inplace=True)
+        sp.reset_index(drop=True, inplace=True)
+        sp.convert_depth_sign()
+        sp.shift_depths(-sp['Depth from [m]'].iloc[0])
+
+        if model == 'lithok':
+            fillcolors_plotly = BRO_FILLCOLORS_PLOTLY_LITHOK
+            fillcolors_matplotlib = BRO_FILLCOLORS_MPL_LITHOK
+            soiltype_mapping = BRO_LITHOK_MAPPING
+            for i, row in sp.iterrows():
+                sp.loc[i, "Soil type"] = BRO_LITHOK_MAPPING[row['Soil type']]
+        elif model == 'strat':
+            fillcolors_plotly = BRO_FILLCOLORS_PLOTLY_STRAT
+            fillcolors_matplotlib = BRO_FILLCOLORS_MPL_STRAT
+            soiltype_mapping = BRO_STRAT_MAPPING
+            for i, row in sp.iterrows():
+                sp.loc[i, "Soil type"] = BRO_STRAT_MAPPING[row['Soil type']]
+        else:
+            raise ValueError("model should be 'lithok' or 'strat'")
+        
+        sp.merge_soiltypes()
+
+        shorthand_mapping_plotly = dict()
+        shorthand_mapping_mpl = dict()
+        for key, value in soiltype_mapping.items():
+            if value.__len__() > namecutoff:
+                shorthand_mapping_plotly[value[:namecutoff] + '...'] = fillcolors_plotly[value]
+                shorthand_mapping_mpl[value[:namecutoff] + '...'] = fillcolors_matplotlib[value]
+            else:
+                shorthand_mapping_plotly[value] = fillcolors_plotly[value]
+                shorthand_mapping_mpl[value] = fillcolors_matplotlib[value]
+        for i, row in sp.iterrows():
+            if row['Soil type'].__len__() > namecutoff:
+                sp.loc[i, "Soil type"] = row['Soil type'][:namecutoff] + '...'
+
+        return sp, shorthand_mapping_plotly, shorthand_mapping_mpl
+
+    except Exception as err:
+        raise IOError("Error during soil profile retrieval - %s" % str(err))
 
 # endregion

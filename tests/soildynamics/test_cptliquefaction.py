@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from vo_geotools.seismic.cptliquefaction import (
+from groundhog.soildynamics.cptliquefaction import (
     Qtn_cs_boulanger_idriss_2014,
     Qtn_cs_idriss_boulanger_2008,
     Qtn_cs_robertson_cabal_2022,

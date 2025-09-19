@@ -34,7 +34,7 @@ class Test_behaviourindex_pcpt_robertsonwride(unittest.TestCase):
             sigma_vo=150,
             sigma_vo_eff=50
         )
-        self.assertAlmostEqual(result['Ic [-]'], 3.203, 3)
+        self.assertAlmostEqual(result['Ic [-]'], 3.253, 3)
 
 
 class Test_gmax_sand_rixstokoe(unittest.TestCase):

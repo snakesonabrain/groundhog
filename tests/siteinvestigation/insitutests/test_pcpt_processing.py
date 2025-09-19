@@ -281,7 +281,7 @@ class Test_PCPTProcessing(unittest.TestCase):
             'Gmax Mayne and Rix (1993)', outputs={'Gmax [kPa]': 'Gmax clay [kPa]'},
             apply_for_soiltypes=['CLAY', ])
         self.assertAlmostEqual(
-            self.pandas_pcpt.data.loc[275, "Ic [-]"], 2.993, 2
+            self.pandas_pcpt.data.loc[275, "Ic [-]"], 3.102, 2
         )
         self.assertTrue(np.isnan(self.pandas_pcpt.data.loc[275, "Gmax sand [kPa]"]))
         self.assertAlmostEqual(

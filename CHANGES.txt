@@ -1,4 +1,13 @@
-v0.15.0, TBD
+v0.16.0 - TBD
+    - TODO: Prepare functionality for SPT fence diagram creation
+    - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
+    - TODO: Add hatching patterns to LogPlot
+    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
+    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
+    - TODO: Implement soil parameter name conventions across groundhog
+    - TODO: Add soil type classification according to Schneider et al (2008)
+
+v0.15.0, 19/09/2025 - The quokka release
     - Added notebook with soil parameter selection demo
     - Added plotting for LogPlot and LogPlotMatplotlib with CPT data
     - Added functionality for quickly selecting layering with a dummy soil profile. The base case is selection from CPT data.
@@ -13,15 +22,9 @@ v0.15.0, TBD
     - Added functionality for retrieving stratigraphic information from DOV (Flanders 3D geological model)
     - Added function to retrieve BRO CPT data based on BRO CPT ID
     - Added function to retrieve BRO stratigraphy based on GeoTop voxel model
-    - TODO: Prepare functionality for SPT fence diagram creation
-    - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
-    - TODO: Add hatching patterns to LogPlot
-    - TODO: Include code for suction caisson penetration in sand + notebook for Deutsche Bucht
-    - TODO: Property mapping takes too much times for CPTs, improve speed of routine
-    - TODO: Implement soil parameter name conventions across groundhog
-    - TODO: Add soil type classification according to Schneider et al (2008)
-
-
+    - Added Cn capping routine written by Ping Li
+    - Added function to prompt user for input on Soil type column in soil profile
+    
 v0.14.0, 03/06/2025 - Ping Li's contribution
     - .set_cv from ConsolidationCalculation did not accept lists. Fixed thanks to Ricardo Rodriguez Plata 
     - Added a function for creating a dummy SoilProfile object

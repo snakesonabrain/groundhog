@@ -66,6 +66,7 @@ def pcpt_normalisations(
     zhang_subtraction=0.15,
     robertsonwride_coefficient1=3.47,
     robertsonwride_coefficient2=1.22,
+    cn_capping=1.7,
     **kwargs
 ):
     """
@@ -112,7 +113,9 @@ def pcpt_normalisations(
 
         Q_t = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
 
-        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^n
+        Cn = \\min(1.7, \\left(\\frac{P_a}{\\sigma_{vo}^{\\prime}}\\right)^n)
+
+        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\cdot Cn
         
         n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1
 
@@ -159,9 +162,10 @@ def pcpt_normalisations(
     _Qt = (_qt - 0.001 * sigma_vo_tot) / (0.001 * sigma_vo_eff)
     _qnet = _qt - 0.001 * sigma_vo_tot
 
-    def Qtn(qt, sigma_vo, sigma_vo_eff, n, pa=0.001 * atmospheric_pressure):
-        return ((qt - 0.001 * sigma_vo) / pa) * ((pa / (0.001 * sigma_vo_eff)) ** n)
-
+    def Qtn(qt, sigma_vo, sigma_vo_eff, n, cn_capping=cn_capping, pa=0.001 * atmospheric_pressure):
+        cn = min(cn_capping, (pa / (0.001 * sigma_vo_eff)) ** n)
+        return ((qt - 0.001 * sigma_vo) / pa) * cn
+    
     def Fr(fs, qt, sigma_vo):
         return 100 * fs / (qt - 0.001 * sigma_vo)
 

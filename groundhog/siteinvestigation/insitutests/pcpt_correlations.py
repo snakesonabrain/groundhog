@@ -385,6 +385,7 @@ BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE = {
         "min_value": None,
         "max_value": None,
     },
+    "cn_capping": {"type": "float", "min_value": None, "max_value": None},
 }
 
 BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE_ERRORRETURN = {
@@ -413,6 +414,7 @@ def behaviourindex_pcpt_robertsonwride(
     zhang_subtraction=0.15,
     robertsonwride_coefficient1=3.47,
     robertsonwride_coefficient2=1.22,
+    cn_capping=1.7,
     **kwargs
 ):
     """
@@ -438,7 +440,8 @@ def behaviourindex_pcpt_robertsonwride(
     :param robertsonwride_coefficient2: Second coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 1.22)
 
     .. math::
-        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^n
+        Cn = \min(1.7, \left(\frac{P_a}{\sigma_{vo}^{\prime}}\right)^n)
+        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\cdot Cn
         \\\\
         n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1
         \\\\
@@ -464,8 +467,16 @@ def behaviourindex_pcpt_robertsonwride(
 
     """
 
-    def Qtn(qt, sigma_vo, sigma_vo_eff, n, pa=0.001 * atmospheric_pressure):
-        return ((qt - 0.001 * sigma_vo) / pa) * ((pa / (0.001 * sigma_vo_eff)) ** n)
+    def Qtn(
+        qt,
+        sigma_vo,
+        sigma_vo_eff,
+        n,
+        cn_capping=cn_capping,
+        pa=0.001 * atmospheric_pressure,
+    ):
+        cn = min(cn_capping, (pa / (0.001 * sigma_vo_eff)) ** n)
+        return ((qt - 0.001 * sigma_vo) / pa) * cn
 
     def Fr(fs, qt, sigma_vo):
         return 100 * fs / (qt - 0.001 * sigma_vo)
@@ -3213,56 +3224,62 @@ def vs_stressdependent_stuyts(
 
 
 DISSIPATION_TEST_TEH = {
-    'ch': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'shearmodulus': {'type': 'float', 'min_value': 0.0, 'max_value': 500000.0},
-    'undrained_shear_strength': {'type': 'float', 'min_value': 1.0, 'max_value': 500.0},
-    'u_initial': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
-    'cone_area': {'type': 'float', 'min_value': 2.0, 'max_value': 15.0},
-    'sensor_location': {'type': 'string', 'options': ("u1", "u2"), 'regex': None},
+    "ch": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "shearmodulus": {"type": "float", "min_value": 0.0, "max_value": 500000.0},
+    "undrained_shear_strength": {"type": "float", "min_value": 1.0, "max_value": 500.0},
+    "u_initial": {"type": "float", "min_value": 0.0, "max_value": 2000.0},
+    "cone_area": {"type": "float", "min_value": 2.0, "max_value": 15.0},
+    "sensor_location": {"type": "string", "options": ("u1", "u2"), "regex": None},
 }
 
 DISSIPATION_TEST_TEH_ERRORRETURN = {
-    'delta u [kPa]': np.nan,
-    't [s]': np.nan,
-    'delta u / delta u_i [-]': np.nan,
-    'T* [-]': np.nan,
-    'Ir [-]': np.nan,
-    'Cone radius [m]': np.nan
+    "delta u [kPa]": np.nan,
+    "t [s]": np.nan,
+    "delta u / delta u_i [-]": np.nan,
+    "T* [-]": np.nan,
+    "Ir [-]": np.nan,
+    "Cone radius [m]": np.nan,
 }
+
 
 @Validator(DISSIPATION_TEST_TEH, DISSIPATION_TEST_TEH_ERRORRETURN)
 def dissipation_test_teh(
-    ch,shearmodulus,undrained_shear_strength,u_initial,
-    cone_area=10.0,sensor_location='u2', **kwargs):
-
+    ch,
+    shearmodulus,
+    undrained_shear_strength,
+    u_initial,
+    cone_area=10.0,
+    sensor_location="u2",
+    **kwargs
+):
     """
     Calculates the pore pressure dissipation from a dissipation tests in clay according to the normalised dissipation curves proposed by Teh & Houlsby (1991).
-    
+
     :param ch: Horizontal coefficient of consolidation (:math:`c_h`) [m2/yr] - Suggested range: 0.0 <= ch <= 100.0
     :param shearmodulus: Shear modulus of the soil (:math:`G`) [kPa] - Suggested range: 0.0 <= shearmodulus <= 500000.0
     :param undrained_shear_strength: Undrained shear strength (:math:`S_u`) [kPa] - Suggested range: 1.0 <= undrained_shear_strength <= 500.0
     :param u_initial: Initial excess pore pressure (:math:`\\Delta u_i`) [kPa] - Suggested range: 0.0 <= u_initial <= 2000.0
     :param cone_area: Cone area (:math:`\\pi a^2`) [cm2] - Suggested range: 2.0 <= cone_area <= 15.0 (optional, default= 10.0)
     :param sensor_location: Location of the pore pressure sensor (optional, default= 'u2') - Options: ('u1', ' u2')
-    
+
     .. math::
         T^{*} = \\frac{c_h \\cdot t}{a^2 \\cdot \\sqrt{I_r}}
-    
+
     :returns: Dictionary with the following keys:
-        
+
         - 'delta u [kPa]': List with excess pore pressures (:math:`\\Delta u`)  [kPa]
         - 't [s]': List with times for excess pore pressure dissipation (:math:`t`)  [s]
         - 'delta u / delta u_i [-]': Normalised excess pore pressure decay (:math:`\\Delta u \\Delta u_i`)  [-]
         - 'T* [-]': Time factors (:math:`T^*`) [-]
         - 'Ir [-]': Rigidity index (G/Su) [-]
         - 'Cone radius [m]': Radius of the cone [m]
-    
+
     Reference - Teh, C. I., & Houlsby, G. T. (1991). An analytical study of the cone penetration test in clay. Geotechnique, 41(1), 17-34.
 
     """
     _Tstar = np.logspace(-3, 3, 500)
 
-    if sensor_location == 'u2':
+    if sensor_location == "u2":
         _Tstars = [
             0.001,
             0.0011207799270614612,
@@ -3330,7 +3347,7 @@ def dissipation_test_teh(
             24.49487123969776,
             28.793578411465823,
             33.601692644552806,
-            1000
+            1000,
         ]
         _normalised_pressures = [
             1,
@@ -3399,7 +3416,8 @@ def dissipation_test_teh(
             0,
             0,
             0,
-            0]
+            0,
+        ]
     else:
         _Tstars = [
             0.001,
@@ -3436,7 +3454,7 @@ def dissipation_test_teh(
             59.391231176738955,
             85.09700076063608,
             110.01944456864565,
-            1000
+            1000,
         ]
         _normalised_pressures = [
             0.9450785179505145,
@@ -3473,27 +3491,29 @@ def dissipation_test_teh(
             0,
             0,
             0,
-            0
+            0,
         ]
 
     _normalised_delta_u = np.interp(_Tstar, _Tstars, _normalised_pressures)
-    
+
     _delta_u = _normalised_delta_u * u_initial
-    _ch = ch / (3600 * 24 * 365) # m2/s
+    _ch = ch / (3600 * 24 * 365)  # m2/s
     _Ir = shearmodulus / undrained_shear_strength
 
     if _Ir < 25 or _Ir > 500:
-        warnings.warn('Rigidity index Ir = %.1f outside validation ranges (25 < Ir < 500)' % _Ir)
-    _a = np.sqrt((1e-4 * cone_area) / np.pi) # Cone radius in m
-    _t = _Tstar * (_a ** 2) * np.sqrt(_Ir) / _ch
-    
+        warnings.warn(
+            "Rigidity index Ir = %.1f outside validation ranges (25 < Ir < 500)" % _Ir
+        )
+    _a = np.sqrt((1e-4 * cone_area) / np.pi)  # Cone radius in m
+    _t = _Tstar * (_a**2) * np.sqrt(_Ir) / _ch
+
     return {
-        'delta u [kPa]': _delta_u,
-        't [s]': _t,
-        'delta u / delta u_i [-]': _normalised_delta_u,
-        'T* [-]': _Tstar,
-        'Ir [-]': _Ir,
-        'Cone radius [m]': _a
+        "delta u [kPa]": _delta_u,
+        "t [s]": _t,
+        "delta u / delta u_i [-]": _normalised_delta_u,
+        "T* [-]": _Tstar,
+        "Ir [-]": _Ir,
+        "Cone radius [m]": _a,
     }
 
 

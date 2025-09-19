@@ -236,6 +236,41 @@ SOILCLASS_ROBERTSON_ERRORRETURN = {
     "Soil type": np.nan,
 }
 
+ROBERTSON_CLASSES = {
+    9: "Very stiff fine grained",
+    8: "Very stiff sand to clayey sand",
+    7: "Gravelly sand to sand",
+    6: "Sands: clean sands to silty sands",
+    5: "Sand mixtures: silty sand to sand silty",
+    4: "Silt mixtures: clayey silt to silty clay",
+    3: "Clays: clay to silty clay",
+    2: "Organic soils-peats",
+    1: "Sensitive, fine-grained"
+}
+
+ROBERTSON_COLORS_PLOTLY = {
+    "Very stiff fine grained": 'rgb(200,200,200)',
+    "Very stiff sand to clayey sand": 'rgb(154,78,163)',
+    "Gravelly sand to sand": 'rgb(216,163,32)',
+    "Sands: clean sands to silty sands": 'rgb(243,225,6)',
+    "Sand mixtures: silty sand to sand silty": 'rgb(255,255,0)',
+    "Silt mixtures: clayey silt to silty clay": 'rgb(194,207,92)',
+    "Clays: clay to silty clay": 'rgb(0,146,0)',
+    "Organic soils-peats": 'rgb(157,78,64)',
+    "Sensitive, fine-grained": 'rgb(27,101,175)'
+}
+
+ROBERTSON_COLORS_MPL = {
+    "Very stiff fine grained": (0.7843137254901961, 0.7843137254901961, 0.7843137254901961),
+    "Very stiff sand to clayey sand": (0.6039215686274509, 0.3058823529411765, 0.6392156862745098),
+    "Gravelly sand to sand": (0.8470588235294118, 0.6392156862745098, 0.12549019607843137),
+    "Sands: clean sands to silty sands": (0.9529411764705882, 0.8823529411764706, 0.023529411764705882),
+    "Sand mixtures: silty sand to sand silty": (1.0, 1.0, 0.0),
+    "Silt mixtures: clayey silt to silty clay": (0.7607843137254902, 0.8117647058823529, 0.3607843137254902),
+    "Clays: clay to silty clay": (0.0, 0.5725490196078431, 0.0),
+    "Organic soils-peats": (0.615686274509804, 0.3058823529411765, 0.25098039215686274),
+    "Sensitive, fine-grained": (0.10588235294117647, 0.396078431372549, 0.6862745098039216)
+}
 
 @Validator(SOILCLASS_ROBERTSON, SOILCLASS_ROBERTSON_ERRORRETURN)
 def soilclass_robertson(ic_class_number, **kwargs):

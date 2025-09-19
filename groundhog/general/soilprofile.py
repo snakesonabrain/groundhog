@@ -20,6 +20,7 @@ import requests
 # Project imports
 from groundhog.general.plotting import plot_with_log, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import offsets, latlon_distance
+from groundhog.siteinvestigation.insitutests.pcpt_correlations import ROBERTSON_CLASSES
 
 
 class SoilProfile(pd.DataFrame):
@@ -875,7 +876,6 @@ class SoilProfile(pd.DataFrame):
         self.depth_integration(parameter=totalunitweightcolumn, outputparameter=totalverticalstresscolumn,
                                start_value=initial_vertical_total_stress)
 
-
     def applyfunction(self, function, resultkey, outputkey, parametermapping=dict(), **kwargs):
         """
         Applies a groundhog function to a soil profile. The function is applied to each row of the soilprofile.
@@ -962,6 +962,22 @@ class SoilProfile(pd.DataFrame):
         else:
             # String in the selected layer
             return _selected_layer[parameter]
+
+    def select_soiltype(self, robertson=True):
+        """
+        Method for assigning soil types to layers. User input is expected.
+        By default, this method works with Robertson soil types (``robertson=True``) which maps numbers
+        from the Robertson charts to soil types and puts these descriptions in the ``'Soil Type'`` column.
+        When ``robertson=False``, the user can just type a self-chosen soil type name.
+        """
+        for i, row in self.iterrows():
+            if robertson:
+                soiltype = input("Layer %i - %.2fm to %.2fm: Enter Robertson soil type number" % (i+1, row['Depth from [m]'], row['Depth to [m]']))
+                self.loc[i, "Soil type"] = ROBERTSON_CLASSES[int(soiltype)]
+            else:
+                soiltype = input("Layer %i - %.2fm to %.2fm: Enter soil type" % (i+1, row['Depth from [m]'], row['Depth to [m]']))
+                self.loc[i, "Soil type"] = str(soiltype)
+
 
 def create_blank_soilprofile(max_depth, min_depth=0, soiltype='Unknown', bulkunitweight=20):
     """
@@ -1867,3 +1883,4 @@ def retrieve_geological_profile_bro(x, y, zmin, zmax, model="lithok", namecutoff
         raise IOError("Error during soil profile retrieval - %s" % str(err))
 
 # endregion
+

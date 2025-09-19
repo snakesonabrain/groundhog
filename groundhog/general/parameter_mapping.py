@@ -113,6 +113,7 @@ SOIL_PARAMETER_MAPPING = {
     "Major principal stress [kPa]": "sigma_1",
     "Interface friction angle [deg]": "interface_friction_angle",
     "Undrained shear strength [kPa]": "undrained_shear_strength",
+    "Linear undrained shear strength increase [kPa]": "k_su",
     "API soil description": "api_soildescription",
     "API relative density description": "api_relativedensity",
     "Limiting unit skin friction [kPa]": "fs_lim",

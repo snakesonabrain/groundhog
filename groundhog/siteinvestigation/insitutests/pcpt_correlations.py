@@ -8,6 +8,7 @@ __author__ = "Bruno Stuyts"
 # 3rd party packages
 import numpy as np
 from scipy.optimize import brentq
+from scipy.interpolate import interp1d
 import warnings
 
 # Project imports
@@ -37,6 +38,12 @@ PCPT_NORMALISATIONS_ERRORRETURN = {
     "Qt [-]": np.nan,
     "Fr [-]": np.nan,
     "qnet [MPa]": np.nan,
+    "exponent_zhang [-]": np.nan,
+    "Qtn [-]": np.nan,
+    "Fr [%]": np.nan,
+    "Ic [-]": np.nan,
+    "Ic class number [-]": np.nan,
+    "Ic class": None,
 }
 
 
@@ -51,6 +58,15 @@ def pcpt_normalisations(
     cone_area_ratio,
     start_depth=0.0,
     unitweight_water=10.25,
+    atmospheric_pressure=100,
+    ic_min=1.0,
+    ic_max=4.0,
+    zhang_multiplier_1=0.381,
+    zhang_multiplier_2=0.05,
+    zhang_subtraction=0.15,
+    robertsonwride_coefficient1=3.47,
+    robertsonwride_coefficient2=1.22,
+    cn_capping=1.7,
     **kwargs
 ):
     """
@@ -73,6 +89,14 @@ def pcpt_normalisations(
     :param cone_area_ratio: Ratio between the cone rod area and the maximum cone area (:math:`a`) [:math:`-`] - Suggested range: 0.0 <= cone_area_ratio <= 1.0
     :param start_depth: Start depth of the test, specify this for a downhole test. Leave at zero for a test starting from surface (:math:`d`) [:math:`m`] - Suggested range: start_depth >= 0.0 (optional, default= 0.0)
     :param unitweight_water: Unit weight of water, default is for seawater (:math:`\\gamma_w`) [:math:`kN/m3`] - Suggested range: 9.0 <= unitweight_water <= 11.0 (optional, default= 10.25)
+    :param atmospheric_pressure: Atmospheric pressure (used for normalisation) (:math:`P_a`) [:math:`kPa`] (optional, default= 100.0)
+    :param ic_min: Minimum value for soil behaviour type index used in the optimisation routine (:math:`I_{c,min}`) [:math:`-`] (optional, default= 1.0)
+    :param ic_max: Maximum value for soil behaviour type index used in the optimisation routine (:math:`I_{c,max}`) [:math:`-`] (optional, default= 4.0)
+    :param zhang_multiplier_1: First multiplier in the equation for exponent n (:math:``) [:math:`-`] (optional, default= 0.381)
+    :param zhang_multiplier_2: Second multiplier in the equation for exponent n (:math:``) [:math:`-`] (optional, default= 0.05)
+    :param zhang_subtraction: Term subtracted in the equation for exponent n (:math:``) [:math:`-`] (optional, default= 0.15)
+    :param robertsonwride_coefficient1: First coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 3.47)
+    :param robertsonwride_coefficient2: Second coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 1.22)
 
     .. math::
         q_c = q_c^* + d \\cdot a \\cdot \\gamma_w
@@ -89,6 +113,12 @@ def pcpt_normalisations(
 
         Q_t = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
 
+        Cn = \\min(1.7, \\left(\\frac{P_a}{\\sigma_{vo}^{\\prime}}\\right)^n)
+
+        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\cdot Cn
+        
+        n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1
+
         F_r = \\frac{f_s}{q_t - \\sigma_{vo}}
 
         q_{net} = q_t - \\sigma_{vo}
@@ -104,6 +134,13 @@ def pcpt_normalisations(
         - 'Qt [-]': Normalised cone resistance (:math:`Q_t`)  [:math:`-`]
         - 'Fr [-]': Normalised friction ratio (:math:`F_r`)  [:math:`-`]
         - 'qnet [MPa]': Net cone resistance (:math:`q_{net}`)  [:math:`MPa`]
+        - 'exponent_zhang [-]': Exponent n according to Zhang et al (:math:`n`)  [:math:`-`]
+        - 'Qtn [-]': Normalised cone resistance (:math:`Q_{tn}`)  [:math:`-`]
+        - 'Fr [%]': Normalised friction ratio (:math:`F_r`)  [:math:`%`]
+        - 'Ic [-]': Soil behaviour type index (:math:`I_c`)  [:math:`-`]
+        - 'Ic class number [-]': Soil behaviour type class number according to the Robertson chart
+        - 'Ic class': Soil behaviour type class description according to the Robertson chart
+
 
     .. figure:: images/pcpt_normalisations_1.png
         :figwidth: 500.0
@@ -123,8 +160,58 @@ def pcpt_normalisations(
     _Rf = 100.0 * measured_fs / _qt
     _Bq = _Delta_u2 / (_qt - 0.001 * sigma_vo_tot)
     _Qt = (_qt - 0.001 * sigma_vo_tot) / (0.001 * sigma_vo_eff)
-    _Fr = measured_fs / (_qt - 0.001 * sigma_vo_tot)
     _qnet = _qt - 0.001 * sigma_vo_tot
+
+    def Qtn(qt, sigma_vo, sigma_vo_eff, n, cn_capping=cn_capping, pa=0.001 * atmospheric_pressure):
+        cn = min(cn_capping, (pa / (0.001 * sigma_vo_eff)) ** n)
+        return ((qt - 0.001 * sigma_vo) / pa) * cn
+    
+    def Fr(fs, qt, sigma_vo):
+        return 100 * fs / (qt - 0.001 * sigma_vo)
+
+    def exponent_zhang(ic, sigma_vo_eff, pa=atmospheric_pressure):
+        return min(
+            1,
+            zhang_multiplier_1 * ic
+            + zhang_multiplier_2 * (sigma_vo_eff / pa)
+            - zhang_subtraction,
+        )
+
+    def soilbehaviourtypeindex(qt, fr):
+        return np.sqrt(
+            (robertsonwride_coefficient1 - np.log10(qt)) ** 2
+            + (np.log10(fr) + robertsonwride_coefficient2) ** 2
+        )
+
+    def rootfunction(ic, qt, fs, sigma_vo, sigma_vo_eff):
+        _fr = Fr(fs, qt, sigma_vo)
+        _n = exponent_zhang(ic, sigma_vo_eff)
+        _qtn = Qtn(qt, sigma_vo, sigma_vo_eff, _n)
+        return ic - soilbehaviourtypeindex(_qtn, _fr)
+
+    _Ic = brentq(rootfunction, ic_min, ic_max, args=(_qt, measured_fs, sigma_vo_tot, sigma_vo_eff))
+    _exponent_zhang = exponent_zhang(_Ic, sigma_vo_eff)
+    _Qtn = Qtn(_qt, sigma_vo_tot, sigma_vo_eff, _exponent_zhang)
+    _Fr = Fr(measured_fs, _qt, sigma_vo_tot)
+
+    if _Ic < 1.31:
+        _Ic_class_number = 7
+        _Ic_class = "Gravelly sand to sand"
+    elif 1.31 <= _Ic < 2.05:
+        _Ic_class_number = 6
+        _Ic_class = "Sands: clean sands to silty sands"
+    elif 2.05 <= _Ic < 2.6:
+        _Ic_class_number = 5
+        _Ic_class = "Sand mixtures: silty sand to sand silty"
+    elif 2.6 <= _Ic < 2.95:
+        _Ic_class_number = 4
+        _Ic_class = "Silt mixtures: clayey silt to silty clay"
+    elif 2.95 <= _Ic < 3.6:
+        _Ic_class_number = 3
+        _Ic_class = "Clays: clay to silty clay"
+    else:
+        _Ic_class_number = 2
+        _Ic_class = "Organic soils-peats"
 
     return {
         "qt [MPa]": _qt,
@@ -136,6 +223,12 @@ def pcpt_normalisations(
         "Qt [-]": _Qt,
         "Fr [-]": _Fr,
         "qnet [MPa]": _qnet,
+        "exponent_zhang [-]": _exponent_zhang,
+        "Qtn [-]": _Qtn,
+        "Fr [%]": _Fr,
+        "Ic [-]": _Ic,
+        "Ic class number [-]": _Ic_class_number,
+        "Ic class": _Ic_class,
     }
 
 
@@ -147,6 +240,41 @@ SOILCLASS_ROBERTSON_ERRORRETURN = {
     "Soil type": np.nan,
 }
 
+ROBERTSON_CLASSES = {
+    9: "Very stiff fine grained",
+    8: "Very stiff sand to clayey sand",
+    7: "Gravelly sand to sand",
+    6: "Sands: clean sands to silty sands",
+    5: "Sand mixtures: silty sand to sand silty",
+    4: "Silt mixtures: clayey silt to silty clay",
+    3: "Clays: clay to silty clay",
+    2: "Organic soils-peats",
+    1: "Sensitive, fine-grained"
+}
+
+ROBERTSON_COLORS_PLOTLY = {
+    "Very stiff fine grained": 'rgb(200,200,200)',
+    "Very stiff sand to clayey sand": 'rgb(154,78,163)',
+    "Gravelly sand to sand": 'rgb(216,163,32)',
+    "Sands: clean sands to silty sands": 'rgb(243,225,6)',
+    "Sand mixtures: silty sand to sand silty": 'rgb(255,255,0)',
+    "Silt mixtures: clayey silt to silty clay": 'rgb(194,207,92)',
+    "Clays: clay to silty clay": 'rgb(0,146,0)',
+    "Organic soils-peats": 'rgb(157,78,64)',
+    "Sensitive, fine-grained": 'rgb(27,101,175)'
+}
+
+ROBERTSON_COLORS_MPL = {
+    "Very stiff fine grained": (0.7843137254901961, 0.7843137254901961, 0.7843137254901961),
+    "Very stiff sand to clayey sand": (0.6039215686274509, 0.3058823529411765, 0.6392156862745098),
+    "Gravelly sand to sand": (0.8470588235294118, 0.6392156862745098, 0.12549019607843137),
+    "Sands: clean sands to silty sands": (0.9529411764705882, 0.8823529411764706, 0.023529411764705882),
+    "Sand mixtures: silty sand to sand silty": (1.0, 1.0, 0.0),
+    "Silt mixtures: clayey silt to silty clay": (0.7607843137254902, 0.8117647058823529, 0.3607843137254902),
+    "Clays: clay to silty clay": (0.0, 0.5725490196078431, 0.0),
+    "Organic soils-peats": (0.615686274509804, 0.3058823529411765, 0.25098039215686274),
+    "Sensitive, fine-grained": (0.10588235294117647, 0.396078431372549, 0.6862745098039216)
+}
 
 @Validator(SOILCLASS_ROBERTSON, SOILCLASS_ROBERTSON_ERRORRETURN)
 def soilclass_robertson(ic_class_number, **kwargs):
@@ -261,6 +389,7 @@ BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE = {
         "min_value": None,
         "max_value": None,
     },
+    "cn_capping": {"type": "float", "min_value": None, "max_value": None},
 }
 
 BEHAVIOURINDEX_PCPT_ROBERTSONWRIDE_ERRORRETURN = {
@@ -289,6 +418,7 @@ def behaviourindex_pcpt_robertsonwride(
     zhang_subtraction=0.15,
     robertsonwride_coefficient1=3.47,
     robertsonwride_coefficient2=1.22,
+    cn_capping=1.7,
     **kwargs
 ):
     """
@@ -314,7 +444,8 @@ def behaviourindex_pcpt_robertsonwride(
     :param robertsonwride_coefficient2: Second coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 1.22)
 
     .. math::
-        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^n
+        Cn = \min(1.7, \left(\frac{P_a}{\sigma_{vo}^{\prime}}\right)^n)
+        Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\cdot Cn
         \\\\
         n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1
         \\\\
@@ -340,8 +471,16 @@ def behaviourindex_pcpt_robertsonwride(
 
     """
 
-    def Qtn(qt, sigma_vo, sigma_vo_eff, n, pa=0.001 * atmospheric_pressure):
-        return ((qt - 0.001 * sigma_vo) / pa) * ((pa / (0.001 * sigma_vo_eff)) ** n)
+    def Qtn(
+        qt,
+        sigma_vo,
+        sigma_vo_eff,
+        n,
+        cn_capping=cn_capping,
+        pa=0.001 * atmospheric_pressure,
+    ):
+        cn = min(cn_capping, (pa / (0.001 * sigma_vo_eff)) ** n)
+        return ((qt - 0.001 * sigma_vo) / pa) * cn
 
     def Fr(fs, qt, sigma_vo):
         return 100 * fs / (qt - 0.001 * sigma_vo)
@@ -3089,56 +3228,62 @@ def vs_stressdependent_stuyts(
 
 
 DISSIPATION_TEST_TEH = {
-    'ch': {'type': 'float', 'min_value': 0.0, 'max_value': 100.0},
-    'shearmodulus': {'type': 'float', 'min_value': 0.0, 'max_value': 500000.0},
-    'undrained_shear_strength': {'type': 'float', 'min_value': 1.0, 'max_value': 500.0},
-    'u_initial': {'type': 'float', 'min_value': 0.0, 'max_value': 2000.0},
-    'cone_area': {'type': 'float', 'min_value': 2.0, 'max_value': 15.0},
-    'sensor_location': {'type': 'string', 'options': ("u1", "u2"), 'regex': None},
+    "ch": {"type": "float", "min_value": 0.0, "max_value": 100.0},
+    "shearmodulus": {"type": "float", "min_value": 0.0, "max_value": 500000.0},
+    "undrained_shear_strength": {"type": "float", "min_value": 1.0, "max_value": 500.0},
+    "u_initial": {"type": "float", "min_value": 0.0, "max_value": 2000.0},
+    "cone_area": {"type": "float", "min_value": 2.0, "max_value": 15.0},
+    "sensor_location": {"type": "string", "options": ("u1", "u2"), "regex": None},
 }
 
 DISSIPATION_TEST_TEH_ERRORRETURN = {
-    'delta u [kPa]': np.nan,
-    't [s]': np.nan,
-    'delta u / delta u_i [-]': np.nan,
-    'T* [-]': np.nan,
-    'Ir [-]': np.nan,
-    'Cone radius [m]': np.nan
+    "delta u [kPa]": np.nan,
+    "t [s]": np.nan,
+    "delta u / delta u_i [-]": np.nan,
+    "T* [-]": np.nan,
+    "Ir [-]": np.nan,
+    "Cone radius [m]": np.nan,
 }
+
 
 @Validator(DISSIPATION_TEST_TEH, DISSIPATION_TEST_TEH_ERRORRETURN)
 def dissipation_test_teh(
-    ch,shearmodulus,undrained_shear_strength,u_initial,
-    cone_area=10.0,sensor_location='u2', **kwargs):
-
+    ch,
+    shearmodulus,
+    undrained_shear_strength,
+    u_initial,
+    cone_area=10.0,
+    sensor_location="u2",
+    **kwargs
+):
     """
     Calculates the pore pressure dissipation from a dissipation tests in clay according to the normalised dissipation curves proposed by Teh & Houlsby (1991).
-    
+
     :param ch: Horizontal coefficient of consolidation (:math:`c_h`) [m2/yr] - Suggested range: 0.0 <= ch <= 100.0
     :param shearmodulus: Shear modulus of the soil (:math:`G`) [kPa] - Suggested range: 0.0 <= shearmodulus <= 500000.0
     :param undrained_shear_strength: Undrained shear strength (:math:`S_u`) [kPa] - Suggested range: 1.0 <= undrained_shear_strength <= 500.0
     :param u_initial: Initial excess pore pressure (:math:`\\Delta u_i`) [kPa] - Suggested range: 0.0 <= u_initial <= 2000.0
     :param cone_area: Cone area (:math:`\\pi a^2`) [cm2] - Suggested range: 2.0 <= cone_area <= 15.0 (optional, default= 10.0)
     :param sensor_location: Location of the pore pressure sensor (optional, default= 'u2') - Options: ('u1', ' u2')
-    
+
     .. math::
         T^{*} = \\frac{c_h \\cdot t}{a^2 \\cdot \\sqrt{I_r}}
-    
+
     :returns: Dictionary with the following keys:
-        
+
         - 'delta u [kPa]': List with excess pore pressures (:math:`\\Delta u`)  [kPa]
         - 't [s]': List with times for excess pore pressure dissipation (:math:`t`)  [s]
         - 'delta u / delta u_i [-]': Normalised excess pore pressure decay (:math:`\\Delta u \\Delta u_i`)  [-]
         - 'T* [-]': Time factors (:math:`T^*`) [-]
         - 'Ir [-]': Rigidity index (G/Su) [-]
         - 'Cone radius [m]': Radius of the cone [m]
-    
+
     Reference - Teh, C. I., & Houlsby, G. T. (1991). An analytical study of the cone penetration test in clay. Geotechnique, 41(1), 17-34.
 
     """
     _Tstar = np.logspace(-3, 3, 500)
 
-    if sensor_location == 'u2':
+    if sensor_location == "u2":
         _Tstars = [
             0.001,
             0.0011207799270614612,
@@ -3206,7 +3351,7 @@ def dissipation_test_teh(
             24.49487123969776,
             28.793578411465823,
             33.601692644552806,
-            1000
+            1000,
         ]
         _normalised_pressures = [
             1,
@@ -3275,7 +3420,8 @@ def dissipation_test_teh(
             0,
             0,
             0,
-            0]
+            0,
+        ]
     else:
         _Tstars = [
             0.001,
@@ -3312,7 +3458,7 @@ def dissipation_test_teh(
             59.391231176738955,
             85.09700076063608,
             110.01944456864565,
-            1000
+            1000,
         ]
         _normalised_pressures = [
             0.9450785179505145,
@@ -3349,27 +3495,142 @@ def dissipation_test_teh(
             0,
             0,
             0,
-            0
+            0,
         ]
 
     _normalised_delta_u = np.interp(_Tstar, _Tstars, _normalised_pressures)
-    
+
     _delta_u = _normalised_delta_u * u_initial
-    _ch = ch / (3600 * 24 * 365) # m2/s
+    _ch = ch / (3600 * 24 * 365)  # m2/s
     _Ir = shearmodulus / undrained_shear_strength
 
     if _Ir < 25 or _Ir > 500:
-        warnings.warn('Rigidity index Ir = %.1f outside validation ranges (25 < Ir < 500)' % _Ir)
-    _a = np.sqrt((1e-4 * cone_area) / np.pi) # Cone radius in m
-    _t = _Tstar * (_a ** 2) * np.sqrt(_Ir) / _ch
-    
+        warnings.warn(
+            "Rigidity index Ir = %.1f outside validation ranges (25 < Ir < 500)" % _Ir
+        )
+    _a = np.sqrt((1e-4 * cone_area) / np.pi)  # Cone radius in m
+    _t = _Tstar * (_a**2) * np.sqrt(_Ir) / _ch
+
     return {
-        'delta u [kPa]': _delta_u,
-        't [s]': _t,
-        'delta u / delta u_i [-]': _normalised_delta_u,
-        'T* [-]': _Tstar,
-        'Ir [-]': _Ir,
-        'Cone radius [m]': _a
+        "delta u [kPa]": _delta_u,
+        "t [s]": _t,
+        "delta u / delta u_i [-]": _normalised_delta_u,
+        "T* [-]": _Tstar,
+        "Ir [-]": _Ir,
+        "Cone radius [m]": _a,
+    }
+
+
+CLIPPINGDEPTHS_QC1N_TIANLEHANE = {
+    'qc1NW': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'qc1NS': {'type': 'float', 'min_value': 0.0, 'max_value': 1000.0},
+    'cone_diameter': {'type': 'float', 'min_value': 0.001, 'max_value': 0.1},
+    'tolerance': {'type': 'float', 'min_value': 0.001, 'max_value': 0.999}
+}
+
+CLIPPINGDEPTHS_QC1N_TIANLEHANE_ERRORRETURN = {
+    'r': np.nan,
+    'eta': np.nan,
+    'qc1N0': np.nan,
+    'as': np.nan,
+    'aw': np.nan,
+    'z*W': np.nan,
+    'z*S': np.nan,
+    'qc1N weak': np.nan,
+    'qc1N strong': np.nan,
+    'qc1N weak function': None,
+    'qc1N strong function': None,
+    'z* clipping weak': np.nan,
+    'z* clipping strong': np.nan,
+    'z clipping weak [m]': np.nan,
+    'z clipping strong [m]': np.nan,
+}
+
+@Validator(CLIPPINGDEPTHS_QC1N_TIANLEHANE, CLIPPINGDEPTHS_QC1N_TIANLEHANE_ERRORRETURN)
+def clippingdepths_qc1N_tianlehane(qc1NW, qc1NS, cone_diameter=0.03568, tolerance=0.05):
+    """
+    Calculates the depths where the normalised cone resistance reaches steady values in weak over strong layer systems based on the equations proposed by Tian and Lehane (2025).
+    These depths can be used to filter CPT data which belongs to a layer transition.
+    The equations were developed based on centrifuge and pressure chamber testing with various two-layer systems (denser sand over looser sand, looser sand over denser sand, sand over clay).
+    Note that the equations provided by Tian and Lehane only work for weaker layers (lower normalised cone resistance) overlying stronger layers (higher normalised cone resistance).
+    
+    :param qc1NW: Steady-state normalised cone resistance in the weaker layer (:math:`q_{c1N,W}`) [-] - Suggested range: 0.0 <= qc1NW <= 1000.0
+    :param qc1NS: Steady-state normalised cone resistance in the stronger layer (:math:`q_{c1N,S}`) [-] - Suggested range: 0.0 <= qc1NS <= 1000.0
+    :param cone_diameter: Cone diameter (:math:`d_c`) [m] - Suggested range: 0.001 <= cone_diameter <= 1000.0 (optional, default=0.03568 for a 10cm2 cone)
+    :param tolerance: Defines the multiplier to detect which data needs to be clipped [-] - Suggested range: 0.001 <= tolerance <= 0.999 (optional, default=0.05)
+
+    .. math::
+        q_{c1N}=q_{c1N,0} - \\tanh \\left[ a_w z^* \\right] \\left( q_{c1N,0} - q_{c1N,W} \\right) \\quad \\text{in weak layer} \\\\
+        q_{c1N}=q_{c1N,0} + \\tanh \\left[ a_s z^* \\right] \\left( q_{c1N,S} - q_{c1N,0} \\right) \\quad \\text{in strong layer} \\\\
+        a_s = 0.7 r^2 + 0.15 \\\\
+        a_w = a_s + 0.4r < 1 \\\\
+        r = \\frac{q_{c1N,W}}{q_{c1N,S}} \\\\
+        z^* = \\frac{z-H_t}{d_c} \\\\
+        q_{c1N,0} = \\eta q_{c1N,S} \\\\
+        \\eta = 0.96 r^{0.64} \\quad 0<r<0.95
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'r': Ratio of weak to strong normalised cone resistance (:math:`r`) [-]
+        - 'eta': Multiplier on the normalised cone resistance of the strongest layer defining the normalised cone resistance at the interface (:math:`\\eta`) [-]
+        - 'qc1N0': Normalised cone tip resistance at the interface (:math:`q_{c1N0}`) [-]
+        - 'as': Fitting parameter for strong layer (:math:`a_s`) [-]
+        - 'aw': Fitting parameter for weak layer (:math:`a_w`) [-]
+        - 'z*W': Array of normalised depths in the weak layer (:math:`z^*_W`) [-]
+        - 'z*S': Array of normalised depths in the strong layer (:math:`z^*_S`) [-]
+        - 'qc1N weak': Array of normalised cone resistances in the weak layer (:math:`q_{c1N,W}`) [-]
+        - 'qc1N strong': Array of normalised cone resistances in the strong layer (:math:`q_{c1N,S}`) [-]
+        - 'qc1N weak function': Interpolation function providing normalised depth as a function of normalised cone resistance for the weak layer
+        - 'qc1N strong function': Interpolation function providing normalised depth as a function of normalised cone resistance for the strong layer
+        - 'z* clipping weak': Normalised offset from the interface in the weak layer below which CPT data needs to be clipped because it belongs to the layer transition [-]
+        - 'z* clipping strong': Normalised offset from the interface in the weak layer above which CPT data needs to be clipped because it belongs to the layer transition [-]
+        - 'z clipping weak': Absolute offset from the interface in the weak layer below which CPT data needs to be clipped because it belongs to the layer transition [m]
+        - 'z clipping strong': Absolute offset from the interface in the weak layer above which CPT data needs to be clipped because it belongs to the layer transition [m]
+    
+    Reference - Tian, Y. and Lehane, B. (2025). The influence of soil layering and penetrometer diameter on penetration resistance. Canadian Geotechnical Journal, DOI: 10.1139/cgj-2024-0491
+
+    """
+    _r = qc1NW / qc1NS
+    if _r > 0.95 or _r < 0:
+        raise ValueError("r should be between 0 and 0.95. Check qc1N contrast. _r = %.3f" % _r)
+    _eta = 0.96 * (_r ** 0.64)
+    _qc1N0 = _eta * qc1NS
+    
+    _as = 0.7 * (_r ** 2) + 0.15
+    _aw = _as + 0.4 * _r
+    if _aw > 1:
+        raise ValueError("aw should be smaller than 1")
+    
+    _zstar_weak = np.linspace(-20, 0, 101)
+    _zstar_strong = np.linspace(0, 20, 101)
+    _qc1N_weak = _qc1N0 + np.tanh(_aw * _zstar_weak) * (_qc1N0 - qc1NW)
+    _qc1N_strong = _qc1N0 + np.tanh(_as * _zstar_strong) * (qc1NS - _qc1N0)
+    
+    _qc1Nweak_func = interp1d(_qc1N_weak, _zstar_weak)
+    _qc1Nstrong_func = interp1d(_qc1N_strong, _zstar_strong)
+        
+    _zstar_clipping_weak = _qc1Nweak_func([(1 + tolerance) * qc1NW,])[0]
+    _zstar_clipping_strong = _qc1Nstrong_func([(1 - tolerance) * qc1NS,])[0]
+    
+    _z_clipping_weak = _zstar_clipping_weak * cone_diameter
+    _z_clipping_strong = _zstar_clipping_strong * cone_diameter
+
+    return {
+        'r': _r,
+        'eta': _eta,
+        'qc1N0': _qc1N0,
+        'as': _as,
+        'aw': _aw,
+        'z*W': _zstar_weak,
+        'z*S': _zstar_strong,
+        'qc1N weak': _qc1N_weak,
+        'qc1N strong': _qc1N_strong,
+        'qc1N weak function': _qc1Nweak_func,
+        'qc1N strong function': _qc1Nstrong_func,
+        'z* clipping weak': _zstar_clipping_weak,
+        'z* clipping strong': _zstar_clipping_strong,
+        'z clipping weak [m]': _z_clipping_weak,
+        'z clipping strong [m]': _z_clipping_strong,
     }
 
 CORRELATIONS = {

@@ -43,7 +43,7 @@ License and copyright
 -----------------------
 
 groundhog. A general-purpose Python library for geotechnical engineering.
-    Copyright (C) 2020  Bruno Stuyts
+    Copyright (C) 2020, 2021, 2022, 2023, 2024, 2025  Bruno Stuyts
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

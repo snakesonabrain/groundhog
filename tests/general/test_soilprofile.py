@@ -44,7 +44,6 @@ class Test_SoilProfile(unittest.TestCase):
             self.profile.loc[0, "Depth from [m]"], -1
         )
 
-
     def test_layerthickness(self):
         self.profile.calculate_layerthickness()
         self.assertEqual(
@@ -141,6 +140,18 @@ class Test_SoilProfile(unittest.TestCase):
         self.assertEqual(self.profile.loc[1, "Depth to [m]"], 2.5)
         self.profile.insert_layer_transition(depth=2)
         self.assertEqual(self.profile.loc[1, "Depth to [m]"], 2)
+
+    def test_merge_soiltypes(self):
+        self.profile['Su from [kPa]'] = [np.nan, 25, 50, np.nan]
+        self.profile['Su to [kPa]'] = [np.nan, 50, 100, np.nan]
+        self.profile['Dr [-]'] = [0.8, 0.5, np.nan, 0.6]
+        self.profile.insert_layer_transition(depth=2.5)
+        self.assertEqual(self.profile.loc[2, "Su from [kPa]"], 34.375)
+        self.assertEqual(self.profile.loc[2, "Dr [-]"], 0.5)
+        self.profile.merge_soiltypes()
+        self.assertEqual(self.profile.__len__(), 4)
+        self.assertEqual(self.profile.loc[2, "Su from [kPa]"], 50)
+        self.assertEqual(self.profile.loc[1, "Dr [-]"], 0.5)
 
     def test_sign_conversion(self):
         self.profile.convert_depth_sign()

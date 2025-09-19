@@ -17,12 +17,14 @@ import pandas as pd
 from plotly import tools, subplots
 import plotly.graph_objs as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
+import matplotlib.pyplot as plt
+import requests
 
 # Project imports
-from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, GROUNDHOG_PLOTTING_CONFIG
+from groundhog.general.plotting import plot_with_log, LogPlotMatplotlib, LogPlot, GROUNDHOG_PLOTTING_CONFIG
 from groundhog.general.parameter_mapping import SOIL_PARAMETER_MAPPING, merge_two_dicts, reverse_dict
 from groundhog.siteinvestigation.insitutests.pcpt_correlations import *
-from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram
+from groundhog.general.soilprofile import SoilProfile, plot_fence_diagram, retrieve_geological_profile_dov, retrieve_geological_profile_bro
 from groundhog.general.parameter_mapping import offsets, latlon_distance
 from groundhog.general.agsconversion import AGSConverter
 
@@ -179,6 +181,20 @@ class InsituTestProcessing(object):
         else:
             self.data["Vertical effective stress [kPa]"] = vertical_effective_stress
 
+    @property
+    def min_depth(self):
+        """
+        Returns the minimum depth of the in-situ test
+        """
+        return self.data['z [m]'].min()
+
+    @property
+    def max_depth(self):
+        """
+        Returns the maximum depth of the in-situ test
+        """
+        return self.data['z [m]'].max()
+
 
 class PCPTProcessing(InsituTestProcessing):
     """
@@ -199,6 +215,8 @@ class PCPTProcessing(InsituTestProcessing):
         super().__init__(title, waterunitweight)
         self.downhole_corrected = False
         self.coneprofile = pd.DataFrame()
+        self.pydov_name = None
+        self.bro_name = None
 
     # region Utility functions
 
@@ -403,7 +421,6 @@ class PCPTProcessing(InsituTestProcessing):
             u2_multiplier=u2_multiplier,
             add_zero_row=add_zero_row,
             **kwargs)
-
 
     def load_asc(self, path, column_widths=[], skiprows=None, custom_headers=None,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
@@ -763,7 +780,6 @@ class PCPTProcessing(InsituTestProcessing):
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
 
-
     def load_a00(self, path, column_widths=[], skiprows=None, custom_headers=None,
                  z_key=None, qc_key=None, fs_key=None, u2_key=None, push_key='Push',
                  qc_multiplier=1, fs_multiplier=1, u2_multiplier=1, add_zero_row=True, **kwargs):
@@ -894,10 +910,13 @@ class PCPTProcessing(InsituTestProcessing):
         except:
             raise IOError("Package pydov not available. Install it first: https://pydov.readthedocs.io/en/stable/")
 
+        self.pydov_name = name
         sondering = SonderingSearch()
         query = PropertyIsEqualTo(propertyname='sondeernummer',
                                   literal=name)
         self.data = sondering.search(query=query)
+        if self.data['diepte'].dropna().__len__() == 0:
+            z_key = 'lengte'
         if push_key not in self.data.columns:
             self.data.loc[:, "Push"] = 1
         self.rename_columns(z_key=z_key, qc_key=qc_key, fs_key=fs_key, u2_key=u2_key)
@@ -918,6 +937,62 @@ class PCPTProcessing(InsituTestProcessing):
         except Exception as err:
             raise ValueError("Error during dropping of empty rows. Review the error message and try again - %s" % str(
                 err))
+
+    def get_stratigraphy_pydov(self, **kwargs):
+        """
+        Retrieves stratigraphic info from the 3D geological model of Flanders based on a CPT loaded in pydov
+        """
+        if self.pydov_name is None:
+            raise ValueError("No pydov CPT available")
+        else:
+            lambert_x = self.data['x'].iloc[1]
+            lambert_y = self.data['y'].iloc[1]
+            return retrieve_geological_profile_dov(x=lambert_x, y=lambert_y, **kwargs)
+
+    def load_bro(self, name, **kwargs):
+        """
+        Load CPT data from BasisRegistratie Ondergrond (BRO) based on the unique CPT name which can be found in BRO.
+        The data loading is handled by the geotexx package written by Thomas van der Linden (https://github.com/ic144/geotexxx_package).
+        
+        :param name: Unique identifier of the CPT in BRO (see https://www.dinoloket.nl/ondergrondgegevens)
+        :return: Sets the `data` attribute of the PCPTProcessing object
+        """
+        try:
+            from geotexxx.gefxml_reader import Cpt
+        except:
+            raise IOError("Package geotexxx not available. Install it first: https://github.com/ic144/geotexxx_package")
+
+        self.bro_name = name
+        detail_url = f"https://publiek.broservices.nl/sr/cpt/v1/objects/%s" % name
+        
+        resp = requests.get(detail_url)
+        cpt_detail = Cpt()
+        cpt_detail.load_xml(resp.text, from_file=False)
+        try:
+            cpt_detail.data['porePressureU2']
+            self.load_pandas(
+                cpt_detail.data, z_key="penetrationLength", qc_key="coneResistance", fs_key="localFriction", u2_key="porePressureU2", **kwargs)
+        except Exception as err:
+            warnings.warn("No pore pressure data found")
+            cpt_detail.data.loc[:, 'u2 [MPa]'] = np.nan
+            self.load_pandas(
+                cpt_detail.data, z_key="penetrationLength", qc_key="coneResistance", fs_key="localFriction", **kwargs)
+        self.set_position(
+            northing=cpt_detail.northing, easting=cpt_detail.easting,
+            elevation=cpt_detail.groundlevel, srid=28992)
+
+    def get_stratigraphy_bro(self, **kwargs):
+        """
+        Retrieves stratigraphic info from the 3D geological model GeoTop of The Netherlands based on a CPT loaded from BRO
+        """
+        if self.bro_name is None:
+            raise ValueError("No pydov CPT available")
+        else:
+            return retrieve_geological_profile_bro(
+                x=self.easting,
+                y=self.northing,
+                zmin=self.elevation - self.max_depth,
+                zmax=self.elevation, **kwargs)
 
     def combine_pcpt(self, obj, keep="first"):
         """
@@ -979,6 +1054,29 @@ class PCPTProcessing(InsituTestProcessing):
         self.data = pd.concat([first_data, second_data])
         self.data.sort_values('z [m]', inplace=True)
         self.data.reset_index(drop=True, inplace=True)
+
+    # endregion
+
+    # region Layering selection
+    def select_layering(self, default_soiltype="Unknown", default_unitweight=20, stop_threshold=0, secondaryprofile=None, **kwargs):
+        """
+        Creates a dummy soil profile and creates a ``LogPlotMatplotlib`` from it.
+        It then allows the user to click on the plot to select layers.
+        The ``SoilProfile`` with the selected layering is then returned to the user.
+
+        :param default_soiltype: Default soil type to use for the soil profile resulting from the layer selection.
+        :param default_unitweight: Default unit weight to use for the soil profile resulting from the layer selection.
+        :param stop_threshold: qc values which controls ending the layer selection. Click below the threshold to stop the selection.
+        """
+        dummy_profile = SoilProfile({
+            "Depth from [m]": [0, ],
+            "Depth to [m]": [self.max_depth,],
+            "Soil type": [default_soiltype,],
+            "Total unit weight [kN/m3]": [default_unitweight,]
+        })
+        logplot = self.plot_raw_pcpt_withlog_matplotlib(soilprofile=dummy_profile, secondaryprofile=secondaryprofile, **kwargs)
+        logplot.select_layering()
+        return dummy_profile
 
     # endregion
 
@@ -1073,7 +1171,7 @@ class PCPTProcessing(InsituTestProcessing):
         else:
             warnings.warn("Downhole corrections have already been applied")
 
-    def normalise_pcpt(self, qc_for_rf=False):
+    def normalise_pcpt(self, qc_for_rf=False, calculate_ic=True, **kwargs):
         """
         Carries out the necessary normalisation and correction on PCPT data to allow calculation of derived parameters and soil type classification.
 
@@ -1086,6 +1184,8 @@ class PCPTProcessing(InsituTestProcessing):
         Note that the absence of pore water pressure measurements will lead to NaN values. Reasoning can be used (e.g. presence of rapidly draining layers) to edit the pore pressure data before running this method.
 
         The total sleeve friction is also calculated. If the cross-sectional area of the friction sleeve is equal at the top and bottom of the sleeve, a correction is not required. This is the default behaviour (cross-sectional areas equal to NaN) but the areas can be entered to calculate the total sleeve friction.
+
+        Soil behaviour type index :math:`I_c` and the corrected normalised cone resistance :math:`Q_{tn}` are calculated if ``calculate_ic`` is set to ``True``. For quicker calculation, set this boolean to False.
 
         .. math::
             q_c = q_c^* + d \\cdot a \\cdot \\gamma_w
@@ -1102,6 +1202,10 @@ class PCPTProcessing(InsituTestProcessing):
 
             Q_t = \\frac{q_t - \\sigma_{vo}}{\\sigma_{vo}^{\\prime}}
 
+            Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\left( \\frac{P_a}{\\sigma_{vo}^{\\prime}} \\right)^n
+        
+            n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1
+
             F_r = \\frac{f_s}{q_t - \\sigma_{vo}}
 
             q_{net} = q_t - \\sigma_{vo}
@@ -1113,28 +1217,56 @@ class PCPTProcessing(InsituTestProcessing):
         :return: Supplements the PCPT data (`.data`) with the normalised properties (column keys 'qt [MPa]', 'Delta u2 [MPa]', 'Rf [%]', 'Bq [-]', 'Qt [-]', 'Fr [%]', 'qnet [MPa]', 'ft [MPa]'
         """
         try:
-            self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
-            self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Hydrostatic pressure [kPa]"]
-            if qc_for_rf:
-                self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qc [MPa]']
-            else:
-                self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qt [MPa]']
-            self.data['Bq [-]'] = self.data['Delta u2 [MPa]'] / (
-                    self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
-            self.data['Qt [-]'] = (self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]) / (
-                    0.001 * self.data["Vertical effective stress [kPa]"])
-            self.data['Fr [%]'] = 100 * self.data['fs [MPa]'] / (
-                    self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
-            self.data['qnet [MPa]'] = self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]
-            for i, row in self.data.iterrows():
-                try:
-                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
-                        (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+            if calculate_ic:
+                for i, row in self.data.iterrows():
+                    _result = pcpt_normalisations(
+                        measured_qc=row['qc [MPa]'],
+                        measured_fs=row['fs [MPa]'],
+                        measured_u2=row['u2 [MPa]'],
+                        sigma_vo_tot=row['Vertical total stress [kPa]'],
+                        sigma_vo_eff=row['Vertical effective stress [kPa]'],
+                        depth=row['z [m]'],
+                        cone_area_ratio=row['area ratio [-]'],
+                        **kwargs
                     )
-                    if np.isnan(self.data.loc[i, "ft [MPa]"]):
+                    
+                    for _key in ['qt [MPa]', 'Delta u2 [MPa]', 'Rf [pct]', 'Bq [-]',
+                                 'Qt [-]', 'Fr [-]', 'qnet [MPa]',
+                                 'Qtn [-]', 'Fr [%]', 'Ic [-]', 'Ic class number [-]', 
+                                 'Ic class']:
+                        self.data.loc[i, _key] = _result[_key]
+                
+                    try:
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
+                            (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+                        )
+                        if np.isnan(self.data.loc[i, "ft [MPa]"]):
+                            self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+                    except:
                         self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
-                except:
-                    self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+            else:
+                self.data['qt [MPa]'] = self.data['qc [MPa]'] + self.data['u2 [MPa]'] * (1 - self.data['area ratio [-]'])
+                self.data['Delta u2 [MPa]'] = self.data['u2 [MPa]'] - 0.001 * self.data["Hydrostatic pressure [kPa]"]
+                if qc_for_rf:
+                    self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qc [MPa]']
+                else:
+                    self.data['Rf [%]'] = 100 * self.data['fs [MPa]'] / self.data['qt [MPa]']
+                self.data['Bq [-]'] = self.data['Delta u2 [MPa]'] / (
+                        self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
+                self.data['Qt [-]'] = (self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]) / (
+                        0.001 * self.data["Vertical effective stress [kPa]"])
+                self.data['Fr [%]'] = 100 * self.data['fs [MPa]'] / (
+                        self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"])
+                self.data['qnet [MPa]'] = self.data['qt [MPa]'] - 0.001 * self.data["Vertical total stress [kPa]"]
+                for i, row in self.data.iterrows():
+                    try:
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]'] - row['u2 [MPa]'] * (
+                            (row['Sleeve cross-sectional area bottom [cm2]'] - row['Sleeve cross-sectional area top [cm2]']) / row['Cone sleeve_area [cm2]']
+                        )
+                        if np.isnan(self.data.loc[i, "ft [MPa]"]):
+                            self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
+                    except:
+                        self.data.loc[i, "ft [MPa]"] = row['fs [MPa]']
 
         except Exception as err:
             raise ValueError("Error during calculation of normalised properties."
@@ -1339,7 +1471,225 @@ class PCPTProcessing(InsituTestProcessing):
         else:
             fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
+    def plot_raw_pcpt_withlog(self, soilprofile, qc_range=(-10, 100), qc_tick=10, fs_range=(0, 1), fs_tick=0.1,
+                      u2_range=(-0.5, 2.5), u2_tick=0.5, z_range=None, z_tick=2, rf_range=(0, 5), rf_tick=0.5,
+                      plot_friction_ratio=False,
+                      plot_height=700, plot_width=1000, return_fig=False,
+                      plot_title=None, latex_titles=True,
+                      fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}, **kwargs) :
+        """
+        Plots the raw PCPT data using the Plotly package using a ``groundhog`` ``LogPlot``. This generates an interactive plot.
 
+        :param soilprofile: ``SoilProfile`` object to use for the ``LogPlot``
+        :param qc_range: Range for the cone tip resistance (default=(0, 100MPa))
+        :param qc_tick: Tick interval for the cone tip resistance (default=10MPa)
+        :param fs_range: Range for the sleeve friction (default=(0, 1MPa))
+        :param fs_tick: Tick interval for sleeve friction (default=0.1MPa)
+        :param u2_range: Range for the pore pressure at the shoulder (default=(-0.1, 0.5MPa))
+        :param u2_tick: Tick interval for the pore pressure at the shoulder (default=0.05MPa)
+        :param z_range: Range for the depth (default=None for plotting from zero to maximum cone penetration)
+        :param z_tick: Tick interval for depth (default=2m)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param rf_range: Range for the friction ratio, if used (default=None for plotting from zero to 5%)
+        :param rf_tick: Tick interval for friction ratio, if used (default=0.5%)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted (default=False)
+        :param friction_ratio_panel: Panel for plotting friction ratio (default=3 for pore pressure panel). Only used when ``plot_friction_ratio=True``
+        :param plot_height: Height for the plot (default=700px)
+        :param plot_width: Width for the plot (default=1000px)
+        :param return_fig: Boolean determining whether the figure needs to be returned (True) or plotted (False)
+        :param plot_title: Plot for the title (default=None)
+        :param plot_margin: Margin for the plot (default=dict(t=100, l=50, b=50))
+        :param color: Color to be used for plotting (default=None for default plotly colors)
+        :param color: Color to be used for plotting the hydrostatic pressure (default=None for default plotly colors)
+        :param show_hydrostatic_legend: Boolean determining whether to show the hydrostatic pressure in the legend
+        :param waterlevel_override: If a waterlevel is not specified in a soil profile which is mapped to the CPT, this can be used to get the water table at the correct elevation (default=0m for water level at the surface, >0 for water level below groundlevel)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
+        :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :return:
+        """
+        if latex_titles:
+            qc_axis_title = r'$ q_c \ \text{[MPa]} $'
+            fs_axis_title = r'$ f_s \ \text{[MPa]} $'
+            u2_axis_title = r'$ u_2 \ \text{[MPa]} $'
+            Rf_axis_title = r'$ R_f \ \text{[%]} $'
+            z_axis_title = r'$ \text{Depth below mudline, } z \ \text{[m]} $'
+        else:
+            qc_axis_title = 'qc [MPa]'
+            fs_axis_title = 'fs [MPa]'
+            u2_axis_title = 'u2 [MPa]'
+            Rf_axis_title = 'Rf [%]'
+            z_axis_title = 'z [m]'
+
+        if z_range is None:
+            z_range = (self.data['z [m]'].max(), 0)
+        
+        cptplot = LogPlot(
+            soilprofile=soilprofile, no_panels=3, fillcolordict=fillcolordict, **kwargs)
+        for _push in self.data["Push"].unique():
+            push_data = self.data[self.data["Push"] == _push]
+            cptplot.add_trace(
+                x=push_data['qc [MPa]'],
+                z=push_data['z [m]'],
+                name='qc',
+                panel_no=1,
+                showlegend=False,
+                line=dict(color='black', width=1)
+            )
+            cptplot.add_trace(
+                x=push_data['fs [MPa]'],
+                z=push_data['z [m]'],
+                name='fs',
+                panel_no=2,
+                showlegend=False,
+                line=dict(color='black', width=1)
+            )
+
+            if plot_friction_ratio:
+                cptplot.add_trace(
+                    x=push_data['Rf [%]'],
+                    z=push_data['z [m]'],
+                    name='Rf',
+                    panel_no=3,
+                    showlegend=False,
+                    line=dict(color='black', width=1)
+                )
+            else:
+                cptplot.add_trace(
+                    x=push_data['u2 [MPa]'],
+                    z=push_data['z [m]'],
+                    name='u2',
+                    panel_no=3,
+                    showlegend=False,
+                    line=dict(color='black', width=1)
+                )
+        cptplot.set_xaxis(title=qc_axis_title, panel_no=1, range=qc_range, dtick=qc_tick)
+        cptplot.set_xaxis(title=fs_axis_title, panel_no=2, range=fs_range, dtick=fs_tick)
+        if plot_friction_ratio:
+            cptplot.set_xaxis(title=Rf_axis_title, panel_no=3, range=rf_range, dtick=rf_tick)
+        else:
+            cptplot.set_xaxis(title=u2_axis_title, panel_no=3, range=u2_range, dtick=u2_tick)
+        cptplot.set_zaxis(title=z_axis_title, range=z_range, dtick=z_tick)
+        cptplot.fig.layout.update(title=plot_title, height=plot_height, width=plot_width)
+
+        if return_fig:
+            return cptplot.fig
+        else:
+            cptplot.fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+
+    def plot_raw_pcpt_withlog_matplotlib(self, soilprofile, qc_range=(-10, 100), fs_range=(0, 1),
+                      u2_range=(-0.5, 2.5), z_range=None, rf_range=(0, 5),
+                      plot_friction_ratio=False,
+                      plot_height=8, plot_width=10, return_fig=False,
+                      latex_titles=True,
+                      fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}, **kwargs) :
+        """
+        Plots the raw PCPT data using the Matplotlib package using a ``groundhog`` ``LogPlotMatplotlib``. This generates an Matplotlib plot.
+
+        :param soilprofile: ``SoilProfile`` object to use for the ``LogPlot``
+        :param qc_range: Range for the cone tip resistance (default=(0, 100MPa))
+        :param qc_tick: Tick interval for the cone tip resistance (default=10MPa)
+        :param fs_range: Range for the sleeve friction (default=(0, 1MPa))
+        :param fs_tick: Tick interval for sleeve friction (default=0.1MPa)
+        :param u2_range: Range for the pore pressure at the shoulder (default=(-0.1, 0.5MPa))
+        :param u2_tick: Tick interval for the pore pressure at the shoulder (default=0.05MPa)
+        :param z_range: Range for the depth (default=None for plotting from zero to maximum cone penetration)
+        :param z_tick: Tick interval for depth (default=2m)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param rf_range: Range for the friction ratio, if used (default=None for plotting from zero to 5%)
+        :param rf_tick: Tick interval for friction ratio, if used (default=0.5%)
+        :param show_hydrostatic: Boolean determining whether hydrostatic pressure is shown on the pore pressure plot panel
+        :param plot_friction_ratio: Boolean determining whether friction ratio needs to be plotted (default=False)
+        :param friction_ratio_panel: Panel for plotting friction ratio (default=3 for pore pressure panel). Only used when ``plot_friction_ratio=True``
+        :param plot_height: Height for the plot (default=700px)
+        :param plot_width: Width for the plot (default=1000px)
+        :param return_fig: Boolean determining whether the figure needs to be returned (True) or plotted (False)
+        :param plot_title: Plot for the title (default=None)
+        :param plot_margin: Margin for the plot (default=dict(t=100, l=50, b=50))
+        :param color: Color to be used for plotting (default=None for default plotly colors)
+        :param color: Color to be used for plotting the hydrostatic pressure (default=None for default plotly colors)
+        :param show_hydrostatic_legend: Boolean determining whether to show the hydrostatic pressure in the legend
+        :param waterlevel_override: If a waterlevel is not specified in a soil profile which is mapped to the CPT, this can be used to get the water table at the correct elevation (default=0m for water level at the surface, >0 for water level below groundlevel)
+        :param latex_titles: Boolean determining whether axis titles should be shown as LaTeX (default = True)
+        :param fillcolordict: Dictionary with fill colors for each of the soil types. Every unique ``Soil type`` needs to have a corresponding color. Default: ``{"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'}``
+        :return:
+        """
+        if latex_titles:
+            qc_axis_title = r'$ q_c \ \text{[MPa]} $'
+            fs_axis_title = r'$ f_s \ \text{[MPa]} $'
+            u2_axis_title = r'$ u_2 \ \text{[MPa]} $'
+            Rf_axis_title = r'$ R_f \ \text{[\%]} $'
+            z_axis_title = r'$ \text{Depth below mudline, } z \ \text{[m]} $'
+        else:
+            qc_axis_title = 'qc [MPa]'
+            fs_axis_title = 'fs [MPa]'
+            u2_axis_title = 'u2 [MPa]'
+            Rf_axis_title = 'Rf [%]'
+            z_axis_title = 'z [m]'
+
+        if z_range is None:
+            z_range = (self.data['z [m]'].max(), 0)
+        
+        cptplot = LogPlotMatplotlib(
+            soilprofile=soilprofile, no_panels=3, fillcolordict=fillcolordict, **kwargs)
+        for _push in self.data["Push"].unique():
+            push_data = self.data[self.data["Push"] == _push]
+            cptplot.add_trace(
+                x=push_data['qc [MPa]'],
+                z=push_data['z [m]'],
+                name='qc',
+                panel_no=1,
+                showlegend=False,
+                c='black'
+            )
+            cptplot.add_trace(
+                x=push_data['fs [MPa]'],
+                z=push_data['z [m]'],
+                name='fs',
+                panel_no=2,
+                showlegend=False,
+                c='black'
+            )
+
+            if plot_friction_ratio:
+                cptplot.add_trace(
+                    x=push_data['Rf [%]'],
+                    z=push_data['z [m]'],
+                    name='Rf',
+                    panel_no=3,
+                    showlegend=False,
+                    c='black'
+                )
+            else:
+                cptplot.add_trace(
+                    x=push_data['u2 [MPa]'],
+                    z=push_data['z [m]'],
+                    name='u2',
+                    panel_no=3,
+                    showlegend=False,
+                    c='black'
+                )
+        cptplot.set_xaxis_title(title=qc_axis_title, panel_no=1)
+        cptplot.set_xaxis_range(min_value=qc_range[0], max_value=qc_range[1], panel_no=1)
+        cptplot.set_xaxis_title(title=fs_axis_title, panel_no=2)
+        cptplot.set_xaxis_range(min_value=fs_range[0], max_value=fs_range[1], panel_no=2)
+        if plot_friction_ratio:
+            cptplot.set_xaxis_title(title=Rf_axis_title, panel_no=3)
+            cptplot.set_xaxis_range(min_value=rf_range[0], max_value=rf_range[1], panel_no=3)
+        else:
+            cptplot.set_xaxis_title(title=u2_axis_title, panel_no=3)
+            cptplot.set_xaxis_range(min_value=u2_range[0], max_value=u2_range[1], panel_no=3)
+        cptplot.set_zaxis_title(title=z_axis_title)
+        cptplot.set_zaxis_range(min_depth=z_range[1], max_depth=z_range[0])
+        cptplot.set_size(width=plot_width, height=plot_height)
+        
+        plt.legend(handles=cptplot._legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+         
+        if return_fig:
+            return cptplot
+        else:
+            plt.show()
+        
     def plot_normalised_pcpt(
             self, qt_range=(0, 3), fr_range=(-1, 1),
             bq_range=(-0.6, 1.4), bq_tick=0.2, z_range=None, z_tick=2,
@@ -1623,17 +1973,26 @@ class PCPTProcessing(InsituTestProcessing):
             fig.show()
         return fig
 
-    def plot_robertson_chart(self, start_depth=None, end_depth=None,
-                             qt_range=(0, 3), fr_range=(-1, 1),
-            bq_range=(-0.6, 1.4), bq_tick=0.2,
-            plot_height=700, plot_width=1000, return_fig=False, plot_title=None,
+    def plot_robertson_chart(self, charttype='combined', start_depth=None, end_depth=None,
+                             qt_range=(0, 3), fr_range=(-1, 1), modified=False,
+            bq_range=(-0.6, 1.4), bq_tick=0.2, layerchangetolerance=0,
+            plot_height=700, plot_width=1000, plot_width_single=600, return_fig=False, plot_title=None,
             backgroundimagedir="", latex_titles=True):
         """
         Plots the normalised PCPT points in the Robertson chart to distinguish the soil type. The display can be limited
         to a specific depth range (by specifying `start_depth` and `end_depth`. The color coding is based on the layer.
+
+        From v0.15.0, the Robertson chart can be split in two using the ``charttype`` argument. By default, both Qt-Fr and Qt-Bq plots are shown,
+        but the user can also choose to display only the Qt-Fr plot (``charttype='QtFr'``) or only the Qt-Bq plot (``charttype='QtBq'``).
+
+        The modified Robertson chart can also be shown by setting the boolean ``modified`` to ``True``.
+
         :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
         """
-        frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFr.png'))
+        if modified:
+            frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFrmodified.png'))
+        else:
+            frqt_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonFr.png'))
         frbq_img = PIL.Image.open(os.path.join(IMG_DIR, 'robertsonBq.png'))
 
         if start_depth is None:
@@ -1643,14 +2002,240 @@ class PCPTProcessing(InsituTestProcessing):
 
         selected_data = self.data[(self.data["z [m]"] >= start_depth) & (self.data["z [m]"] <= end_depth)]
 
-        fig = subplots.make_subplots(rows=1, cols=2, print_grid=False)
+        if charttype == 'combined':
+        
+            fig = subplots.make_subplots(rows=1, cols=2, print_grid=False)
+            for i, layer in enumerate(selected_data["Layer no"].unique()):
+                color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
+                layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
+                layer_min_depth = layer_data['z [m]'].min()
+                layer_max_depth = layer_data['z [m]'].max()
+                for j, row in layer_data.iterrows():
+                    _top_offset = row['z [m]'] - layer_min_depth
+                    _bottom_offset = layer_max_depth - row['z [m]']
+                    _min_offset = min(_top_offset, _bottom_offset)
+                    layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+                layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+                
+                friction_trace = go.Scatter(
+                    x=layer_data['Fr [%]'],
+                    y=layer_data['Qtn [-]'],
+                    showlegend=True,  # Don't show the legend
+                    mode='markers',
+                    name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,  # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(friction_trace, 1, 1)
+                pressure_trace = go.Scatter(
+                    x=layer_data['Bq [-]'],
+                    y=layer_data['Qtn [-]'],
+                    showlegend=False,
+                    mode='markers',
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,   # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(pressure_trace, 1, 2)
+
+        elif charttype == 'QtFr':
+            fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+            for i, layer in enumerate(selected_data["Layer no"].unique()):
+                color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
+                layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
+                layer_min_depth = layer_data['z [m]'].min()
+                layer_max_depth = layer_data['z [m]'].max()
+                for j, row in layer_data.iterrows():
+                    _top_offset = row['z [m]'] - layer_min_depth
+                    _bottom_offset = layer_max_depth - row['z [m]']
+                    _min_offset = min(_top_offset, _bottom_offset)
+                    layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+                layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+                friction_trace = go.Scatter(
+                    x=layer_data['Fr [%]'],
+                    y=layer_data['Qtn [-]'],
+                    showlegend=True,  # Don't show the legend
+                    mode='markers',
+                    name="Layer %i - %.2fm - %.2fm" % (layer, layer_min_depth, layer_max_depth),
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,  # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(friction_trace, 1, 1)
+        elif charttype == 'QtBq':
+            fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
+            for i, layer in enumerate(selected_data["Layer no"].unique()):
+                color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
+                layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
+                layer_min_depth = layer_data['z [m]'].min()
+                layer_max_depth = layer_data['z [m]'].max()
+                for j, row in layer_data.iterrows():
+                    _top_offset = row['z [m]'] - layer_min_depth
+                    _bottom_offset = layer_max_depth - row['z [m]']
+                    _min_offset = min(_top_offset, _bottom_offset)
+                    layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+                layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+                pressure_trace = go.Scatter(
+                    x=layer_data['Bq [-]'],
+                    y=layer_data['Qtn [-]'],
+                    showlegend=False,
+                    mode='markers',
+                    text=layer_data["z [m]"],
+                    marker=dict(size=10,   # Make markers transparent (last number is 0)
+                                opacity=0.5,  # Add some opacity for better display
+                                color=color,
+                                line=dict(width=1, color=color)))  # Add a line around the markers
+                fig.append_trace(pressure_trace, 1, 1)
+        else:
+            raise ValueError("Selected charttype is not recognised. Has to be 'combined', 'QtFr' or 'QtBq'.")
+
+        if latex_titles:
+            Fr_axis_title = r'$ F_r \ \text{[%]} $'
+            Qt_axis_title = r'$ Q_{tn} \ \text{[-]} $'
+            Bq_axis_title = r'$ B_q \ \text{[-]} $'
+        else:
+            Fr_axis_title = 'Fr [%]'
+            Qt_axis_title = 'Qtn [-]'
+            Bq_axis_title = 'Bq [-]'
+
+        if charttype == 'combined':
+            fig['layout']['xaxis1'].update(title=Fr_axis_title, range=fr_range, type='log')
+            fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
+            fig['layout']['xaxis2'].update(title=Bq_axis_title, range=bq_range, dtick=bq_tick)
+            fig['layout']['yaxis2'].update(title=Qt_axis_title, range=qt_range, type='log')
+        elif charttype == 'QtFr':
+            fig['layout']['xaxis1'].update(title=Fr_axis_title, range=fr_range, type='log')
+            fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
+        elif charttype == 'QtBq':
+            fig['layout']['xaxis1'].update(title=Bq_axis_title, range=bq_range, dtick=bq_tick)
+            fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
+
+        if charttype == 'combined':
+            fig['layout'].update(
+                height=plot_height,
+                width=plot_width,
+                title=plot_title,
+                hovermode='closest',
+                images=[
+                    # Image for Qt-Fr relation
+                    dict(
+                        source=frqt_img,
+                        xref='x',
+                        yref='y',
+                        x=-1,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    ),
+                    # Image for Qt-Bq relation
+                    dict(
+                        source=frbq_img,
+                        xref='x2',
+                        yref='y2',
+                        x=-0.6,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    )
+                ]
+            )
+        elif charttype == 'QtFr':
+            fig['layout'].update(
+                height=plot_height,
+                width=plot_width_single,
+                title=plot_title,
+                hovermode='closest',
+                images=[
+                    # Image for Qt-Fr relation
+                    dict(
+                        source=frqt_img,
+                        xref='x',
+                        yref='y',
+                        x=-1,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    ),
+                ]
+            )
+        elif charttype == 'QtBq':
+            fig['layout'].update(
+                height=plot_height,
+                width=plot_width_single,
+                title=plot_title,
+                hovermode='closest',
+                images=[
+                    # Image for Qt-Bq relation
+                    dict(
+                        source=frbq_img,
+                        xref='x1',
+                        yref='y1',
+                        x=-0.6,
+                        y=3,
+                        sizex=2,
+                        sizey=3,
+                        sizing='stretch',
+                        opacity=0.7,
+                        layer='below',
+                    ),
+                ]
+            )
+        if return_fig:
+            return fig
+        else:
+            fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
+
+    def plot_schneider_chart(self, start_depth=None, end_depth=None,
+            layerchangetolerance=0,
+            plot_height=700, plot_width=600, return_fig=False, plot_title=None,
+            latex_titles=True):
+        """
+        Plots the normalised PCPT points in the Schneider (2008) chart to distinguish the soil type. The display can be limited
+        to a specific depth range (by specifying `start_depth` and `end_depth`. The color coding is based on the layer.
+
+        The Schneider chart is especially useful to differentiate between different types of contractive fine-grained soil.
+
+        Reference - Schneider, J.A., Randolph, M.F., Mayne, P.W. & Ramsey, N.R. 2008. Analysis of factors influencing soil classification using normalized piezocone tip resistance and pore pressure parameters. Journal Geotechnical and Geoenvironmental Engrg. 134 (11): 1569-1586. 
+
+        :return: Returns the figure if return_fig=True. Otherwise the plot is displayed.
+        """
+        img = PIL.Image.open(os.path.join(IMG_DIR, 'schneiderchart.png'))
+
+        if start_depth is None:
+            start_depth = self.data["z [m]"].min()
+        if end_depth is None:
+            end_depth = self.data["z [m]"].max()
+
+        selected_data = self.data[(self.data["z [m]"] >= start_depth) & (self.data["z [m]"] <= end_depth)]
+
+        
+        fig = subplots.make_subplots(rows=1, cols=1, print_grid=False)
         for i, layer in enumerate(selected_data["Layer no"].unique()):
             color = DEFAULT_PLOTLY_COLORS[i % DEFAULT_PLOTLY_COLORS.__len__()]
-            layer_data = selected_data[selected_data["Layer no"] == layer]
+            layer_data = deepcopy(selected_data[selected_data["Layer no"] == layer]).reset_index(drop=True)
             layer_min_depth = layer_data['z [m]'].min()
             layer_max_depth = layer_data['z [m]'].max()
-            friction_trace = go.Scatter(
-                x=layer_data['Fr [%]'],
+            for j, row in layer_data.iterrows():
+                _top_offset = row['z [m]'] - layer_min_depth
+                _bottom_offset = layer_max_depth - row['z [m]']
+                _min_offset = min(_top_offset, _bottom_offset)
+                layer_data.loc[j, "Min offset from boundary [m]"] = _min_offset
+            layer_data = layer_data[layer_data['Min offset from boundary [m]'] > layerchangetolerance]
+            _trace = go.Scatter(
+                x=1000 * layer_data['Delta u2 [MPa]'] / layer_data['Vertical effective stress [kPa]'],
                 y=layer_data['Qt [-]'],
                 showlegend=True,  # Don't show the legend
                 mode='markers',
@@ -1660,32 +2245,19 @@ class PCPTProcessing(InsituTestProcessing):
                             opacity=0.5,  # Add some opacity for better display
                             color=color,
                             line=dict(width=1, color=color)))  # Add a line around the markers
-            fig.append_trace(friction_trace, 1, 1)
-            pressure_trace = go.Scatter(
-                x=layer_data['Bq [-]'],
-                y=layer_data['Qt [-]'],
-                showlegend=False,
-                mode='markers',
-                text=layer_data["z [m]"],
-                marker=dict(size=10,   # Make markers transparent (last number is 0)
-                            opacity=0.5,  # Add some opacity for better display
-                            color=color,
-                            line=dict(width=1, color=color)))  # Add a line around the markers
-            fig.append_trace(pressure_trace, 1, 2)
-
+            fig.append_trace(_trace, 1, 1)
+        
         if latex_titles:
-            Fr_axis_title = r'$ F_r \ \text{[%]} $'
-            Qt_axis_title = r'$ Q_t \ \text{[-]} $'
-            Bq_axis_title = r'$ B_q \ \text{[-]} $'
+            X_axis_title = r'$ \Delta u / \sigma_{v0}^{\prime} \ \text{[-]} $'
+            Qt_axis_title = r'$ Q_{tn} \ \text{[-]} $'
         else:
-            Fr_axis_title = 'Fr [%]'
+            X_axis_title = 'du/sigma_vo_eff [-]'
             Qt_axis_title = 'Qt [-]'
-            Bq_axis_title = 'Bq [-]'
 
-        fig['layout']['xaxis1'].update(title=Fr_axis_title, range=fr_range, type='log')
-        fig['layout']['yaxis1'].update(title=Qt_axis_title, range=qt_range, type='log')
-        fig['layout']['xaxis2'].update(title=Bq_axis_title, range=bq_range, dtick=bq_tick)
-        fig['layout']['yaxis2'].update(title=Qt_axis_title, range=qt_range, type='log')
+        fig['layout']['xaxis1'].update(title=X_axis_title, range=(-2, 10))
+        fig['layout']['yaxis1'].update(title=Qt_axis_title, range=(0, 3), type='log')
+    
+        
         fig['layout'].update(
             height=plot_height,
             width=plot_width,
@@ -1694,32 +2266,20 @@ class PCPTProcessing(InsituTestProcessing):
             images=[
                 # Image for Qt-Fr relation
                 dict(
-                    source=frqt_img,
+                    source=img,
                     xref='x',
                     yref='y',
-                    x=-1,
+                    x=-2,
                     y=3,
-                    sizex=2,
+                    sizex=12,
                     sizey=3,
                     sizing='stretch',
                     opacity=0.7,
                     layer='below',
                 ),
-                # Image for Qt-Bq relation
-                dict(
-                    source=frbq_img,
-                    xref='x2',
-                    yref='y2',
-                    x=-0.6,
-                    y=3,
-                    sizex=2,
-                    sizey=3,
-                    sizing='stretch',
-                    opacity=0.7,
-                    layer='below',
-                )
             ]
         )
+        
         if return_fig:
             return fig
         else:
@@ -1900,6 +2460,7 @@ class PCPTProcessing(InsituTestProcessing):
     def select_layering(
             self, default_soil_type="Unknown", default_unit_weight=20,
             qc_range=(-10, 100), fs_range=(0, 1), u2_range=(-0.5, 2.5),
+            plot_friction_ratio=False, rf_range=(0, 5),
             waterlevel=0, **kwargs):
         """
         Selects the layering for a CPT trace. The routine creates a LogPlotMatplotlib with which the
@@ -1924,37 +2485,51 @@ class PCPTProcessing(InsituTestProcessing):
         # Create the plot for parameter selection
         selection_plot = LogPlotMatplotlib(
             sp, no_panels=3, **kwargs)
-        selection_plot.add_trace(
-            x=self.data['qc [MPa]'],
-            z=self.data['z [m]'],
-            name='qc',
-            panel_no=1
-        )
-        selection_plot.add_trace(
-            x=self.data['fs [MPa]'],
-            z=self.data['z [m]'],
-            name='fs',
-            panel_no=2
-        )
-        selection_plot.add_trace(
-            x=self.data['u2 [MPa]'],
-            z=self.data['z [m]'],
-            name='u2',
-            panel_no=3
-        )
-        selection_plot.add_trace(
-            x=[waterlevel, (self.data['z [m]'].max() - waterlevel) * 0.01],
-            z=[waterlevel, self.data['z [m]'].max()],
-            name='u2',
-            panel_no=3,
-            ls='--',
-        )
+
+        for _push in self.data["Push"].unique():
+            push_data = self.data[self.data["Push"] == _push]
+            selection_plot.add_trace(
+                x=push_data['qc [MPa]'],
+                z=push_data['z [m]'],
+                panel_no=1, name='qc',
+                showlegend=False, c='black')
+            selection_plot.add_trace(
+                x=push_data['fs [MPa]'],
+                z=push_data['z [m]'],
+                panel_no=2, name='fs',
+                showlegend=False, c='black')
+            if plot_friction_ratio:
+                selection_plot.add_trace(
+                    x=100 * push_data['fs [MPa]'] / push_data['qc [MPa]'],
+                    z=push_data['z [m]'],
+                    panel_no=3, name='Rf',
+                    showlegend=False, c='black')
+            else:
+                selection_plot.add_trace(
+                    x=push_data['u2 [MPa]'],
+                    z=push_data['z [m]'],
+                    panel_no=3, name='u2',
+                    showlegend=False, c='black')
+        if not plot_friction_ratio:
+            selection_plot.add_trace(
+                x=[waterlevel, (self.data['z [m]'].max() - waterlevel) * 0.01],
+                z=[waterlevel, self.data['z [m]'].max()],
+                name='u2',
+                panel_no=3,
+                ls='--',
+            )
         selection_plot.set_xaxis_title(title='qc [MPa]', panel_no=1)
         selection_plot.set_xaxis_title(title='fs [MPa]', panel_no=2)
-        selection_plot.set_xaxis_title(title='u2 [MPa]', panel_no=3)
+        if plot_friction_ratio:
+            selection_plot.set_xaxis_title(title='Rf [%]', panel_no=3)
+        else:
+            selection_plot.set_xaxis_title(title='u2 [MPa]', panel_no=3)
         selection_plot.set_xaxis_range(min_value=qc_range[0], max_value=qc_range[1], panel_no=1)
         selection_plot.set_xaxis_range(min_value=fs_range[0], max_value=fs_range[1], panel_no=2)
-        selection_plot.set_xaxis_range(min_value=u2_range[0], max_value=u2_range[1], panel_no=3)
+        if plot_friction_ratio:
+            selection_plot.set_xaxis_range(min_value=rf_range[0], max_value=rf_range[1], panel_no=3)
+        else:
+            selection_plot.set_xaxis_range(min_value=u2_range[0], max_value=u2_range[1], panel_no=3)
         selection_plot.set_zaxis_title(title='z [m]')
         selection_plot.show()
         selection_plot.select_layering()

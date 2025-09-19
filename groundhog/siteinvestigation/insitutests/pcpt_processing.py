@@ -2456,6 +2456,7 @@ class PCPTProcessing(InsituTestProcessing):
     def select_layering(
             self, default_soil_type="Unknown", default_unit_weight=20,
             qc_range=(-10, 100), fs_range=(0, 1), u2_range=(-0.5, 2.5),
+            plot_friction_ratio=False, rf_range=(0, 5),
             waterlevel=0, **kwargs):
         """
         Selects the layering for a CPT trace. The routine creates a LogPlotMatplotlib with which the
@@ -2480,37 +2481,51 @@ class PCPTProcessing(InsituTestProcessing):
         # Create the plot for parameter selection
         selection_plot = LogPlotMatplotlib(
             sp, no_panels=3, **kwargs)
-        selection_plot.add_trace(
-            x=self.data['qc [MPa]'],
-            z=self.data['z [m]'],
-            name='qc',
-            panel_no=1
-        )
-        selection_plot.add_trace(
-            x=self.data['fs [MPa]'],
-            z=self.data['z [m]'],
-            name='fs',
-            panel_no=2
-        )
-        selection_plot.add_trace(
-            x=self.data['u2 [MPa]'],
-            z=self.data['z [m]'],
-            name='u2',
-            panel_no=3
-        )
-        selection_plot.add_trace(
-            x=[waterlevel, (self.data['z [m]'].max() - waterlevel) * 0.01],
-            z=[waterlevel, self.data['z [m]'].max()],
-            name='u2',
-            panel_no=3,
-            ls='--',
-        )
+
+        for _push in self.data["Push"].unique():
+            push_data = self.data[self.data["Push"] == _push]
+            selection_plot.add_trace(
+                x=push_data['qc [MPa]'],
+                y=push_data['z [m]'],
+                panel_no=1,
+                showlegend=False, c='black')
+            selection_plot.add_trace(
+                x=push_data['fs [MPa]'],
+                y=push_data['z [m]'],
+                panel_no=2,
+                showlegend=False, c='black')
+            if plot_friction_ratio:
+                selection_plot.add_trace(
+                    x=100 * push_data['fs [MPa]'] / push_data['qc [MPa]'],
+                    y=push_data['z [m]'],
+                    panel_no=3,
+                    showlegend=False, c='black')
+            else:
+                selection_plot.add_trace(
+                    x=push_data['u2 [MPa]'],
+                    y=push_data['z [m]'],
+                    panel_no=3,
+                    showlegend=False, c='black')
+        if not plot_friction_ratio:
+            selection_plot.add_trace(
+                x=[waterlevel, (self.data['z [m]'].max() - waterlevel) * 0.01],
+                z=[waterlevel, self.data['z [m]'].max()],
+                name='u2',
+                panel_no=3,
+                ls='--',
+            )
         selection_plot.set_xaxis_title(title='qc [MPa]', panel_no=1)
         selection_plot.set_xaxis_title(title='fs [MPa]', panel_no=2)
-        selection_plot.set_xaxis_title(title='u2 [MPa]', panel_no=3)
+        if plot_friction_ratio:
+            selection_plot.set_xaxis_title(title='Rf [%]', panel_no=3)
+        else:
+            selection_plot.set_xaxis_title(title='u2 [MPa]', panel_no=3)
         selection_plot.set_xaxis_range(min_value=qc_range[0], max_value=qc_range[1], panel_no=1)
         selection_plot.set_xaxis_range(min_value=fs_range[0], max_value=fs_range[1], panel_no=2)
-        selection_plot.set_xaxis_range(min_value=u2_range[0], max_value=u2_range[1], panel_no=3)
+        if plot_friction_ratio:
+            selection_plot.set_xaxis_range(min_value=rf_range[0], max_value=rf_range[1], panel_no=3)
+        else:
+            selection_plot.set_xaxis_range(min_value=u2_range[0], max_value=u2_range[1], panel_no=3)
         selection_plot.set_zaxis_title(title='z [m]')
         selection_plot.show()
         selection_plot.select_layering()

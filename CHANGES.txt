@@ -1,4 +1,5 @@
 v0.16.0 - TBD
+    - Added calculation methods for bending stiffness of a soilmix wall
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

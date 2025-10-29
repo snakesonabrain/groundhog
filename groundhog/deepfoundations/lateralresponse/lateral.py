@@ -15,6 +15,7 @@ from groundhog.general.validation import Validator
 
 REINFORCEMENT_INERTIA = {
     'diameter': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'modulus_ratio': {'type': 'float', 'min_value': 1.0, 'max_value': None},
     'n_bars': {'type': 'int', 'min_value': 1.0, 'max_value': None},
     'offset': {'type': 'float', 'min_value': 0.0, 'max_value': None},
     'rebar_diameter': {'type': 'float', 'min_value': 0.0, 'max_value': None},
@@ -31,7 +32,7 @@ REINFORCEMENT_INERTIA_ERRORRETURN = {
 }
 
 @Validator(REINFORCEMENT_INERTIA, REINFORCEMENT_INERTIA_ERRORRETURN)
-def reinforced_circularsection_inertia(diameter, n_bars, offset, rebar_diameter, maximum_resistance=True, **kwargs):
+def reinforced_circularsection_inertia(diameter, modulus_ratio, n_bars, offset, rebar_diameter, maximum_resistance=True, **kwargs):
 
     """
     Calculates the combined inertia of a circular section, reinforced with rebar rods at equal center-to-center distance from the concrete section center.
@@ -39,8 +40,9 @@ def reinforced_circularsection_inertia(diameter, n_bars, offset, rebar_diameter,
     The positioning of the rebar rods for maximum or minimum bending resistance can be taken.
     Their offset from the bending axis can then be derived.
     
-    :param diameter: Diameter of the concrete section (:math:`D`) [m] - Suggested range: offset >= 0.0
-    :param n_bars: Number of rebar rods (:math:`N`) [-] - Suggested range: n >= 1.0
+    :param diameter: Diameter of the concrete section (:math:`D`) [m] - Suggested range: diameter >= 0.0
+    :param modulus_ratio: Ratio of Young's modulus of steel to Young's modulus of concrete (:math:`n`) [-] - Suggested range: modulus_ratio >= 0.0
+    :param n_bars: Number of rebar rods (:math:`N`) [-] - Suggested range: n_bars >= 1.0
     :param offset: Center-to-center distance between rebar rods and concrete section center (:math:`r`) [m] - Suggested range: offset >= 0.0
     :param rebar_diameter: Diameter of the rebar rods (:math:`d`) [m] - Suggested range: rebar_diameter >= 0.0
     :param maximum_resistance: Determines whether the rebar rods should be positioned for maximum bending resistance (if true) (optional, default= True)
@@ -49,10 +51,12 @@ def reinforced_circularsection_inertia(diameter, n_bars, offset, rebar_diameter,
         I_s = \\frac{\\pi d^4}{64}
         
         A_s = \\frac{\\pi d^2}{4}
-        
+
+        A_{\\text{s,transformed}} = n \\cdot A_s
+
         I_c = \\frac{\\pi D^4}{64}
         
-        I_{\\text{combined}} = I_c + \\sum_{i=1}^N \\left( I_s + A_s r^2 \\right)
+        I_{\\text{combined}} = I_c + \\sum_{i=1}^N \\left( I_s + A_{\\text{s,transformed}} r^2 \\right)
     
     :returns: Dictionary with the following keys:
         
@@ -94,10 +98,11 @@ def reinforced_circularsection_inertia(diameter, n_bars, offset, rebar_diameter,
     
     _single_rod_inertia = (np.pi * rebar_diameter ** 4) / 64
     _single_rod_area = 0.25 * np.pi * rebar_diameter ** 2
+    _single_rod_area_transformed = modulus_ratio * _single_rod_area
     _total_rebar_inertia = 0
     
     for _offset in _offset_list:
-        _total_rebar_inertia += _single_rod_inertia + (_offset ** 2) * _single_rod_area
+        _total_rebar_inertia += _single_rod_inertia + (_offset ** 2) * _single_rod_area_transformed
 
     return {
         'Start angle [deg]': start_angle,

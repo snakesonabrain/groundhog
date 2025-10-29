@@ -1204,6 +1204,7 @@ def plot_fence_diagram(
                 x=[0, 0],
                 y=[mean_profile_depth, mean_profile_depth],
                 name=key,
+                showlegend=True,
                 marker=dict(color=value))
             _soilcolors.append(_trace)
         except:

@@ -444,7 +444,7 @@ def behaviourindex_pcpt_robertsonwride(
     :param robertsonwride_coefficient2: Second coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 1.22)
 
     .. math::
-        Cn = \min(1.7, \left(\frac{P_a}{\sigma_{vo}^{\prime}}\right)^n)
+        Cn = \\min(1.7, \\left(\\frac{P_a}{\\sigma_{vo}^{\\prime}}\\right)^n)
         Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\cdot Cn
         \\\\
         n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1

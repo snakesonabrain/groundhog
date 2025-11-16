@@ -143,7 +143,7 @@ def embedment_undrained_method1(
     This formula calculates the bearing capacity for a specified depth. For determining the pipeline penetration, a root finding routine needs to be applied to find the penetration where the bearing capacity is in equilbrium with the submerged weight of the pipeline.
     
     :param diameter: Pipeline diameter (:math:`D`) [m] - Suggested range: 0.01 <= diameter <= 2.0
-    :param undrained_shear_strength: Undrained shear strength at the seabed (:math:`s_(u,z=0}`) [kPa] - Suggested range: 0.0 <= undrained_shear_strength <= 500.0
+    :param undrained_shear_strength: Undrained shear strength at the seabed (:math:`s_{u,z=0}`) [kPa] - Suggested range: 0.0 <= undrained_shear_strength <= 500.0
     :param k_su: Linear rate of undrained shear strength increase (:math:`\\rho`) [kPa/m] - Suggested range: 0.0 <= k_su <= 10.0
     :param gamma_eff: Submerged unit weight (:math:`kN/m3`) [kN/m3] - Suggested range: 2.0 <= gamma_eff <= 12.0
     :param penetration: Penetration depth for which the pipeline penetration is calculated (:math:`m`) [m] - Suggested range: 0.0 <= penetration <= 2.0
@@ -170,7 +170,7 @@ def embedment_undrained_method1(
     :returns: Dictionary with the following keys:
         
         - 'F [-]': Roughness correction factor (:math:`F`)  [-]
-        - 'z_su0 [m]': Reference z-level for depth effects (:math:`z_(s_{u,0}}`)  [m]
+        - 'z_su0 [m]': Reference z-level for depth effects (:math:`z_{s_{u,0}}`)  [m]
         - 'B [m]': Contact width (:math:`B`)  [m]
         - 'su0 [kPa]': Undrained shear strength at the reference z-level (:math:`s_{u,0}`)  [kPa]
         - 'Abm [m2]': Penetrated cross-sectional area of the pipe (:math:`A_{bm}`)  [m2]

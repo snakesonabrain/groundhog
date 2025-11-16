@@ -288,18 +288,18 @@ def stresses_rectangle(
     :param z: Depth below the footing (:math:`z`) [:math:`m`] - Suggested range: z >= 0.0
 
     .. math::
-        \\Delta \\sigma_z = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} + \\frac{L B z}{R_3} \\left( \\frac{1}{R_1^2} + \\frac{1}{R_2^2} \\right) \\right]
+        \\Delta \\sigma_z = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1} \\frac{L B}{z R_3} + \\frac{L B z}{R_3} \\left( \\frac{1}{R_1^2} + \\frac{1}{R_2^2} \\right) \\right]
 
-        \\Delta \\sigma_x = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} - \\frac{L B z}{R_1^2 R_3} \\right]
+        \\Delta \\sigma_x = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1} \\frac{L B}{z R_3} - \\frac{L B z}{R_1^2 R_3} \\right]
 
-        \\Delta \\sigma_y = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} - \\frac{L B z}{R_2^2 R_3} \\right]
+        \\Delta \\sigma_y = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1} \\frac{L B}{z R_3} - \\frac{L B z}{R_2^2 R_3} \\right]
 
         \\Delta \\tau_{zx} = \\frac{q_s}{2 \\pi} \\left[ \\frac{B}{R_2} - \\frac{z^2 B}{R_1^2 R_3} \\right]
 
         \\text{where}
 
         R_1 = \\sqrt{L^2 + z^2}
-
+        
         R_2 = \\sqrt{B^2 + z^2}
 
         R_3 = \\sqrt{L^2 + B^2 + z^2}

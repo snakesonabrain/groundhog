@@ -2,6 +2,8 @@ v0.16.0 - TBD
     - Added calculation methods for bending stiffness of a soilmix wall
     - Added calculation for inertia of steel rebar in a reinforced concrete section
     - Added calculations for stresses next to a buried earth-retaining structure
+    - Added Chin-Kondler method
+    - Added pile lateral group effect multipliers
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

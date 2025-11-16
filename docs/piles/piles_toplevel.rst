@@ -19,6 +19,10 @@ Pile calculations
 
    settlement
 
+   lateral
+
    cavityexpansion
 
    negativeskinfriction
+
+   piletesting

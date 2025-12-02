@@ -29,7 +29,7 @@ bibliography: paper.bib
 
 # Summary
 
-Geotechnical engineering is an engineering discipline in which the mechanical behaviour of soil and its impact on the performance of foundations is studied. Because of the complex constitutive behaviour of soil and the large variation in mineralogy, geological origins, stress conditions and foundation types, there is no generally applicable theory for soil behaviour and foundation design. Instead, myriad semi-empirical models and parameter correlations have been developed to describe the mechanical behaviour of soils and foundations [@Budhu:2010]. The Python package `Groundhog` was developed to allow the efficient use of these formulae in geotechnical engineering education, research and practice. 
+Geotechnical engineering is an engineering discipline in which the mechanical behaviour of soil and its impact on the performance of foundations is studied. Because of the complex constitutive behaviour of soil and the large variation in mineralogy, geological origins, stress conditions and foundation types, there is no generally applicable theory for soil behaviour and foundation design. Instead, myriad semi-empirical models and parameter correlations have been developed to describe the mechanical behaviour of soils and foundations [@Budhu:2010]. The Python package `Groundhog` was developed to enable the efficient use of these formulae in geotechnical engineering education, research and practice. 
 
 # Statement of need
 
@@ -39,9 +39,9 @@ To overcome these shortcomings, `Groundhog` provides a robust implementation of 
 
 Because geotechnical functions can return multiple outputs (e.g. intermediate calculation results), the output of `Groundhog` functions are Python dictionaries. The users can select the relevant outputs for their calculations by addressing the appropriate dictionary key. `Groundhog` functions are also unit-tested to ensure they return the expected results.
 
-In addition to geotechnical functions, selected geotechnical workflows are encoded in an object-oriented manner. Processing of data from the cone penetration test (CPT) and the standard penetration tests (SPT) is a recurring task and the steps in the processing workflow are implemented in the `PCPTProcessing` and `SPTProcessing` classes respectively. The manipulation of stratigraphic profiles describing the various layers in the subsoil, is made possible with the `SoilProfile` class. Soil parameter visualisation and interactive parameter selection is made possible in the `LogPlot` class (using the `Plotly` [@plotly] plotting backend) and the `LogPlotMatplotlib` class (using `Matplotlib` [@Hunter:2007] as plotting backend).
+In addition to geotechnical functions, selected geotechnical workflows are encoded in an object-oriented manner. Processing of data from the cone penetration test (CPT) and the standard penetration tests (SPT) is a recurring task and the steps in the processing workflow are implemented in the `PCPTProcessing` and `SPTProcessing` classes respectively. The manipulation of stratigraphic profiles, which describe the various layers in the subsoil, is made possible with the `SoilProfile` class. Soil parameter visualisation and interactive parameter selection is made possible in the `LogPlot` class (using the `Plotly` [@plotly] plotting backend) and the `LogPlotMatplotlib` class (using `Matplotlib` [@Hunter:2007] as plotting backend).
 
-The package implements various methods for basic foundation design taught in undergraduate and graduate course (e.g. shallow foundation capacity on sand and clay, axial pile resistance in sand clay, one-dimensional consolidation).
+The package implements various methods for basic foundation design taught in undergraduate and graduate courses (e.g. shallow foundation capacity on sand and clay, axial pile resistance in sand clay, one-dimensional consolidation).
 
 `Groundhog` is under continuous development and allows the geotechnical community to focus on a single robust and well-documented set of calculation tools.
 
@@ -56,7 +56,7 @@ The geotechnical parameter correlations and geotechnical workflow automation too
 
 # Applications in geotechnical engineering education
 
-`Groundhog` is being used in undergraduate and graduate courses at Ghent University. The package allows students to spend more time on the parameter selection process and get more insight into the underlying data for the semi-empirical correlations. The effect of parameter variations can also easily be studied while reducing the time spent on implementing equations.
+`Groundhog` is being used in undergraduate and graduate courses at Ghent University. By providing a parametric and well-documented implementation of geotechnical correlations, the package allows students to spend more time on the parameter selection process and get more insight into the underlying data for these semi-empirical correlations. The effect of parameter variations can also easily be studied while reducing the time spent on implementing equations.
 
 A dedicated two-day training course has also been set up to teach Python and `Groundhog` to geotechnical engineers seeking to get started with scripting. This course has been delivered to Systra in Dubai (April 2024) and RINA in Milan (October 2024).
 

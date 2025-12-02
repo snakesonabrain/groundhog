@@ -15,8 +15,14 @@ Pile calculations
 
    koppejan
 
+   lcpc
+
    settlement
+
+   lateral
 
    cavityexpansion
 
    negativeskinfriction
+
+   piletesting

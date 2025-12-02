@@ -2800,7 +2800,7 @@ def plot_longitudinal_profile(
 
     if plotmap:
         fig.update_layout(
-            mapbox_style='open-street-map', mapbox_zoom=10,
+            mapbox_style='open-street-map', mapbox_zoom=mapbox_zoom,
             mapbox_center={'lat': cpt_df['Y'].mean(), 'lon': cpt_df['X'].mean()}
         )
 

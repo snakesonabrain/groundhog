@@ -253,27 +253,27 @@ ROBERTSON_CLASSES = {
 }
 
 ROBERTSON_COLORS_PLOTLY = {
-    "Very stiff fine grained": 'rgb(200,200,200)',
-    "Very stiff sand to clayey sand": 'rgb(154,78,163)',
-    "Gravelly sand to sand": 'rgb(216,163,32)',
-    "Sands: clean sands to silty sands": 'rgb(243,225,6)',
-    "Sand mixtures: silty sand to sand silty": 'rgb(255,255,0)',
-    "Silt mixtures: clayey silt to silty clay": 'rgb(194,207,92)',
-    "Clays: clay to silty clay": 'rgb(0,146,0)',
+    "Very stiff fine grained": 'rgb(176, 149, 115)',
+    "Very stiff sand to clayey sand": 'rgb(187, 161, 94)',
+    "Gravelly sand to sand": 'rgb(164, 158, 107)',
+    "Sands: clean sands to silty sands": 'rgb(255, 255, 5)',
+    "Sand mixtures: silty sand to sand silty": 'rgb(229, 209, 5)',
+    "Silt mixtures: clayey silt to silty clay": 'rgb(203, 163, 5)',
+    "Clays: clay to silty clay": 'rgb(168, 101, 9)',
     "Organic soils-peats": 'rgb(157,78,64)',
     "Sensitive, fine-grained": 'rgb(27,101,175)'
 }
 
 ROBERTSON_COLORS_MPL = {
-    "Very stiff fine grained": (0.7843137254901961, 0.7843137254901961, 0.7843137254901961),
-    "Very stiff sand to clayey sand": (0.6039215686274509, 0.3058823529411765, 0.6392156862745098),
-    "Gravelly sand to sand": (0.8470588235294118, 0.6392156862745098, 0.12549019607843137),
-    "Sands: clean sands to silty sands": (0.9529411764705882, 0.8823529411764706, 0.023529411764705882),
-    "Sand mixtures: silty sand to sand silty": (1.0, 1.0, 0.0),
-    "Silt mixtures: clayey silt to silty clay": (0.7607843137254902, 0.8117647058823529, 0.3607843137254902),
-    "Clays: clay to silty clay": (0.0, 0.5725490196078431, 0.0),
-    "Organic soils-peats": (0.615686274509804, 0.3058823529411765, 0.25098039215686274),
-    "Sensitive, fine-grained": (0.10588235294117647, 0.396078431372549, 0.6862745098039216)
+    "Very stiff fine grained": (0.6902, 0.5843, 0.450980),
+    "Very stiff sand to clayey sand": (0.7333, 0.6314, 0.368627),
+    "Gravelly sand to sand": (0.6431, 0.6196, 0.419608),
+    "Sands: clean sands to silty sands": (1.0000, 1.0000, 0.019608),
+    "Sand mixtures: silty sand to sand silty": (0.8980, 0.8196, 0.019608),
+    "Silt mixtures: clayey silt to silty clay": (0.7961, 0.6392, 0.019608),
+    "Clays: clay to silty clay": (0.6588, 0.3961, 0.035294),
+    "Organic soils-peats": (0.6157, 0.3059, 0.250980),
+    "Sensitive, fine-grained": (0.1059, 0.3961, 0.686275)
 }
 
 @Validator(SOILCLASS_ROBERTSON, SOILCLASS_ROBERTSON_ERRORRETURN)
@@ -444,7 +444,7 @@ def behaviourindex_pcpt_robertsonwride(
     :param robertsonwride_coefficient2: Second coefficient in the equation by Robertson and Wride (:math:``) [:math:`-`] (optional, default= 1.22)
 
     .. math::
-        Cn = \min(1.7, \left(\frac{P_a}{\sigma_{vo}^{\prime}}\right)^n)
+        Cn = \\min(1.7, \\left(\\frac{P_a}{\\sigma_{vo}^{\\prime}}\\right)^n)
         Q_{tn} = \\frac{q_t - \\sigma_{vo}}{P_a} \\cdot Cn
         \\\\
         n = 0.381 \\cdot I_c + 0.05 \\cdot \\frac{\\sigma_{vo}^{\\prime}}{P_a} - 0.15 \\ \\text{where} \\ n \\leq 1

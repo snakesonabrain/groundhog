@@ -288,18 +288,18 @@ def stresses_rectangle(
     :param z: Depth below the footing (:math:`z`) [:math:`m`] - Suggested range: z >= 0.0
 
     .. math::
-        \\Delta \\sigma_z = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} + \\frac{L B z}{R_3} \\left( \\frac{1}{R_1^2} + \\frac{1}{R_2^2} \\right) \\right]
+        \\Delta \\sigma_z = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1} \\frac{L B}{z R_3} + \\frac{L B z}{R_3} \\left( \\frac{1}{R_1^2} + \\frac{1}{R_2^2} \\right) \\right]
 
-        \\Delta \\sigma_x = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} - \\frac{L B z}{R_1^2 R_3} \\right]
+        \\Delta \\sigma_x = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1} \\frac{L B}{z R_3} - \\frac{L B z}{R_1^2 R_3} \\right]
 
-        \\Delta \\sigma_y = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1) \\frac{L B}{z R_3} - \\frac{L B z}{R_2^2 R_3} \\right]
+        \\Delta \\sigma_y = \\frac{q_s}{2 \\pi} \\left[ \\tan^{-1} \\frac{L B}{z R_3} - \\frac{L B z}{R_2^2 R_3} \\right]
 
         \\Delta \\tau_{zx} = \\frac{q_s}{2 \\pi} \\left[ \\frac{B}{R_2} - \\frac{z^2 B}{R_1^2 R_3} \\right]
 
         \\text{where}
 
         R_1 = \\sqrt{L^2 + z^2}
-
+        
         R_2 = \\sqrt{B^2 + z^2}
 
         R_3 = \\sqrt{L^2 + B^2 + z^2}
@@ -347,4 +347,145 @@ def stresses_rectangle(
         'delta sigma x [kPa]': _delta_sigma_x,
         'delta sigma y [kPa]': _delta_sigma_y,
         'delta tau zx [kPa]': _delta_tau_zx,
+    }
+
+
+STRESSES_LINELOAD_RETAININGWALL = {
+    'lineload': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'toe_depth': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'horizontal_offset': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+}
+
+STRESSES_LINELOAD_RETAININGWALL_ERRORRETURN = {
+    'delta sigma x [kPa]': np.nan,
+    'delta P x [kN/m]': np.nan,
+}
+
+@Validator(STRESSES_LINELOAD_RETAININGWALL, STRESSES_LINELOAD_RETAININGWALL_ERRORRETURN)
+def stresses_lineload_retainingwall(
+    lineload, toe_depth, horizontal_offset, depth, **kwargs):
+
+    """
+    Calculates the elastic stress increase due to a line load (infinitely long out of plane) next to a buried earth-retaining structure.
+    
+    :param lineload: Magnitude of the applied line load (:math:`Q`) [kN/m] - Suggested range: lineload >= 0.0
+    :param toe_depth: Depth of the toe of the retaining wall (:math:`H_0`) [m] - Suggested range: toe_depth >= 0.0
+    :param horizontal_offset: Offset between the line load and the retaining structure (:math:`a H_0`) [m] - Suggested range: horizontal_offset >= 0.0
+    :param depth: Depth considered for the calculation (cannot be deeper than the toe depth) (:math:`b H_0`) [m] - Suggested range: depth >= 0.0
+    
+    .. math::
+        \\Delta \\sigma_x = \\frac{4 Q a^2 b}{\\pi H_0 \\left( a^2 + b^2 \\right)^2}
+        
+        \\Delta P_x = \\frac{2 Q}{\\pi \\left( a^2 + 1 \\right)}
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'delta sigma x [kPa]': Increase of horizontal stress (:math:`\\Delta \\sigma_x`)  [kPa]
+        - 'delta P x [kN/m]': Increase of horizontal force (:math:`\\Delta P_x`)  [kN/m]
+    
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+    if depth > toe_depth:
+        raise ValueError("Depth cannot exceed the toe depth")
+    _a = horizontal_offset / toe_depth
+    _b = depth / toe_depth
+    _delta_sigma_x = (4 * lineload * (_a ** 2) * _b) / (np.pi * toe_depth * (_a ** 2 + _b ** 2) ** 2)
+    _delta_P_x = (2 * lineload) / (np.pi * (_a ** 2 + 1))
+
+    return {
+        'delta sigma x [kPa]': _delta_sigma_x,
+        'delta P x [kN/m]': _delta_P_x,
+    }
+
+
+STRESSES_STRIPLOAD_RETAININGWALL = {
+    'imposedstress': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'width': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'offset': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'toe_depth': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+    'depth': {'type': 'float', 'min_value': 0.0, 'max_value': None},
+}
+
+STRESSES_STRIPLOAD_RETAININGWALL_ERRORRETURN = {
+    'delta sigma x [kPa]': np.nan,
+    'delta P x [kN/m]': np.nan,
+    'z bar [m]': np.nan,
+    'theta 1 [deg]': np.nan,
+    'theta 2 [deg]': np.nan,
+    'R 1 [m]': np.nan,
+    'R 2 [m]': np.nan,
+    'alpha [deg]': np.nan,
+    'beta [deg]': np.nan,
+}
+
+@Validator(STRESSES_STRIPLOAD_RETAININGWALL, STRESSES_STRIPLOAD_RETAININGWALL_ERRORRETURN)
+def stresses_stripload_retainingwall(imposedstress, width, offset, toe_depth, depth, **kwargs):
+
+    """
+    Calculates the elastic stress increase due to a strip load (infinitely long out of plane) at an offset from a buried earth-retaining structure.
+    
+    Note that all angles in the formulae are given in degrees.
+    
+    :param imposedstress: Applied stress for the strip load (:math:`q_s`) [kPa] - Suggested range: imposedstress >= 0.0
+    :param width: Width of the strip load (:math:`B`) [m] - Suggested range: width >= 0.0
+    :param offset: Shortest horizontal offset between the strip load and the retaining wall (:math:`a`) [m] - Suggested range: offset >= 0.0
+    :param toe_depth: Toe depth of the retaining structure (:math:`H_0`) [m] - Suggested range: toe_depth >= 0.0
+    :param depth: Depth for the stress calculation (:math:`z`) [m] - Suggested range: depth >= 0.0
+    
+    .. math::
+        \\Delta \\sigma_x = \\frac{2 q_s}{\\pi} \\left( \\beta - \\sin \\beta \\cos 2 \\alpha \\right)
+        
+        \\Delta P_x = \\frac{q_s}{90} \\left[ H_0 \\left( \\theta_2 - \\theta_1 \\right) \\right]
+        
+        \\bar{z} = \\frac{H_0^2 \\left( \\theta_2 - \\theta_1 \\right) - \\left( R_1 - R_2 \\right) + 57.3 B H_0}{2 H_0 \\left( \\theta_2 - \\theta_1 \\right)}
+        
+        \\theta_1 = \\tan^{-1} \\left( \\frac{a}{H_0} \\right)
+        
+        \\theta_2 = \\tan^{-1} \\left( \\frac{a + B}{H_0} \\right)
+        
+        R_1 = \\left( a + B \\right)^2 \\left(90 -\\theta_2 \\right)
+        
+        R_2 = a^2 \\left( 90 - \\theta_1 \\right)
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'delta sigma x [kPa]': Increase of the lateral stress (:math:`\\Delta \\sigma_x`)  [kPa]
+        - 'delta P x [kN/m]': Increase of lateral force (:math:`\\Delta P_x`)  [kN/m]
+        - 'z bar [m]': Application depth of the force (:math:`\\bar{z}`)  [m]
+        - 'theta 1 [deg]': Angle theta 1 (:math:`\\theta_1`)  [deg]
+        - 'theta 2 [deg]': Angle theta 2 (:math:`\\theta_2`)  [deg]
+        - 'R 1 [m]': First offset (:math:`R_1`)  [m]
+        - 'R 2 [m]': Second offset (:math:`R_2`)  [m]
+        - 'alpha [deg]': Angle alpha (:math:`\\alpha`)  [deg]
+        - 'beta [deg]': Angle beta (:math:`\\beta`)  [deg]
+    
+    Reference - Budhu (2011). Soil mechanics and foundation engineering
+
+    """
+    _delta = np.atan((offset + width) / depth) # rad
+    _gamma = np.atan(offset / depth) # rad
+    _beta = _delta - _gamma
+    _alpha = _delta - 0.5 * _beta
+    _delta_sigma_x = (2 * imposedstress / np.pi) * (_beta - np.sin(_beta) * np.cos(2 * _alpha))
+    
+    # Calculation by Jarquino (1981)
+    _theta_1 = np.rad2deg(np.atan(offset / toe_depth))
+    _theta_2 = np.rad2deg(np.atan((offset + width) / toe_depth))
+    _delta_P_x = (imposedstress / 90) * (toe_depth * (_theta_2 - _theta_1))
+    _R_1 = ((offset + width) ** 2) * (90 - _theta_2)
+    _R_2 = (offset ** 2) * (90 - _theta_1)
+    _z_bar = ((toe_depth ** 2) * (_theta_2 - _theta_1) - (_R_1 - _R_2) + 57.3 * width * toe_depth) / \
+        (2 * toe_depth * (_theta_2 - _theta_1))
+    return {
+        'delta sigma x [kPa]': _delta_sigma_x,
+        'delta P x [kN/m]': _delta_P_x,
+        'z bar [m]': _z_bar,
+        'theta 1 [deg]': _theta_1,
+        'theta 2 [deg]': _theta_2,
+        'R 1 [m]': _R_1,
+        'R 2 [m]': _R_2,
+        'alpha [deg]': _alpha,
+        'beta [deg]': _beta,
     }

@@ -53,3 +53,35 @@ class Test_stressdistributions(unittest.TestCase):
         self.assertAlmostEqual(result['delta sigma x [kPa]'], 3.74, 2)
         self.assertAlmostEqual(result['delta sigma y [kPa]'], 3.74, 2)
         self.assertAlmostEqual(result['delta tau zx [kPa]'], 6.66, 2)
+
+    def test_stresses_lineload_retainingwall(self):
+        result = stressdistribution.stresses_lineload_retainingwall(
+            lineload=1,
+            toe_depth=10,
+            horizontal_offset=1,
+            depth=0
+        )
+        self.assertAlmostEqual(result['delta sigma x [kPa]'], 0, 2)
+        result = stressdistribution.stresses_lineload_retainingwall(
+            lineload=1,
+            toe_depth=1,
+            horizontal_offset=1,
+            depth=0.5
+        )
+        self.assertAlmostEqual(
+            result['delta P x [kN/m]'],
+            2 / (np.pi * (1 + 1)), 2)
+        self.assertAlmostEqual(
+            result['delta sigma x [kPa]'],
+            (4 * 0.5) / (np.pi * (0.5 ** 2 + 1) ** 2), 2)
+        
+    def test_stresses_stripload_retainingwall(self):
+        result = stressdistribution.stresses_stripload_retainingwall(
+            imposedstress=100,
+            width=2,
+            offset=3, 
+            toe_depth=19,
+            depth=5
+        )
+        self.assertAlmostEqual(result['delta sigma x [kPa]'], 11.85, 2)
+        self.assertAlmostEqual(result['delta P x [kN/m]'], 121.83, 2)

@@ -684,7 +684,7 @@ class LogPlotMatplotlib(object):
         else:
             pass
 
-    def save_fig(self, path, dpi=250, bbox_inches='tight',pad_inches=1):
+    def save_fig(self, path, dpi=250, bbox_inches='tight',pad_inches=0.05):
         """
         Exports the figure to png format
 
@@ -693,6 +693,7 @@ class LogPlotMatplotlib(object):
         :param bbox_inches: Setting for the bounding box
         :param pad_inches: Inches for padding
         """
+        plt.legend(handles=self._legend_entries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         plt.savefig(path, dpi=dpi,bbox_inches=bbox_inches, pad_inches=pad_inches)
 
     def select_additional_layers(self, no_additional_layers, panel_no=1, precision=2):

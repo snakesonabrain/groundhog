@@ -154,4 +154,17 @@ class Test_Correlations(unittest.TestCase):
             pi=30, ocr=10)
         self.assertAlmostEqual(result_ocr['K0 [-]'], 1.41, 2)
         
-    
+    def test_icl_scl_burland(self):
+        result = cohesive.icl_scl_burland(eL=2)
+        self.assertAlmostEqual(result['Ccstar [-]'], 0.47, 2)
+        self.assertAlmostEqual(result['e100star [-]'], 1.24, 2)
+        _icl_100 = np.interp(
+            100, result['pressures_icl [kPa]'], result['Iv_icl [-]'])
+        self.assertAlmostEqual(_icl_100, 0, 2)
+        _scl_100 = np.interp(
+            100, result['pressures_scl [kPa]'], result['Iv_scl [-]'])
+        self.assertAlmostEqual(_scl_100, 0.77, 2)
+
+        result = cohesive.icl_scl_burland(eL=3)
+        self.assertAlmostEqual(result['Ccstar [-]'], 0.73, 2)
+        self.assertAlmostEqual(result['e100star [-]'], 1.78, 2)

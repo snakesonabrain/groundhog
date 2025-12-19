@@ -702,7 +702,7 @@ class DeBeerCalculation(object):
                     1  & \\quad \\text{in all other soil types}
                   \\end{cases}
 
-            R_s = \\kappa_s \\cdot \\Sum \\left( \\alpha_{s,i} \\cdot h_i \\cdot q_{s,i} \\right)
+            R_s = \\kappa_s \\cdot \\sum \\left( \\alpha_{s,i} \\cdot h_i \\cdot q_{s,i} \\right)
 
             R_c = R_s + R_b
 

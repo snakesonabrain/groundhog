@@ -54,9 +54,9 @@ def hydraulicconductivity_unconfinedaquifer(
         
         q_z = 2 \\pi r z k \\frac{dz}{dr}
         
-        q_z \\int_{r_1)^{r_2} \\frac{dr}{r} = 2 k \\pi \\int_{h_1}^{h_2} z dz
+        q_z \\int_{r_1}^{r_2} \\frac{dr}{r} = 2 k \\pi \\int_{h_1}^{h_2} z dz
         
-        k = \\frac{q_z \\ln \\left( r_2 / r_1 \\right)}{\\pi \\left( h_2^2 - h_1^2 \\right) }
+        k = \\frac{q_z \\ln \\left( r_2 / r_1 \\right)}{\\pi \\left( h_2^2 - h_1^2 \\right)}
     
     :returns: Dictionary with the following keys:
         

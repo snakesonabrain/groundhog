@@ -344,3 +344,114 @@ def k0_plasticity_kenney(
         'K0 NC [-]': _K0_NC,
         'K0 [-]': _K0,
     }
+
+
+ICL_SCL_BURLAND = {
+    'eL': {'type': 'float', 'min_value': 0.6, 'max_value': 4.5},
+    'coefficient_1': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_2': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_3': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_4': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_5': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_6': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_7': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_8': {'type': 'float', 'min_value': None, 'max_value': None},
+    'coefficient_9': {'type': 'float', 'min_value': None, 'max_value': None},
+    'e100star_override': {'type': 'float', 'min_value': None, 'max_value': None},
+    'Ccstaroverride': {'type': 'float', 'min_value': None, 'max_value': None},
+}
+
+ICL_SCL_BURLAND_ERRORRETURN = {
+    'Ccstar [-]': np.nan,
+    'e100star [-]': np.nan,
+    'pressures_icl [kPa]': None,
+    'pressures_scl [kPa]': None,
+    'Iv_icl [-]': None,
+    'Iv_scl [-]': None,
+    'e_icl [-]': None,
+    'e_scl [-]': None,
+}
+
+@Validator(ICL_SCL_BURLAND, ICL_SCL_BURLAND_ERRORRETURN)
+def icl_scl_burland(
+    eL, coefficient_1=2.45, coefficient_2=-1.285, coefficient_3=0.015, coefficient_4=0.109,
+    coefficient_5=0.679, coefficient_6=-0.089, coefficient_7=0.016, coefficient_8=0.256, coefficient_9=-0.04,
+    e100star_override=np.nan, Ccstaroverride=np.nan, **kwargs):
+
+    """
+    Calculates the Intrinsic Compression Line (ICL), representing void ratios of clays deposited from a slurry (mixed at a water content of at least 125% of the liquid limit). The void ratios at different pressures are calculated. The ICL is a useful reference for any material as it represents the states of a fully destructured clay.
+
+    The Sedimentation Compression Line (SCL) represents the state of a naturally deposited clay. Clays deposited in a very calm environment (slurrylike deposition) can have natural states below the SCL. Clays deposited in environments leading to high amounts of structure (e.g. quick clays) can plot well above the SCL.
+
+    Note that the void ratio on the ICL for a pressure of 100kPa can be correlated from the liquid limit of the material. The correlation was developed based on measurements on numerous clays but the plasticity limits need to plot above the A-line for the correlation to apply. This correlation is included in the formulation, but this void ratio can also be specified directly.
+    
+    :param eL: Void ratio at the liquid limit (:math:`e_L`) [-] - Suggested range: 0.6 <= eL <= 4.5
+    :param coefficient_1: First calibration coefficient (:math:`-`) [-] (optional, default= 2.45)
+    :param coefficient_2: Second calibration coefficient (:math:`-`) [-] (optional, default= -1.285)
+    :param coefficient_3: Third calibration coefficient (:math:`-`) [-] (optional, default= 0.015)
+    :param coefficient_4: Fourth calibration coefficient (:math:`-`) [-] (optional, default= 0.109)
+    :param coefficient_5: Fifth calibration coefficient (:math:`-`) [-] (optional, default= 0.679)
+    :param coefficient_6: Sixth calibration coefficient (:math:`-`) [-] (optional, default= -0.089)
+    :param coefficient_7: Seventh calibration coefficient (:math:`-`) [-] (optional, default= 0.016)
+    :param coefficient_8: Eighth calibration coefficient (:math:`-`) [-] (optional, default= 0.256)
+    :param coefficient_9: Ninth calibration coefficient (:math:`-`) [-] (optional, default= -0.04)
+    :param e100star_override: Override value of void ratio on the ICL at 100kPa (:math:`-`) [-] (optional, default= -100.0)
+    :param Ccstaroverride: Override value of intrinsic compression index (:math:`-`) [-] (optional, default= -100.0)
+    
+    .. math::
+        I_v = \\frac{e - e_{100}^*}{e_{100}^* - e_{1000}^*}
+        
+        I_v = 2.45 - 1.285 \\log \\sigma_{v}^{\\prime} + 0.015 \\left(\\log \\sigma_{v}^{\\prime} \\right)^3
+        
+        e = I_v \\left( e_{100}^* - e_{1000}^* \\right) + e_{100}^*
+        
+        e_{100}^* = 0.109 + 0.679 e_L - 0.089 e_L^2 + 0.016 e_L^3
+        
+        C_c^* = 0.256 e_L - 0.04
+    
+    :returns: Dictionary with the following keys:
+        
+        - 'Ccstar [-]': Intrinsic compression index (:math:`C_c^*`)  [-]
+        - 'e100star [-]': Intrinsic void ratio at 100kPa (:math:`e_{100}^*`)  [-]
+        - 'pressures_icl [kPa]': Array with pressures for the ICL (:math:`\\sigma_v^{\\prime}`)  [kPa]
+        - 'pressures_scl [kPa]': Array with pressures for the SCL (:math:`\\sigma_v^{\\prime}`)  [kPa]
+        - 'Iv_icl [-]': Iv values for ICL (:math:`I_v`)  [-]
+        - 'Iv_scl [-]': Iv values for SCL (:math:`I_v`)  [-]
+        - 'e_icl [-]': Void ratios for ICL (:math:`e_{ICL}`)  [-]
+        - 'e_scl [-]': Void ratios for SCL (:math:`e_{SCL}`)  [-]
+    
+    .. figure:: images/icl_scl_burland.png
+        :figwidth: 500.0
+        :width: 450.0
+        :align: center
+
+        ICL and SCL with associated data based on Burland (1990)
+
+    Reference - Burland (1990). On the compressibility and shear strength of natural clays. Géotechnique.
+
+    """
+    if np.isnan(Ccstaroverride):
+        _Ccstar = coefficient_8 * eL + coefficient_9
+    else:
+        _Ccstar = Ccstaroverride
+    if np.isnan(e100star_override):
+        _e100star = coefficient_4 + coefficient_5 * eL + coefficient_6 * (eL ** 2) + coefficient_7 * (eL ** 3)
+    else:
+        _e100star = e100star_override
+    _pressures_icl = np.logspace(1, 4, 100)
+    _pressures_scl = np.array([0.4, 1, 4, 10, 40, 100, 400, 1000, 4000, 10000])
+    _Iv_icl = coefficient_1 + coefficient_2 * np.log10(_pressures_icl) + coefficient_3 * (np.log10(_pressures_icl)) ** 3
+    _Iv_scl = np.array([3.84, 3.24, 2.42, 1.92, 1.22, 0.77, 0.13, -0.30, -0.94, -1.36])
+    _e_icl = _Iv_icl * _Ccstar + _e100star
+    _e_scl = _Iv_scl * _Ccstar + _e100star
+
+    return {
+        'Ccstar [-]': _Ccstar,
+        'e100star [-]': _e100star,
+        'pressures_icl [kPa]': _pressures_icl,
+        'pressures_scl [kPa]': _pressures_scl,
+        'Iv_icl [-]': _Iv_icl,
+        'Iv_scl [-]': _Iv_scl,
+        'e_icl [-]': _e_icl,
+        'e_scl [-]': _e_scl,
+    }

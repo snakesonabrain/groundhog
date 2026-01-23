@@ -562,7 +562,11 @@ def gmax_sand_rixstokoe(
     **kwargs
 ):
     """
-    Calculates the small-strain shear modulus for uncemented silica sand based on cone resistance and vertical effective stress. The correlation is based on calibration chamber tests compared to results from PCPT, S-PCPT and cross-hole tests reported by Baldi et al (1989).
+    Calculates the small-strain shear modulus for uncemented silica sand based on cone resistance and vertical effective stress.
+    The correlation is based on calibration chamber tests compared to results from PCPT, S-PCPT and cross-hole tests reported by Baldi et al (1989).
+    The material used in this study was a washed mortar sand with a median grain size of 0.35 mm and less than 1% fines.
+    CPT and resonant column test data were compared to establish the calibrated formula.
+    The calibration was aimed at earthquake engineering applications for near-surface soils with a depth of less than 13m.
 
     When used with ``apply_correlation``, use ``'Gmax Rix and Stokoe (1991)'`` as correlation name.
 

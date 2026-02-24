@@ -280,3 +280,51 @@ def samplequality_voidratio_lunne(voidratio, voidratio_change, ocr, **kwargs):
         'Quality category': _category
     }
 
+OCR_CATEGORIES = {
+    'ocr': {'type': 'float', 'min_value': 1.0, 'max_value': 20.0},
+}
+
+OCR_CATEGORIES_ERRORRETURN = {
+    'OCR category': None,
+}
+
+
+@Validator(OCR_CATEGORIES, OCR_CATEGORIES_ERRORRETURN)
+def ocr_categories(
+        ocr,
+        **kwargs):
+    """
+    Categorizes overconsolidation ratio according to the following definition:
+
+        - 1 - 1.3: Normally consolidated
+        - 1.3 - 4.0: Lightly overconsolidated
+        - 4.0 - 10: Moderately overconsolidated
+        - >10: Heavily overconsolidated
+
+    :param ocr: Overconsolidation ratio of cohesive material (OCR) [-] - Suggested range: 1.0 <= ocr <= 20.0
+
+    .. math::
+        \\text{OCR} = \\frac{\\sigma_{v,p}^{\\prime}}{\\sigma_{v,0}^{\\prime}}
+
+    :returns: Dictionary with the following keys:
+
+        - 'OCR category': OCR class
+
+    Reference - Kulhawy F.H, and Hirany, A. (2003). Foundations, Editor(s): Robert A. Meyers, Encyclopedia of Physical Science and Technology (Third Edition), Academic Press.
+    
+    """
+
+    if 1 <= ocr < 1.3:
+        _ocr_category = "Normally consolidated"
+    elif 1.3 <= ocr < 4.0:
+        _ocr_category = "Lightly overconsolidated"
+    elif 4.0 <= ocr < 10.0:
+        _ocr_category = "Moderately overconsolidated"
+    elif 10.0 <= ocr:
+        _ocr_category = "Heavily overconsolidated"
+    else:
+        raise ValueError("OCR outside bounds")
+
+    return {
+        'OCR category': _ocr_category,
+    }

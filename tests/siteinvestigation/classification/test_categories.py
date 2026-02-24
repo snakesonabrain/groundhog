@@ -56,3 +56,17 @@ class Test_Categories(unittest.TestCase):
             categories.samplequality_voidratio_lunne(voidratio=1.0, voidratio_change=0.11, ocr=3)['Quality category'],
             'Very poor'
         )
+
+    def test_ocr_categories(self):
+        self.assertEqual(
+            categories.ocr_categories(
+                ocr=1.2)['OCR category'], "Normally consolidated")
+        self.assertEqual(
+            categories.ocr_categories(
+                ocr=2.0)['OCR category'], "Lightly overconsolidated")
+        self.assertEqual(
+            categories.ocr_categories(
+                ocr=5.0)['OCR category'], "Moderately overconsolidated")
+        self.assertEqual(
+            categories.ocr_categories(
+                ocr=15)['OCR category'], "Heavily overconsolidated")

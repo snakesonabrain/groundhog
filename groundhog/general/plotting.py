@@ -393,6 +393,146 @@ class LogPlot(object):
         self.fig.show(config=GROUNDHOG_PLOTTING_CONFIG)
 
 
+class LogPlotwithMap(LogPlot):
+    """Override the LogPlot class to include a map"""
+    def __init__(self, latitude, longitude, soilprofile, secondaryprofile=None, no_panels=1, logwidth=0.05,
+        fillcolordict={"Sand": 'yellow', "Clay": 'brown', 'Rock': 'grey'},
+        soiltypelegend=True,
+        soiltypecolumn="Soil type",
+        line_width=1,
+        map_width=0.3,
+        zoom_level=10,
+        marker_size=7,
+        marker_color='red',
+        **kwargs):
+
+        self.soilprofile = soilprofile
+        self.latitude = latitude
+        self.longitude = longitude
+
+        if secondaryprofile is None:
+            secondary_exists = False
+        else:
+            secondary_exists = True
+
+        self.no_panels = no_panels
+        # Determine the panel widths
+        if secondary_exists:
+            
+            panel_widths = list(map(lambda _x: (1 - map_width, 2 * logwidth) / no_panels, range(0, no_panels)))
+            panel_widths = list(np.append([logwidth, logwidth], panel_widths))
+            panel_widths = list(np.append(panel_widths, map_width))
+            self.no_logs = 2
+        else:
+            panel_widths = list(map(lambda _x: (1 - map_width - logwidth) / no_panels, range(0, no_panels)))
+            panel_widths = list(np.append(logwidth, panel_widths))
+            panel_widths = list(np.append(panel_widths, map_width))
+            self.no_logs = 1
+
+        total_panels = no_panels + self.no_logs + 1
+        self.total_panels = total_panels
+
+        panel_specs = list(map(lambda _x: {'type': 'xy'}, panel_widths))
+        panel_specs[-1] = {'type': 'mapbox'}
+
+        # Set up the figure
+        self.fig = subplots.make_subplots(
+            rows=1, cols=total_panels, column_widths=panel_widths, shared_yaxes=True,
+            print_grid=False, specs=[panel_specs], **kwargs)
+        
+        self.fig['layout']['yaxis1'].update(range=(soilprofile.max_depth, soilprofile.min_depth))
+
+        # Create rectangles for the log plot
+        _layers = []
+        for i, row in soilprofile.iterrows():
+            try:
+                _fillcolor = fillcolordict[row[soiltypecolumn]]
+            except:
+                _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
+            _y0 = row[self.soilprofile.depth_from_col]
+            _y1 = row[self.soilprofile.depth_to_col]
+            _layers.append(
+                dict(type='rect', xref='x1', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1, line_width=line_width))
+
+        if secondary_exists:
+            for i, row in secondaryprofile.iterrows():
+                try:
+                    _fillcolor = fillcolordict[row[soiltypecolumn]]
+                except:
+                    _fillcolor = DEFAULT_PLOTLY_COLORS[i % 10]
+                _y0 = row[secondaryprofile.depth_from_col]
+                _y1 = row[secondaryprofile.depth_to_col]
+                _layers.append(
+                    dict(type='rect', xref='x2', yref='y', x0=0, y0=_y0, x1=1, y1=_y1, fillcolor=_fillcolor, opacity=1, line_width=line_width))
+
+        for _soiltype in soilprofile[soiltypecolumn].unique():
+            try:
+                _fillcolor = fillcolordict[_soiltype]
+            except:
+                soiltypelegend = False
+
+            try:
+                if soiltypelegend:
+                    _trace = go.Bar(
+                        x=[-10, -10],
+                        y=[row['Depth to [m]'], row['Depth to [m]']],
+                        name=_soiltype,
+                        marker=dict(color=_fillcolor))
+                    self.fig.append_trace(_trace, 1, 1)
+            except:
+                pass
+        
+        if secondary_exists:
+            for _soiltype in secondaryprofile[soiltypecolumn].unique():
+                try:
+                    _fillcolor = fillcolordict[_soiltype]
+                except:
+                    soiltypelegend = False
+
+                try:
+                    if soiltypelegend:
+                        _trace = go.Bar(
+                            x=[-10, -10],
+                            y=[row['Depth to [m]'], row['Depth to [m]']],
+                            name=_soiltype,
+                            marker=dict(color=_fillcolor))
+                        self.fig.append_trace(_trace, 1, 2)
+                except:
+                    pass
+
+        # Create map
+        mapbox_trace = go.Scattermapbox(
+            lat=[latitude,], lon=[longitude,], showlegend=False, mode='markers',
+            name='Coordinate', marker=dict(color=marker_color, size=marker_size))
+        self.fig.append_trace(mapbox_trace, 1, total_panels)        
+
+        self.fig['layout'].update(
+            shapes=_layers, 
+            mapbox=dict(
+                style="open-street-map",
+                center=dict(lat=latitude, lon=longitude),
+                zoom=zoom_level))
+        self.fig['layout']['xaxis1'].update(
+            anchor='y', title=None, side='top', tickvals=[], range=(0, 1))
+        self.fig['layout']['yaxis1'].update(title='Depth [m]')
+
+        if secondary_exists:
+            self.fig['layout']['xaxis2'].update(
+                anchor='y', title=None, side='top', tickvals=[], range=(0, 1))           
+
+        for i in range(0, no_panels):
+            _dummy_data = go.Scatter(
+                x=[0, 100],
+                y=[np.nan, np.nan],
+                mode='lines',
+                name='Dummy',
+                showlegend=False,
+                line=dict(color='black'))
+            self.fig.append_trace(_dummy_data, 1, i + self.no_logs + 1)
+            self.fig['layout']['xaxis%i' % (i + self.no_logs + 1)].update(
+                anchor='y', title='X-axis %i' % (i + self.no_logs), side='top')
+
+
 class LogPlotMatplotlib(object):
     """
     Class for planneled plots with a minilog on the side, using the Matplotlib plotting backend

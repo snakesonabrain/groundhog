@@ -346,17 +346,134 @@ def unitskinfriction_clay_almhamre(
         'f_s_res [kPa]': _f_s_res,
     }
 
+UNIFIED_CPT_SHAFT_FRICTION_SAND = {
+    'qc':{'type': 'float','min_value':0.0,'max_value':100.0},
+    'sigma_vo_eff':{'type': 'float','min_value':0.0,'max_value':None},
+    'diameter':{'type': 'float','min_value':0.0,'max_value':5.0},
+    'wall_thickness':{'type': 'float','min_value':0.0,'max_value':None},
+    'embedded_length':{'type': 'float','min_value':0.0,'max_value':None},
+    'depth':{'type': 'float','min_value':0.0,'max_value':None},
+    'interface_friction_angle':{'type': 'float','min_value':15,'max_value':35}
+}
+
+UNIFIED_CPT_SHAFT_FRICTION_SAND_ERRORRETURN = {
+    'f_s_comp_out [kPa]': np.nan,
+    'f_s_comp_in [kPa]': np.nan,
+    'f_s_tens_out [kPa]': np.nan,
+    'f_s_tens_in [kPa]': np.nan,
+    'inside_diameter [m]': np.nan,
+    'Are [-]': np.nan,
+    'sigma_rc_eff [kPa]': np.nan,
+    'Delta sigma_rd_eff [kPa]': np.nan,
+    'PLR [-]': np.nan
+}
+
+@Validator(UNIFIED_CPT_SHAFT_FRICTION_SAND, UNIFIED_CPT_SHAFT_FRICTION_SAND_ERRORRETURN)
+def unified_CPT_shaft_friction_sand(
+    qc, sigma_vo_eff, diameter, wall_thickness,
+    embedded_length, depth, diameter_cpt=0.0357, interface_friction_angle=29,
+    PLR=np.nan, coefficient_1=44, coefficient_2=0.3,
+    coefficient_3=-0.4, coefficient_4=10, coefficient_5=-0.33, coefficient_6=0.3,
+    tension_multplier=0.75,
+    **kwargs):
+
+    """
+    Calculates the shaft friction in sand according to the unified CPT method (Lehane et al., 2020). 
+    
+    Care should be taken when applying these method to high cone resistances (>60MPa) as the calibration is performed using cone resistances below these values.
+    The engineer should evaluate the impact of a cone resistance limit.
+
+    :param qc: Cone resistance at depth z (:math:`q_c(z)`) [:math:`MPa`]  - Suggested range: 0.0<=cone_resistance<=100.0
+    :param sigma_vo_eff: Vertical effective stress at depth z (:math:`p'_o(z)`) [:math:`kPa`]  - Suggested range: 0.0<=vertical_effective_stress
+    :param diameter: Outside pile diameter (:math:`D`) [:math:`m`]  - Suggested range: 0.0<=outside_diameter<=5.0
+    :param wall_thickness: Pile wall thickness (:math:`WT`) [:math:`mm`]  - Suggested range: 0.0<=wall_thickness
+    :param embedded_length: Embedded pile length (:math:`L`) [:math:`m`]  - Suggested range: 0.0<=embedded_length
+    :param depth: Depth at which the unit shaft friction is calculated (:math:`z`) [:math:`m`]  - Suggested range: 0.0<=depth
+    :param diameter_cpt: Diameter of the CPT (:math:`d_{\\text{CPT}}`) [:math:`m`]  (optional, default=0.0357)
+    :param interface_friction_angle: Interface friction angle (:math:`\\delta`) [deg]  (optional, default=29)
+    :param PLR: Plugging length ratio (direct specification). If not directly specified, the tanh function is used [-] (optional, default=np.nan)
+    :param coefficient_1: Calibration coefficient 1 [-] (optional, default=44)
+    :param coefficient_2: Calibration coefficient 2 [-] (optional, default=0.3)
+    :param coefficient_3: Calibration coefficient 3 [-] (optional, default=-0.4)
+    :param coefficient_4: Calibration coefficient 4 [-] (optional, default=10)
+    :param coefficient_5: Calibration coefficient 5 [-] (optional, default=-0.33)
+    :param coefficient_6: Calibration coefficient 6 [-] (optional, default=0.3)
+    :param tension_multplier: Multiplier for skin friction in tension [-] (optional, default=0.75)
+    
+    .. math::
+        f(z) = \\left( \\frac{f_t}{f_c} \\right) \\left( \\sigma_{rc}^{\\prime} + \\Delta \\sigma_{rd}^{\\prime} \\right) \\tan 29°
+
+        \\sigma_{rc}^{\\prime} = \\left( \\frac{q_c}{44} \\right) A_{re}^{0.3} \\left[ \\text{max} \\left[ 1, \\frac{h}{D} \\right] \\right]^{-0.4}
+
+        \\Delta \\sigma_{rd}^{\\prime} = \\left( \\frac{q_c}{10} \\right) \\left(  \\frac{q_c}{\\sigma_v^{\\prime}} \\right)^{-0.33} \\left( \\frac{d_{\\text{CPT}}}{D} \\right)
+
+        \\frac{f_t}{f_c} = 1 \\text{ in compression and } \\frac{f_t}{f_c} = 0.75 \\text{in tension}
+
+        A_{re} = 1 - \\text{PLR} \\left( D_i / D \\right)^2
+
+        \\text{PLR} \\approx \\tanh \\left[ 0.3 \\left( D_i / d_{\\text{CPT}} \\right)^{0.5} \\right]
+
+        \\text{PLR} = 1 \\text{ for closed-ended piles}
+
+        d_{\\text{CPT}} = 35.7 \\text{mm}
+
+    :returns:   Unit shaft friction (:math:`f(z)`) [:math:`kPa`], Inside pile diameter (:math:`D_i`) [:math:`m`], Pile displacement ratio (:math:`A_r`) [:math:`-`], Pile rim area (:math:`A_w`) [:math:`-`]
+
+    :rtype: Python dictionary with keys ['f_s [kPa]','inside_diameter [m]','displacement_ratio [-]','section_area [-]']
+
+
+    Reference - API RP 2GEO, API RP 2GEO Geotechnical and Foundation Design Considerations, 2011
+
+    """
+    if diameter - 2.0 * 0.001 * wall_thickness <= 0.0:
+        raise ValueError("Wall thickness is greater than pile radius")
+
+    inside_diameter = diameter - 2.0 * (0.001 * wall_thickness)
+    
+    if np.isnan(PLR):
+        _plr = np.tanh(coefficient_6 * ((inside_diameter / diameter_cpt) ** 0.5))
+    else:
+        _plr = PLR
+    _A_re = 1 - _plr * ((inside_diameter / diameter) ** 2)
+
+    _sigma_rc_eff = (1e3 * qc / coefficient_1) * (_A_re ** coefficient_2) * \
+        ((max(1, (embedded_length - depth) / diameter)) ** coefficient_3)
+    _delta_sigma_rd_eff = (1e3 * qc / coefficient_4) * ((1e3 * qc / sigma_vo_eff) ** coefficient_5) * \
+        (diameter_cpt / diameter)
+    
+    _tau_f = (_sigma_rc_eff + _delta_sigma_rd_eff) * np.tan(np.radians(interface_friction_angle))
+
+    fs_comp_out = _tau_f
+    fs_comp_in = _tau_f
+    fs_tens_out = tension_multplier * _tau_f
+    fs_tens_in = tension_multplier * _tau_f
+
+    return {
+        'f_s_comp_out [kPa]': fs_comp_out,
+        'f_s_comp_in [kPa]': fs_comp_in,
+        'f_s_tens_out [kPa]': fs_tens_out,
+        'f_s_tens_in [kPa]': fs_tens_in,
+        'inside_diameter [m]': inside_diameter,
+        'Are [-]': _A_re,
+        'sigma_rc_eff [kPa]': _sigma_rc_eff,
+        'Delta sigma_rd_eff [kPa]': _delta_sigma_rd_eff,
+        'PLR [-]': _plr
+    }
+
 
 SKINFRICTION_METHODS = {
     'API RP2 GEO Sand': API_unit_shaft_friction_sand_rp2geo,
     'API RP2 GEO Clay': API_unit_shaft_friction_clay,
     'Alm and Hamre Sand': unitskinfriction_sand_almhamre,
-    'Alm and Hamre Clay': unitskinfriction_clay_almhamre
+    'Alm and Hamre Clay': unitskinfriction_clay_almhamre,
+    'Unified CPT Sand': unified_CPT_shaft_friction_sand
 }
 
 SKINFRICTION_PARAMETERS = {
     'API RP2 GEO Sand': ['api_relativedensity', 'api_soildescription', 'sigma_vo_eff'],
     'API RP2 GEO Clay': ['undrained_shear_strength', 'sigma_vo_eff'],
     'Alm and Hamre Sand': ['qt', 'sigma_vo_eff', 'interface_friction_angle', 'depth', 'embedded_length'],
-    'Alm and Hamre Clay': ['depth', 'embedded_length', 'qt', 'fs', 'sigma_vo_eff']
+    'Alm and Hamre Clay': ['depth', 'embedded_length', 'qt', 'fs', 'sigma_vo_eff'],
+    'Unified CPT Sand': ['qc', 'sigma_vo_eff', 'diameter', 'wall_thickness',
+        'embedded_length', 'interface_friction_angle', 'depth']
 }

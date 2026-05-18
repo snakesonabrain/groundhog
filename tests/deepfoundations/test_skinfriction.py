@@ -91,3 +91,30 @@ class Test_almhamre_unitskinfriction_clay(unittest.TestCase):
             result['f_s_res [kPa]'], 5.775, 3)
         self.assertAlmostEqual(
             result['f_s_comp_out [kPa]'], 125.464, 3)
+        
+
+class Test_unified_unitskinfriction_sand(unittest.TestCase):
+
+    def test_unified_unitskinfriction_sand(self):
+        result = skinfriction.unified_CPT_shaft_friction_sand(
+            qc=10,
+            sigma_vo_eff=100,
+            diameter=1.5,
+            wall_thickness=40,
+            embedded_length=20,
+            depth=15)
+        self.assertAlmostEqual(
+            result['f_s_comp_out [kPa]'], 46.372, 3)
+        self.assertAlmostEqual(
+            result['f_s_tens_out [kPa]'], 34.779, 3)
+        result = skinfriction.unified_CPT_shaft_friction_sand(
+            qc=10,
+            sigma_vo_eff=100,
+            diameter=1.5,
+            wall_thickness=40,
+            embedded_length=20,
+            depth=10)
+        self.assertAlmostEqual(
+            result['f_s_comp_out [kPa]'], 35.842, 3)
+        self.assertAlmostEqual(
+            result['f_s_tens_out [kPa]'], 26.882, 3)

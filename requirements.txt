@@ -1,5 +1,5 @@
-numpy>=2.0
-pandas>=1.0.3
+numpy~=2.2.6
+pandas~=2.3.3
 plotly
 scipy>=1.4.1
 xlrd==1.2.0

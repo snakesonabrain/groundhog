@@ -11,5 +11,3 @@ streamlit
 nose
 matplotlib
 Pillow
-
->= 1.2, < 2.0

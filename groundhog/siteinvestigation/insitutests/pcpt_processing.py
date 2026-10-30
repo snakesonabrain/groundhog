@@ -2425,6 +2425,9 @@ class PCPTProcessing(InsituTestProcessing):
             - Shear wave velocity Robertson and Cabal (2015): (`vs_ic_robertsoncabal`) - Calculation of shear wave velocity for all soil types
             - K0 Mayne (2007) - sand: (`k0_sand_mayne`) - Calculation of coefficient of lateral earth pressure for sand
             - Es Bellotti (1989) - sand: (`drainedsecantmodulus_sand_bellotti`) - Calculation of drained modulus at average strain of 0.1pct for sand
+            - OCR Mayne (2009) - sand: (`ocr_sand_mayne`) - Calculation of apparent preconsolidation pressure and OCR for sand
+            - K0 Kulhawy and Mayne (1990) - OCR: (`k0_ocr_kulhawymayne`) - Calculation of coefficient of lateral earth pressure at rest from OCR and constant volume friction angle
+            - Dr Krogh et al (2022): (`relativedensity_shallowsand_krogh`) - Calculation of relative density of NC and OC sand at shallow depths accounting for varying OCR and K0
 
         Note that certain correlations require either the calculation of normalised properties or application of preceding correlations
 

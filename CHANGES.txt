@@ -4,7 +4,9 @@ v0.16.0 - TBD
     - Added calculations for stresses next to a buried earth-retaining structure
     - Added Chin-Kondler method
     - Added pile lateral group effect multipliers
+    - Added relative density correlation for shallow CPTs in sand according to Krogh et al (2022), with intermediate correlations for OCR (Mayne, 2009) and K0 (Kulhawy and Mayne, 1990)
     - 
+    - TODO: Create DilatometerProcessing class
     - TODO: Prepare functionality for SPT fence diagram creation
     - TODO: Create a BoreholeLogging object (to log properties like RQD, UCS, Point load, ...)
     - TODO: Add hatching patterns to LogPlot

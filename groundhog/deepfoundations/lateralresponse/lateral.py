@@ -117,7 +117,7 @@ def reinforced_circularsection_inertia(diameter, modulus_ratio, n_bars, offset, 
 
 PILEGROUPEFFECT_REESEVANIMPE = {
     'pile_x': {'type': 'list', 'elementtype': 'float', 'order': None, 'unique': False, 'empty_allowed': False},
-    'pile_x': {'type': 'list', 'elementtype': 'float', 'order': None, 'unique': False, 'empty_allowed': False},
+    'pile_y': {'type': 'list', 'elementtype': 'float', 'order': None, 'unique': False, 'empty_allowed': False},
     'pile_diameters': {'type': 'list', 'elementtype': 'float', 'order': None, 'unique': False, 'empty_allowed': False},
     'load_x': {"type": "float", "min_value": None, "max_value": None},
     'load_y': {"type": "float", "min_value": None, "max_value": None}
@@ -143,10 +143,10 @@ def pilegroupeffect_reesevanimpe(pile_x, pile_y, pile_diameters, load_x, load_y,
 
     :param pile_x: List of X-coordinates of the pile centers (:math:`x`) [m]
     :param pile_y: List of Y-coordinates of the pile centers (:math:`y`) [m]
-    :param pile_diameters: List of pile diameters (:math:`y`) [m]
+    :param pile_diameters: List of pile diameters (:math:`D`) [m]
     :param load_x: X-component of the load vector (:math:`x_{\\text{load}}`)
-    :param load_y: Y-component of the load vector (:math:`x_{\\text{load}}`)
-    :param show_fig: Boolean determining whether the figures for the Chin-Kondler construction need to be plotted (default behaviour) or returned in the output dictionary.
+    :param load_y: Y-component of the load vector (:math:`y_{\\text{load}}`)
+    :param show_fig: Boolean determining whether the figures for the Reese & Van Impe construction need to be plotted (default behaviour) or returned in the output dictionary.
 
     .. math::
         \\text{Side by side piles: } e = 0.64 \\left( \\frac{s}{D} \\right)^{0.34} \\text{ for } 1 \\leq \\frac{s}{D} \\leq 3.75, e=1 \\text{ for } \\frac{s}{D} > 3.75

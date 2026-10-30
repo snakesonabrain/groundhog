@@ -38,16 +38,16 @@ PILETEST_CHINKONDLER_ERRORRETURN = {
 @Validator(PILETEST_CHINKONDLER, PILETEST_CHINKONDLER_ERRORRETURN)
 def piletest_chinkondler(loads, settlements, no_discard_points=1, max_settlement=50, selected_settlement=40, show_fig=True, **kwargs):
     """
-    Extrapotates a pile head load-settlement curve based on the procedure by Chin-Kondler.
+    Extrapolates a pile head load-settlement curve based on the procedure by Chin-Kondler.
     The settlements are divided by the corresponding loads. This yields a straight line in a graph of this fraction vs settlement.
-    The user selects how many points to discard and the fitting happens using ``np.polyfit``.
+    The user selects how many points to discard and the fitting happens using linear regression.
     An extrapolated load-settlement curve is calculated and plotted for the user to check the results.
 
     :param loads: List of loads recorded during the load test. Note that unload-reload loops should be removed before running the algorithm (:math:`Q`) [kN]
     :param settlements: List of settlements recorded during the load test. Should be the same length as the list with loads (:math:`s`) [mm]
     :param no_discard_points: Number of points at the start of the curve to discard for the fitting of the straight line.
     :param max_settlement: Maximum settlement used for plotting the reconstructed pile head load-settlement curve (:math:`s_{max}`) [mm]. Optional, default=50mm.
-    :param selected_settlement: Settlement as which pile capacity is calculated (e.g. 10% of OD) (:math:`Q_{s=s_{\\text{selected}}}`) [kN]. Optional, default=40mm.
+    :param selected_settlement: Settlement as which pile capacity is calculated (e.g. 10% of OD) (:math:`Q_{s=s_{\\text{selected}}}`) [mm]. Optional, default=40mm.
     :param show_fig: Boolean determining whether the figures for the Chin-Kondler construction need to be plotted (default behaviour) or returned in the output dictionary.
 
     .. math::
@@ -59,12 +59,13 @@ def piletest_chinkondler(loads, settlements, no_discard_points=1, max_settlement
 
         - 'intercept [mm/kN]': Coefficient :math:`a` from the linear regression [mm/kN]
         - 'slope [1/kN]': Slope :math:`b` for the linear regression [1/kN]
-        - 'Correleation coefficient [-]': Pearson correlation coefficient for the points used for the construction.
+        - 'Correlation coefficient [-]': Pearson correlation coefficient for the points used for the construction.
         - 'Qmax [kN]': Ultimate pile resistance (fully mobilised shaft and base) (:math:`Q_{\\text{ult}}`) [kN]
         - 'Qdisp [kN]': Pile resistance at the selected displacement level (e.g. 10% of OD) (:math:`Q_{s=s_\\text{selected}}`) [kN]
         - 'Settlements [mm]': List with settlements for the load-displacement reconstruction [mm]
         - 'Q [kN]': List with loads for the load-displacement reconstruction [kN]
         - 'construction_fig': Figure with the linear regression construction (for inspection of the goodness-of-fit)
+        - 'extrapolation_fig': Figure with the extrapolated load-settlement curve
     """
     if loads.__len__() != settlements.__len__():
         raise ValueError("Array of loads and settlements need to be the same length.")

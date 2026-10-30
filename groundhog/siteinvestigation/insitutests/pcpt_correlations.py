@@ -877,7 +877,7 @@ def relativedensity_sand_jamiolkowski(
     .. math::
         D_{r,dry} = \\frac{1}{2.96} \\cdot \\ln \\left[ \\frac{q_c / P_a}{24.94 \\cdot \\left( \\frac{\\sigma_{m}^{\\prime}}{P_a} \\right)^{0.46} } \\right]
 
-        D_{r,sat} = \\left( 1 + \\frac{-1.87 + 2.32 \\cdot \\ln \\left[ \\frac{q_c}{\\sqrt{P_a + \\sigma_{vo}^{\\prime}}} \\right] }{100} \\right) \\cdot D_{r,dry}
+        D_{r,sat} = \\left( 1 + \\frac{-1.87 + 2.32 \\cdot \\ln \\left[ \\frac{q_c}{\\sqrt{P_a \\cdot \\sigma_{vo}^{\\prime}}} \\right] }{100} \\right) \\cdot D_{r,dry}
 
     :returns: Dictionary with the following keys:
 
@@ -897,7 +897,7 @@ def relativedensity_sand_jamiolkowski(
             (
                 coefficient_4
                 + coefficient_5
-                * np.log((1000 * qc) / (np.sqrt(atmospheric_pressure + sigma_vo_eff)))
+                * np.log((1000 * qc) / (np.sqrt(atmospheric_pressure * sigma_vo_eff)))
             )
             / 100
         )
@@ -1739,6 +1739,273 @@ def k0_sand_mayne(
         "K0 CPT [-]": _K0_CPT,
         "K0 conventional [-]": _K0_conventional,
         "Kp [-]": _Kp,
+    }
+
+
+OCR_SAND_MAYNE = {
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "sigma_vo": {"type": "float", "min_value": 0.0, "max_value": None},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "exponent": {"type": "float", "min_value": 0.6, "max_value": 1.0},
+    "atmospheric_pressure": {"type": "float", "min_value": 90.0, "max_value": 110.0},
+    "ocr_min": {"type": "float", "min_value": 0.0, "max_value": None},
+}
+
+OCR_SAND_MAYNE_ERRORRETURN = {
+    "sigma_p_eff [kPa]": np.nan,
+    "OCR [-]": np.nan,
+}
+
+
+@Validator(OCR_SAND_MAYNE, OCR_SAND_MAYNE_ERRORRETURN)
+def ocr_sand_mayne(
+    qt,
+    sigma_vo,
+    sigma_vo_eff,
+    multiplier=0.33,
+    exponent=0.72,
+    atmospheric_pressure=100.0,
+    ocr_min=1.0,
+    **kwargs
+):
+    """
+    Calculates the apparent preconsolidation pressure and apparent overconsolidation ratio of sand from the net cone resistance using the unified approach by Mayne (2009).
+    The fitting exponent :math:`m^{\\prime}` depends on the soil type, with :math:`m^{\\prime} \\approx 0.72` for clean quartz to silica sands, 0.8 for silty sands, 0.85 for sandy silts and 1.0 for intact clays.
+
+    Krogh et al (2022) showed that the apparent OCR profile calculated with this approach matches the OCR resulting from removal of overburden at a sand site in Cuxhaven, Germany. Typical dense overconsolidated marine sands show logarithmically decreasing OCR with depth, with high OCR values in the uppermost metres.
+
+    At greater depths, the calculated preconsolidation pressure may be lower than the vertical effective stress. The OCR is therefore limited to a minimum value (default 1.0). The calculated preconsolidation pressure is returned without modification.
+
+    When used with ``apply_correlation``, use ``'OCR Mayne (2009) - sand'`` as correlation name.
+
+    :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
+    :param sigma_vo: Total vertical stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: sigma_vo >= 0.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param multiplier: Multiplier in the equation for preconsolidation pressure (:math:``) [:math:`-`] (optional, default= 0.33)
+    :param exponent: Fitting exponent depending on soil type (:math:`m^{\\prime}`) [:math:`-`] - Suggested range: 0.6 <= exponent <= 1.0 (optional, default= 0.72)
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+    :param ocr_min: Minimum value of the overconsolidation ratio (:math:`OCR_{min}`) [:math:`-`] - Suggested range: ocr_min >= 0.0 (optional, default= 1.0)
+
+    .. math::
+        \\sigma_p^{\\prime} = 0.33 \\cdot (q_t - \\sigma_{vo})^{m^{\\prime}} \\cdot \\left( \\frac{P_a}{100} \\right)^{1 - m^{\\prime}}
+
+        OCR = \\max \\left( \\frac{\\sigma_p^{\\prime}}{\\sigma_{vo}^{\\prime}}, OCR_{min} \\right)
+
+    :returns: Dictionary with the following keys:
+
+        - 'sigma_p_eff [kPa]': Apparent preconsolidation pressure (:math:`\\sigma_p^{\\prime}`)  [:math:`kPa`]
+        - 'OCR [-]': Apparent overconsolidation ratio (:math:`OCR`)  [:math:`-`]
+
+    Reference - Mayne, P.W. 2009. Geoengineering design using the cone penetration test. ConeTec Inc., Richmond, B.C., Canada.
+
+    Krogh, L., Quinteros, S., Engin, H.K., and Lunne, T. 2022. Revisiting interpretation of relative density from shallow depth CPTs in sand. Canadian Geotechnical Journal. 59: 808-826.
+
+    """
+    _qnet = 1000 * qt - sigma_vo
+    if _qnet <= 0:
+        raise ValueError("Net cone resistance (qt - sigma_vo) needs to be strictly positive")
+
+    _sigma_p_eff = (
+        multiplier
+        * (_qnet**exponent)
+        * ((atmospheric_pressure / 100) ** (1 - exponent))
+    )
+    _ocr = max(_sigma_p_eff / sigma_vo_eff, ocr_min)
+
+    return {
+        "sigma_p_eff [kPa]": _sigma_p_eff,
+        "OCR [-]": _ocr,
+    }
+
+
+K0_OCR_KULHAWYMAYNE = {
+    "ocr": {"type": "float", "min_value": 1.0, "max_value": 100.0},
+    "phi_cs": {"type": "float", "min_value": 25.0, "max_value": 45.0},
+    "k0_max": {"type": "float", "min_value": 0.0, "max_value": None},
+}
+
+K0_OCR_KULHAWYMAYNE_ERRORRETURN = {
+    "K0 uncapped [-]": np.nan,
+    "K0 [-]": np.nan,
+}
+
+
+@Validator(K0_OCR_KULHAWYMAYNE, K0_OCR_KULHAWYMAYNE_ERRORRETURN)
+def k0_ocr_kulhawymayne(
+    ocr,
+    phi_cs,
+    k0_max=3.5,
+    **kwargs
+):
+    """
+    Calculates the coefficient of lateral earth pressure at rest for overconsolidated sand from the overconsolidation ratio and the constant volume friction angle.
+    Lee et al (2013) suggest using the measured constant volume friction angle rather than the peak friction angle for denser sands.
+
+    At shallow depths, high OCR values lead to high values of :math:`K_0`. The coefficient of lateral earth pressure at rest is limited to a maximum value which corresponds to passive failure. Krogh et al (2022) apply a maximum value of :math:`K_0 = K_p = 3.5`. Alternatively, the Rankine passive earth pressure coefficient can be specified as the maximum value.
+
+    When used with ``apply_correlation``, use ``'K0 Kulhawy and Mayne (1990) - OCR'`` as correlation name.
+
+    :param ocr: Overconsolidation ratio (:math:`OCR`) [:math:`-`] - Suggested range: 1.0 <= ocr <= 100.0
+    :param phi_cs: Constant volume friction angle (:math:`\\varphi_{cv}^{\\prime}`) [:math:`deg`] - Suggested range: 25.0 <= phi_cs <= 45.0
+    :param k0_max: Maximum value for the coefficient of lateral earth pressure at rest (:math:`K_{0,max}`) [:math:`-`] - Suggested range: k0_max >= 0.0 (optional, default= 3.5)
+
+    .. math::
+        K_0 = \\min \\left( \\left( 1 - \\sin \\varphi_{cv}^{\\prime} \\right) \\cdot OCR^{\\sin \\varphi_{cv}^{\\prime}}, K_{0,max} \\right)
+
+    :returns: Dictionary with the following keys:
+
+        - 'K0 uncapped [-]': Coefficient of lateral earth pressure at rest before applying the maximum value (:math:`K_{0,uncapped}`)  [:math:`-`]
+        - 'K0 [-]': Coefficient of lateral earth pressure at rest (:math:`K_0`)  [:math:`-`]
+
+    Reference - Kulhawy, F.H., and Mayne, P.W. 1990. Manual on estimating soil properties for foundation design. Report EPRI EL-6800, Electric Power Research Institute, Palo Alto.
+
+    Lee, J., Park, D., Kyung, D., and Lee, D. 2013. Effect of particle characteristics on K0 behaviour for granular materials. In Proceedings of the 18th International Conference on Soil Mechanics and Geotechnical Engineering, Presses des Ponts, Paris. pp. 337-350.
+
+    Krogh, L., Quinteros, S., Engin, H.K., and Lunne, T. 2022. Revisiting interpretation of relative density from shallow depth CPTs in sand. Canadian Geotechnical Journal. 59: 808-826.
+
+    """
+    _K0_uncapped = (1 - np.sin(np.radians(phi_cs))) * (
+        ocr ** (np.sin(np.radians(phi_cs)))
+    )
+    _K0 = min(_K0_uncapped, k0_max)
+
+    return {
+        "K0 uncapped [-]": _K0_uncapped,
+        "K0 [-]": _K0,
+    }
+
+
+RELATIVEDENSITY_SHALLOWSAND_KROGH = {
+    "qc": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "qt": {"type": "float", "min_value": 0.0, "max_value": 120.0},
+    "sigma_vo": {"type": "float", "min_value": 0.0, "max_value": None},
+    "sigma_vo_eff": {"type": "float", "min_value": 0.0, "max_value": None},
+    "phi_cs": {"type": "float", "min_value": 25.0, "max_value": 45.0},
+    "multiplier": {"type": "float", "min_value": None, "max_value": None},
+    "exponent": {"type": "float", "min_value": 0.6, "max_value": 1.0},
+    "ocr_min": {"type": "float", "min_value": 0.0, "max_value": None},
+    "k0_max": {"type": "float", "min_value": 0.0, "max_value": None},
+    "atmospheric_pressure": {"type": "float", "min_value": 90.0, "max_value": 110.0},
+    "coefficient_1": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_2": {"type": "float", "min_value": None, "max_value": None},
+    "coefficient_3": {"type": "float", "min_value": None, "max_value": None},
+}
+
+RELATIVEDENSITY_SHALLOWSAND_KROGH_ERRORRETURN = {
+    "sigma_p_eff [kPa]": np.nan,
+    "OCR [-]": np.nan,
+    "K0 [-]": np.nan,
+    "sigma_m_eff [kPa]": np.nan,
+    "Dr [-]": np.nan,
+}
+
+
+@Validator(
+    RELATIVEDENSITY_SHALLOWSAND_KROGH, RELATIVEDENSITY_SHALLOWSAND_KROGH_ERRORRETURN
+)
+def relativedensity_shallowsand_krogh(
+    qc,
+    qt,
+    sigma_vo,
+    sigma_vo_eff,
+    phi_cs,
+    multiplier=0.33,
+    exponent=0.72,
+    ocr_min=1.0,
+    k0_max=3.5,
+    atmospheric_pressure=100.0,
+    coefficient_1=2.96,
+    coefficient_2=24.94,
+    coefficient_3=0.46,
+    **kwargs
+):
+    """
+    Calculates the relative density of normally consolidated and overconsolidated sand from CPT, with due consideration of the varying OCR and :math:`K_0` profiles at shallow depths (vertical effective stress below 50kPa).
+
+    Existing CPT correlations for relative density are calibrated on calibration chamber tests at stress levels above 50kPa and tend to overestimate the relative density of aged overconsolidated sands at shallow depth when a constant value of :math:`K_0` is used.
+    Based on field testing, laboratory testing and numerical analyses at a sand site in Cuxhaven (Germany), Krogh et al (2022) concluded that the correlation by Jamiolkowski et al (2003) captures the response of overconsolidated sand at shallow depths, provided the mean effective stress is calculated with an appropriate :math:`K_0` profile.
+
+    The following stepwise approach is followed:
+
+        - Step 1: The apparent OCR is calculated from the net cone resistance using Mayne (2009) (see ``ocr_sand_mayne``)
+        - Step 2: :math:`K_0` is calculated from OCR and the constant volume friction angle using Kulhawy and Mayne (1990) with a maximum value of :math:`K_0 = K_p = 3.5` (see ``k0_ocr_kulhawymayne``). The mean effective stress is calculated from the vertical effective stress and :math:`K_0`.
+        - Step 3: The relative density is calculated from the cone resistance and the mean effective stress using Jamiolkowski et al (2003)
+
+    Note that the cone resistance is normalised with the atmospheric pressure in the equation by Jamiolkowski et al (2003). This normalisation is omitted in the equations in Krogh et al (2022).
+
+    The relative density is not limited to 1. Relative densities above 100% are commonly obtained for very dense offshore sands. No correction for saturation is applied.
+
+    When used with ``apply_correlation``, use ``'Dr Krogh et al (2022)'`` as correlation name.
+
+    :param qc: Cone tip resistance (:math:`q_c`) [:math:`MPa`] - Suggested range: 0.0 <= qc <= 120.0
+    :param qt: Total cone resistance (:math:`q_t`) [:math:`MPa`] - Suggested range: 0.0 <= qt <= 120.0
+    :param sigma_vo: Total vertical stress (:math:`\\sigma_{vo}`) [:math:`kPa`] - Suggested range: sigma_vo >= 0.0
+    :param sigma_vo_eff: Vertical effective stress (:math:`\\sigma_{vo}^{\\prime}`) [:math:`kPa`] - Suggested range: sigma_vo_eff >= 0.0
+    :param phi_cs: Constant volume friction angle (:math:`\\varphi_{cv}^{\\prime}`) [:math:`deg`] - Suggested range: 25.0 <= phi_cs <= 45.0
+    :param multiplier: Multiplier in the equation for preconsolidation pressure (:math:``) [:math:`-`] (optional, default= 0.33)
+    :param exponent: Fitting exponent in the equation for preconsolidation pressure (:math:`m^{\\prime}`) [:math:`-`] - Suggested range: 0.6 <= exponent <= 1.0 (optional, default= 0.72)
+    :param ocr_min: Minimum value of the overconsolidation ratio (:math:`OCR_{min}`) [:math:`-`] - Suggested range: ocr_min >= 0.0 (optional, default= 1.0)
+    :param k0_max: Maximum value for the coefficient of lateral earth pressure at rest (:math:`K_{0,max}`) [:math:`-`] - Suggested range: k0_max >= 0.0 (optional, default= 3.5)
+    :param atmospheric_pressure: Atmospheric pressure (:math:`P_a`) [:math:`kPa`] - Suggested range: 90.0 <= atmospheric_pressure <= 110.0 (optional, default= 100.0)
+    :param coefficient_1: First calibration coefficient (:math:`C_2`) [:math:`-`] (optional, default= 2.96)
+    :param coefficient_2: Second calibration coefficient (:math:`C_0`) [:math:`-`] (optional, default= 24.94)
+    :param coefficient_3: Third calibration coefficient (:math:`C_1`) [:math:`-`] (optional, default= 0.46)
+
+    .. math::
+        \\sigma_p^{\\prime} = 0.33 \\cdot (q_t - \\sigma_{vo})^{m^{\\prime}}
+
+        OCR = \\frac{\\sigma_p^{\\prime}}{\\sigma_{vo}^{\\prime}}
+
+        K_0 = \\left( 1 - \\sin \\varphi_{cv}^{\\prime} \\right) \\cdot OCR^{\\sin \\varphi_{cv}^{\\prime}} \\leq K_p = 3.5
+
+        \\sigma_m^{\\prime} = \\frac{\\sigma_{vo}^{\\prime}}{3} \\cdot (1 + 2 K_0)
+
+        D_r = \\frac{1}{2.96} \\cdot \\ln \\left[ \\frac{q_c / P_a}{24.94 \\cdot \\left( \\frac{\\sigma_{m}^{\\prime}}{P_a} \\right)^{0.46} } \\right]
+
+    :returns: Dictionary with the following keys:
+
+        - 'sigma_p_eff [kPa]': Apparent preconsolidation pressure (:math:`\\sigma_p^{\\prime}`)  [:math:`kPa`]
+        - 'OCR [-]': Apparent overconsolidation ratio (:math:`OCR`)  [:math:`-`]
+        - 'K0 [-]': Coefficient of lateral earth pressure at rest (:math:`K_0`)  [:math:`-`]
+        - 'sigma_m_eff [kPa]': Mean effective stress (:math:`\\sigma_m^{\\prime}`)  [:math:`kPa`]
+        - 'Dr [-]': Relative density as a number between 0 and 1 (can exceed 1 for very dense sands) (:math:`D_r`)  [:math:`-`]
+
+    Reference - Krogh, L., Quinteros, S., Engin, H.K., and Lunne, T. 2022. Revisiting interpretation of relative density from shallow depth CPTs in sand. Canadian Geotechnical Journal. 59: 808-826.
+
+    """
+    # Inputs are validated by this function, validation of intermediate results (OCR) is not required
+    _ocr_result = ocr_sand_mayne(
+        qt=qt,
+        sigma_vo=sigma_vo,
+        sigma_vo_eff=sigma_vo_eff,
+        multiplier=multiplier,
+        exponent=exponent,
+        atmospheric_pressure=atmospheric_pressure,
+        ocr_min=ocr_min,
+        validate=False,
+        fail_silently=False,
+    )
+    _k0_result = k0_ocr_kulhawymayne(
+        ocr=_ocr_result["OCR [-]"],
+        phi_cs=phi_cs,
+        k0_max=k0_max,
+        validate=False,
+        fail_silently=False,
+    )
+    _K0 = _k0_result["K0 [-]"]
+    _sigma_m_eff = (sigma_vo_eff / 3) * (1 + 2 * _K0)
+    _Dr = (1 / coefficient_1) * np.log(
+        (1000 * qc / atmospheric_pressure)
+        / (coefficient_2 * ((_sigma_m_eff / atmospheric_pressure) ** coefficient_3))
+    )
+
+    return {
+        "sigma_p_eff [kPa]": _ocr_result["sigma_p_eff [kPa]"],
+        "OCR [-]": _ocr_result["OCR [-]"],
+        "K0 [-]": _K0,
+        "sigma_m_eff [kPa]": _sigma_m_eff,
+        "Dr [-]": _Dr,
     }
 
 
@@ -3646,6 +3913,7 @@ CORRELATIONS = {
     "Dr Baldi et al (1986) - NC sand": relativedensity_ncsand_baldi,
     "Dr Baldi et al (1986) - OC sand": relativedensity_ocsand_baldi,
     "Dr Jamiolkowski et al (2003)": relativedensity_sand_jamiolkowski,
+    "Dr Krogh et al (2022)": relativedensity_shallowsand_krogh,
     "Friction angle Kulhawy and Mayne (1990)": frictionangle_sand_kulhawymayne,
     "Su Rad and Lunne (1988)": undrainedshearstrength_clay_radlunne,
     "Friction angle Kleven (1986)": frictionangle_overburden_kleven,
@@ -3654,6 +3922,8 @@ CORRELATIONS = {
     "Unit weight Mayne et al (2010)": unitweight_mayne,
     "Shear wave velocity Robertson and Cabal (2015)": vs_ic_robertsoncabal,
     "K0 Mayne (2007) - sand": k0_sand_mayne,
+    "OCR Mayne (2009) - sand": ocr_sand_mayne,
+    "K0 Kulhawy and Mayne (1990) - OCR": k0_ocr_kulhawymayne,
     "Es Bellotti (1989) - sand": drainedsecantmodulus_sand_bellotti,
     "Gmax void ratio Mayne and Rix (1993)": gmax_voidratio_maynerix,
     "Vs CPT Andrus (2007)": vs_cpt_andrus,

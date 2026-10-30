@@ -97,7 +97,7 @@ class Test_relativedensity_sand_jamiolkowski(unittest.TestCase):
             k0=1
         )
         self.assertAlmostEqual(result['Dr dry [-]'], 0.60, 2)
-        self.assertAlmostEqual(result['Dr sat [-]'], 0.68, 2)
+        self.assertAlmostEqual(result['Dr sat [-]'], 0.65, 2)
 
 
 class Test_friction_angle_kleven(unittest.TestCase):
@@ -164,6 +164,64 @@ class Test_k0_sand_mayne(unittest.TestCase):
     def test_values(self):
         result = pcpt_correlations.k0_sand_mayne(qt=10, sigma_vo_eff=100, ocr=1)
         self.assertAlmostEqual(result['K0 CPT [-]'], 0.53, 2)
+
+
+class Test_ocr_sand_mayne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.ocr_sand_mayne(
+            qt=10, sigma_vo=8.5, sigma_vo_eff=18, fail_silently=False)
+        self.assertAlmostEqual(result['sigma_p_eff [kPa]'], 250.2, 1)
+        self.assertAlmostEqual(result['OCR [-]'], 13.90, 2)
+
+    def test_ocr_min(self):
+        result = pcpt_correlations.ocr_sand_mayne(
+            qt=1, sigma_vo=100, sigma_vo_eff=100, fail_silently=False)
+        self.assertAlmostEqual(result['sigma_p_eff [kPa]'], 44.2, 1)
+        self.assertEqual(result['OCR [-]'], 1.0)
+
+    def test_negative_qnet(self):
+        self.assertRaises(
+            ValueError, pcpt_correlations.ocr_sand_mayne,
+            qt=0.05, sigma_vo=100, sigma_vo_eff=50, fail_silently=False)
+
+
+class Test_k0_ocr_kulhawymayne(unittest.TestCase):
+
+    def test_values(self):
+        result = pcpt_correlations.k0_ocr_kulhawymayne(
+            ocr=10, phi_cs=32, fail_silently=False)
+        self.assertAlmostEqual(result['K0 [-]'], 1.59, 2)
+        result = pcpt_correlations.k0_ocr_kulhawymayne(
+            ocr=50, phi_cs=32, fail_silently=False)
+        self.assertAlmostEqual(result['K0 uncapped [-]'], 3.74, 2)
+        self.assertEqual(result['K0 [-]'], 3.5)
+
+    def test_ranges(self):
+        self.assertRaises(
+            ValueError, pcpt_correlations.k0_ocr_kulhawymayne,
+            ocr=200, phi_cs=32, fail_silently=False)
+
+
+class Test_relativedensity_shallowsand_krogh(unittest.TestCase):
+
+    def test_values(self):
+        # Shallow dense OC sand, comparable to the German Bight profile at 2m depth (Fig. 20e-h)
+        result = pcpt_correlations.relativedensity_shallowsand_krogh(
+            qc=18, qt=18, sigma_vo=40, sigma_vo_eff=20, phi_cs=32, fail_silently=False)
+        self.assertAlmostEqual(result['OCR [-]'], 19.08, 2)
+        self.assertAlmostEqual(result['K0 [-]'], 2.24, 2)
+        self.assertAlmostEqual(result['sigma_m_eff [kPa]'], 36.57, 2)
+        self.assertAlmostEqual(result['Dr [-]'], 0.82, 2)
+
+    def test_jamiolkowski_k0_1(self):
+        # With K0 limited to 1, the dry relative density according to Jamiolkowski et al (2003) is retrieved
+        result = pcpt_correlations.relativedensity_shallowsand_krogh(
+            qc=26.6, qt=26.6, sigma_vo=200, sigma_vo_eff=100, phi_cs=32, k0_max=1, fail_silently=False)
+        result_jamiolkowski = pcpt_correlations.relativedensity_sand_jamiolkowski(
+            qc=26.6, sigma_vo_eff=100, k0=1, fail_silently=False)
+        self.assertEqual(result['K0 [-]'], 1)
+        self.assertAlmostEqual(result['Dr [-]'], result_jamiolkowski['Dr dry [-]'], 6)
 
 
 class Test_gmax_cpt_puechen(unittest.TestCase):

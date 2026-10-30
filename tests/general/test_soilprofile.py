@@ -116,12 +116,12 @@ class Test_SoilProfile(unittest.TestCase):
 
     def test_soilparameter_retrieval(self):
         profile = sp.SoilProfile({
-            'Depth from [m]': [0, 1, 5, 10],
-            'Depth to [m]': [1, 5, 10, 20],
+            'Depth from [m]': [0.0, 1.0, 5.0, 10.0],
+            'Depth to [m]': [1.0, 5.0, 10.0, 20.0],
             'Soil type': ['SAND', 'SILT', 'CLAY', 'SAND'],
-            'Dr [%]': [40, 60, np.nan, 80],
-            'qc from [MPa]': [1, 3, 10, 40],
-            'qc to [MPa]': [1, 3, 10, 40]
+            'Dr [%]': [40.0, 60.0, np.nan, 80.0],
+            'qc from [MPa]': [1.0, 3.0, 10.0, 40.0],
+            'qc to [MPa]': [1.0, 3.0, 10.0, 40.0]
         })
         self.assertIn('qc [MPa]',profile.soil_parameters())
         self.assertIn('Soil type',profile.soil_parameters())
@@ -139,7 +139,7 @@ class Test_SoilProfile(unittest.TestCase):
         self.profile.insert_layer_transition(depth=2.5)
         self.assertEqual(self.profile.loc[1, "Depth to [m]"], 2.5)
         self.profile.insert_layer_transition(depth=2)
-        self.assertEqual(self.profile.loc[1, "Depth to [m]"], 2)
+        self.assertEqual(self.profile.loc[1, "Depth to [m]"], 2.0)
 
     def test_merge_soiltypes(self):
         self.profile['Su from [kPa]'] = [np.nan, 25, 50, np.nan]
